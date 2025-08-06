@@ -423,8 +423,7 @@ def main():
         result = scrape_instagram_profile(username, analysis_id, auth_username, auth_password, extension_cookies)
         
         # Output final result as JSON to stdout only
-        sys.stdout.write(json.dumps(result, indent=2))
-        sys.stdout.flush()
+        print(json.dumps(result), flush=True)
         
         # Exit with appropriate code
         sys.exit(0 if result.get("success", False) else 1)
@@ -435,7 +434,7 @@ def main():
             "error": str(error),
             "message": f"Scraper initialization failed: {str(error)}"
         }
-        print(json.dumps(error_result, indent=2))
+        print(json.dumps(error_result), flush=True)
         sys.exit(1)
 
 

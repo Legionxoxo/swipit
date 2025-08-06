@@ -146,6 +146,27 @@ async function storeVideos(analysisId, youtubeChannelId, videoDataArray) {
 }
 
 /**
+ * Get YouTube analysis job by ID
+ * @param {string} analysisId - Analysis ID
+ * @returns {Promise<Object>} Analysis job data
+ */
+async function getAnalysisJob(analysisId) {
+    try {
+        if (!analysisId) {
+            throw new Error('Analysis ID is required');
+        }
+
+        return await youtubeDb.getAnalysisJob(analysisId);
+
+    } catch (error) {
+        console.error('YouTube service get analysis job error:', error);
+        throw new Error(`Failed to get YouTube analysis job: ${error.message}`);
+    } finally {
+        console.log(`YouTube analysis job retrieval attempted: ${analysisId}`);
+    }
+}
+
+/**
  * Get YouTube analysis by ID
  * @param {string} analysisId - Analysis ID
  * @returns {Promise<YouTubeServiceResponse>} Service response with analysis data
@@ -286,13 +307,42 @@ async function deleteAnalysis(analysisId) {
     }
 }
 
+/**
+ * Get all completed YouTube analyses
+ * @param {Object} options - Query options
+ * @returns {Promise<YouTubeServiceResponse>} Service response
+ */
+async function getAllCompletedAnalyses(options = {}) {
+    try {
+        const analyses = await youtubeDb.getAllCompletedAnalyses(options);
+
+        return {
+            success: true,
+            message: 'YouTube analyses retrieved successfully',
+            data: analyses
+        };
+
+    } catch (error) {
+        console.error('YouTube service get all analyses error:', error);
+        return {
+            success: false,
+            message: 'Failed to get YouTube analyses',
+            error: error.message
+        };
+    } finally {
+        console.log('YouTube all analyses retrieval attempted');
+    }
+}
+
 module.exports = {
     createAnalysis,
     updateAnalysis,
     storeChannel,
     storeVideos,
+    getAnalysisJob,
     getAnalysis,
     getAnalysisSummary,
     getVideos,
-    deleteAnalysis
+    deleteAnalysis,
+    getAllCompletedAnalyses
 };

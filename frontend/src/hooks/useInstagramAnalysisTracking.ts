@@ -29,6 +29,21 @@ export function useInstagramAnalysisTracking() {
     const [loadingInstagramAnalyses, setLoadingInstagramAnalyses] = useState<string[]>([]);
     const pollIntervals = useRef<{ [key: string]: number }>({});
 
+    // Load completed Instagram analyses from backend on mount
+    useEffect(() => {
+        loadCompletedInstagramAnalyses();
+    }, []);
+
+    const loadCompletedInstagramAnalyses = async () => {
+        try {
+            // TODO: Add API call to get completed Instagram analyses
+            // const completedAnalyses = await apiService.getAllCompletedInstagramAnalyses();
+            console.log('Loading completed Instagram analyses from backend...');
+        } catch (error) {
+            console.error('Error loading completed Instagram analyses:', error);
+        }
+    };
+
     const startPolling = (analysisId: string) => {
         if (pollIntervals.current[analysisId]) {
             return; // Already polling

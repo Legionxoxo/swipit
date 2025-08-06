@@ -14,6 +14,7 @@ const {
 } = require('../analysis/jobManager');
 const { processChannelAnalysis, segmentVideosByViews } = require('../analysis/videoProcessor');
 const youtubeService = require('../../utils/youtube/youtubeService');
+const youtubeDb = require('../../database/youtube');
 
 /**
  * @typedef {Object} AnalysisJobResponse
@@ -31,14 +32,41 @@ const youtubeService = require('../../utils/youtube/youtubeService');
 /**
  * Start YouTube channel analysis
  * @param {string} channelUrl - YouTube channel URL
- * @returns {Promise<{analysisId: string, estimatedTime: string}>} Analysis job info
+ * @returns {Promise<{analysisId: string, estimatedTime: string, isExisting?: boolean}>} Analysis job info
  */
 async function startAnalysis(channelUrl) {
     try {
-        const analysisId = generateAnalysisId();
-        
         // Parse channel URL to get channel ID
         const { channelId, channelType } = await parseChannelUrl(channelUrl);
+        
+        // Check if this channel has already been analyzed
+        const existingAnalysis = await youtubeDb.findExistingAnalysis(channelId, channelUrl);
+        
+        if (existingAnalysis) {
+            console.log(`Found existing analysis for channel: ${channelId || channelUrl}`);
+            
+            // If analysis is completed, return the existing one
+            if (existingAnalysis.status === 'completed') {
+                return {
+                    analysisId: existingAnalysis.analysisId,
+                    estimatedTime: 'Analysis already completed',
+                    isExisting: true
+                };
+            }
+            
+            // If analysis is still processing, return the ongoing one
+            if (existingAnalysis.status === 'processing' || existingAnalysis.status === 'pending') {
+                return {
+                    analysisId: existingAnalysis.analysisId,
+                    estimatedTime: 'Analysis in progress',
+                    isExisting: true
+                };
+            }
+            
+            // If analysis failed, we can create a new one (fall through)
+        }
+
+        const analysisId = generateAnalysisId();
         
         // Create analysis job
         const analysisJob = {
@@ -68,14 +96,15 @@ async function startAnalysis(channelUrl) {
 
         return {
             analysisId,
-            estimatedTime: '2-10 minutes depending on channel size'
+            estimatedTime: '2-10 minutes depending on channel size',
+            isExisting: false
         };
 
     } catch (error) {
         console.error('Start analysis error:', error);
         throw new Error(`Failed to start analysis: ${error.message}`);
     } finally {
-        console.log(`Analysis started for channel: ${channelUrl}`);
+        console.log(`Analysis requested for channel: ${channelUrl}`);
     }
 }
 

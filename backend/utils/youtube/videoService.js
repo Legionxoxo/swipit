@@ -7,7 +7,7 @@ const { getYouTubeClient, delay } = require('./apiClient');
 
 /**
  * @typedef {Object} VideoData
- * @property {string} id - Video ID
+ * @property {string} videoId - Video ID
  * @property {string} title - Video title
  * @property {string} description - Video description
  * @property {string} thumbnailUrl - Thumbnail URL
@@ -139,7 +139,7 @@ function parseVideoData(videoItem) {
         const contentDetails = videoItem.contentDetails || {};
 
         return {
-            id: videoItem.id || 'unknown',
+            videoId: videoItem.id || 'unknown',
             title: snippet.title || 'Untitled',
             description: snippet.description || '',
             thumbnailUrl: snippet.thumbnails?.high?.url || snippet.thumbnails?.default?.url || '',
@@ -155,7 +155,7 @@ function parseVideoData(videoItem) {
     } catch (error) {
         console.error('Parse video data error:', error);
         return {
-            id: videoItem.id || 'unknown',
+            videoId: videoItem.id || 'unknown',
             title: 'Error parsing video data',
             description: '',
             thumbnailUrl: '',

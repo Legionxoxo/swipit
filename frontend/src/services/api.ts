@@ -47,6 +47,30 @@ class ApiService {
         }
     }
 
+    async getAllCompletedAnalyses(): Promise<any[]> {
+        try {
+            const response = await fetch(`${API_BASE_URL}/youtube/analyses`);
+
+            if (!response.ok) {
+                const error: ApiError = await response.json();
+                throw new Error(error.message || 'Failed to get completed analyses');
+            }
+
+            const result = await response.json();
+            
+            if (!result.success || !result.data) {
+                throw new Error(result.message || 'Invalid response from server');
+            }
+
+            return result.data;
+        } catch (error) {
+            console.error('Error getting completed analyses:', error);
+            throw error;
+        } finally {
+            // No cleanup needed for fetch
+        }
+    }
+
     async getAnalysisStatus(analysisId: string): Promise<AnalysisResponse> {
         try {
             // Try YouTube database first

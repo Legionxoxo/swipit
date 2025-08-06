@@ -18,7 +18,7 @@ const { updateAnalysisStatus } = require('./jobManager');
 
 /**
  * @typedef {Object} VideoData
- * @property {string} id - Video ID
+ * @property {string} videoId - Video ID
  * @property {string} title - Video title
  * @property {string} description - Video description
  * @property {string} thumbnailUrl - Thumbnail URL
@@ -38,15 +38,17 @@ const { updateAnalysisStatus } = require('./jobManager');
  */
 async function processChannelAnalysis(analysisId, analysisJob) {
     try {
-        if (!analysisJob) {
-            throw new Error('Analysis job not found');
+        // Load fresh analysis job from database to get correct field names
+        const dbAnalysisJob = await youtubeDbService.getAnalysisJob(analysisId);
+        if (!dbAnalysisJob) {
+            throw new Error('Analysis job not found in database');
         }
 
         // Step 1: Get channel information
         updateAnalysisStatus(analysisId, 'processing', 10);
         await youtubeDbService.updateAnalysis(analysisId, 'processing', 10);
         
-        const channelInfo = await youtubeService.getChannelInfo(analysisJob.channelId);
+        const channelInfo = await youtubeService.getChannelInfo(dbAnalysisJob.youtubeChannelId);
         
         // Store channel data in database
         await youtubeDbService.storeChannel(analysisId, channelInfo);
@@ -61,7 +63,8 @@ async function processChannelAnalysis(analysisId, analysisJob) {
         
         const videoIds = await youtubeService.getAllVideoIds(channelInfo.uploadsPlaylistId);
         
-        analysisJob.totalVideos = videoIds.length;
+        // Update total videos count (using memory object for backward compatibility)
+        if (analysisJob) analysisJob.totalVideos = videoIds.length;
         updateAnalysisStatus(analysisId, 'processing', 50);
         await youtubeDbService.updateAnalysis(analysisId, 'processing', 50);
 
@@ -76,7 +79,7 @@ async function processChannelAnalysis(analysisId, analysisJob) {
         });
 
         // Store video data in database
-        await youtubeDbService.storeVideos(analysisId, analysisJob.channelId, videos);
+        await youtubeDbService.storeVideos(analysisId, dbAnalysisJob.youtubeChannelId, videos);
 
         // Step 4: Segment videos by view count
         updateAnalysisStatus(analysisId, 'processing', 90);

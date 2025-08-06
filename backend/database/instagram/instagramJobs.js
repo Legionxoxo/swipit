@@ -180,9 +180,97 @@ async function deleteAnalysisJob(analysisId) {
     }
 }
 
+/**
+ * Get all completed Instagram analyses
+ * @param {Object} options - Query options
+ * @param {number} [options.limit] - Limit number of results
+ * @param {number} [options.offset] - Offset for pagination
+ * @returns {Promise<Array>} Array of completed analyses
+ */
+async function getAllCompletedAnalyses(options = {}) {
+    try {
+        const { limit = 100, offset = 0 } = options;
+
+        const db = await getDatabase();
+
+        const analyses = await db.all(
+            `SELECT DISTINCT analysis_id, instagram_user_id, profile_username, 
+                    analysis_status, analysis_progress, created_at, updated_at
+             FROM instagram_data 
+             WHERE analysis_status = 'completed' AND reel_id IS NULL
+             ORDER BY updated_at DESC
+             LIMIT ? OFFSET ?`,
+            [limit, offset]
+        );
+
+        return analyses.map((analysis) => ({
+            analysisId: analysis.analysis_id,
+            instagramUserId: analysis.instagram_user_id,
+            username: analysis.profile_username,
+            status: analysis.analysis_status,
+            progress: analysis.analysis_progress,
+            createdAt: new Date(analysis.created_at),
+            updatedAt: new Date(analysis.updated_at)
+        }));
+
+    } catch (error) {
+        console.error('Get all completed Instagram analyses error:', error);
+        throw new Error(`Failed to get completed Instagram analyses: ${error.message}`);
+    } finally {
+        console.log('Get all completed Instagram analyses attempted');
+    }
+}
+
+/**
+ * Find existing Instagram analysis by username
+ * @param {string} username - Instagram username
+ * @returns {Promise<Object|null>} Existing analysis or null
+ */
+async function findExistingAnalysis(username) {
+    try {
+        if (!username) {
+            throw new Error('Username is required');
+        }
+
+        const db = await getDatabase();
+
+        const analysis = await db.get(
+            `SELECT analysis_id, instagram_user_id, profile_username, 
+                    analysis_status, analysis_progress, created_at, updated_at
+             FROM instagram_data 
+             WHERE profile_username = ? AND reel_id IS NULL
+             ORDER BY updated_at DESC
+             LIMIT 1`,
+            [username]
+        );
+
+        if (!analysis) {
+            return null;
+        }
+
+        return {
+            analysisId: analysis.analysis_id,
+            instagramUserId: analysis.instagram_user_id,
+            username: analysis.profile_username,
+            status: analysis.analysis_status,
+            progress: analysis.analysis_progress,
+            createdAt: new Date(analysis.created_at),
+            updatedAt: new Date(analysis.updated_at)
+        };
+
+    } catch (error) {
+        console.error('Find existing Instagram analysis error:', error);
+        throw new Error(`Failed to find existing Instagram analysis: ${error.message}`);
+    } finally {
+        console.log(`Find existing Instagram analysis attempted for: ${username}`);
+    }
+}
+
 module.exports = {
     createAnalysisJob,
     updateAnalysisStatus,
     getAnalysisJob,
-    deleteAnalysisJob
+    deleteAnalysisJob,
+    getAllCompletedAnalyses,
+    findExistingAnalysis
 };

@@ -7,7 +7,7 @@ const { getYouTubeClient } = require('./apiClient');
 
 /**
  * @typedef {Object} ChannelInfo
- * @property {string} channelId - Channel ID
+ * @property {string} youtubeChannelId - YouTube channel ID
  * @property {string} channelName - Channel name
  * @property {string} channelUrl - Channel URL
  * @property {number} subscriberCount - Subscriber count
@@ -47,7 +47,7 @@ async function getChannelInfo(channelId) {
         const contentDetails = channel.contentDetails || {};
 
         return {
-            channelId: channel.id,
+            youtubeChannelId: channel.id,
             channelName: snippet.title || 'Unknown Channel',
             channelUrl: `https://youtube.com/channel/${channel.id}`,
             subscriberCount: parseInt(statistics.subscriberCount, 10) || 0,

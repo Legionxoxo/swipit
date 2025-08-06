@@ -181,9 +181,118 @@ async function deleteAnalysisJob(analysisId) {
     }
 }
 
+/**
+ * Get all completed YouTube analyses
+ * @param {Object} options - Query options
+ * @param {number} [options.limit] - Limit number of results
+ * @param {number} [options.offset] - Offset for pagination
+ * @returns {Promise<Array>} Array of completed analyses
+ */
+async function getAllCompletedAnalyses(options = {}) {
+    try {
+        const { limit = 100, offset = 0 } = options;
+
+        const db = await getDatabase();
+
+        const analyses = await db.all(
+            `SELECT DISTINCT analysis_id, youtube_channel_id, channel_name, channel_url, 
+                    analysis_status, analysis_progress, created_at, updated_at
+             FROM youtube_data 
+             WHERE analysis_status = 'completed' AND video_id IS NULL
+             ORDER BY updated_at DESC
+             LIMIT ? OFFSET ?`,
+            [limit, offset]
+        );
+
+        return analyses.map((analysis) => ({
+            analysisId: analysis.analysis_id,
+            youtubeChannelId: analysis.youtube_channel_id,
+            channelName: analysis.channel_name,
+            channelUrl: analysis.channel_url,
+            status: analysis.analysis_status,
+            progress: analysis.analysis_progress,
+            createdAt: new Date(analysis.created_at),
+            updatedAt: new Date(analysis.updated_at)
+        }));
+
+    } catch (error) {
+        console.error('Get all completed analyses error:', error);
+        throw new Error(`Failed to get completed analyses: ${error.message}`);
+    } finally {
+        console.log('Get all completed YouTube analyses attempted');
+    }
+}
+
+/**
+ * Find existing YouTube analysis by channel ID or URL
+ * @param {string} youtubeChannelId - YouTube channel ID
+ * @param {string} channelUrl - Channel URL (optional fallback)
+ * @returns {Promise<Object|null>} Existing analysis or null
+ */
+async function findExistingAnalysis(youtubeChannelId, channelUrl = null) {
+    try {
+        if (!youtubeChannelId && !channelUrl) {
+            throw new Error('Either YouTube channel ID or URL is required');
+        }
+
+        const db = await getDatabase();
+
+        let analysis = null;
+
+        // First try to find by channel ID
+        if (youtubeChannelId) {
+            analysis = await db.get(
+                `SELECT analysis_id, youtube_channel_id, channel_name, channel_url, 
+                        analysis_status, analysis_progress, created_at, updated_at
+                 FROM youtube_data 
+                 WHERE youtube_channel_id = ? AND video_id IS NULL
+                 ORDER BY updated_at DESC
+                 LIMIT 1`,
+                [youtubeChannelId]
+            );
+        }
+
+        // If not found and we have a URL, try by URL
+        if (!analysis && channelUrl) {
+            analysis = await db.get(
+                `SELECT analysis_id, youtube_channel_id, channel_name, channel_url, 
+                        analysis_status, analysis_progress, created_at, updated_at
+                 FROM youtube_data 
+                 WHERE channel_url = ? AND video_id IS NULL
+                 ORDER BY updated_at DESC
+                 LIMIT 1`,
+                [channelUrl]
+            );
+        }
+
+        if (!analysis) {
+            return null;
+        }
+
+        return {
+            analysisId: analysis.analysis_id,
+            youtubeChannelId: analysis.youtube_channel_id,
+            channelName: analysis.channel_name,
+            channelUrl: analysis.channel_url,
+            status: analysis.analysis_status,
+            progress: analysis.analysis_progress,
+            createdAt: new Date(analysis.created_at),
+            updatedAt: new Date(analysis.updated_at)
+        };
+
+    } catch (error) {
+        console.error('Find existing analysis error:', error);
+        throw new Error(`Failed to find existing analysis: ${error.message}`);
+    } finally {
+        console.log(`Find existing analysis attempted for channel: ${youtubeChannelId || channelUrl}`);
+    }
+}
+
 module.exports = {
     createAnalysisJob,
     updateAnalysisStatus,
     getAnalysisJob,
-    deleteAnalysisJob
+    deleteAnalysisJob,
+    getAllCompletedAnalyses,
+    findExistingAnalysis
 };

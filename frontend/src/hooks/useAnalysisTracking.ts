@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { apiService } from '../services/api';
 import type { AnalysisResponse } from '../types/api';
 
@@ -7,9 +7,42 @@ interface AnalysisData {
     data: AnalysisResponse;
 }
 
+
 export function useAnalysisTracking() {
     const [analyses, setAnalyses] = useState<AnalysisData[]>([]);
     const [loadingAnalyses, setLoadingAnalyses] = useState<Set<string>>(new Set());
+
+    // Load completed analyses from backend on mount
+    useEffect(() => {
+        loadCompletedAnalyses();
+    }, []);
+
+    const loadCompletedAnalyses = async () => {
+        try {
+            const completedAnalyses = await apiService.getAllCompletedAnalyses();
+            
+            // Transform backend data to frontend format
+            const analysesWithData = await Promise.all(
+                completedAnalyses.map(async (analysis: any) => {
+                    try {
+                        const fullAnalysisData = await apiService.getAnalysisStatus(analysis.analysisId);
+                        return {
+                            analysisId: analysis.analysisId,
+                            data: fullAnalysisData
+                        };
+                    } catch (error) {
+                        console.error(`Error loading analysis ${analysis.analysisId}:`, error);
+                        return null;
+                    }
+                })
+            );
+
+            const validAnalyses = analysesWithData.filter(Boolean) as AnalysisData[];
+            setAnalyses(validAnalyses);
+        } catch (error) {
+            console.error('Error loading completed analyses:', error);
+        }
+    };
 
     const handleAnalysisStarted = async (analysisId: string) => {
         try {

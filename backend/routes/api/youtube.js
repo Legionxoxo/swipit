@@ -17,6 +17,59 @@ const router = express.Router();
  */
 
 /**
+ * Get all completed YouTube analyses
+ * GET /api/youtube/analyses
+ * @param {express.Request} req - Express request
+ * @param {express.Response} res - Express response
+ */
+router.get('/analyses', async (req, res) => {
+    try {
+        const { 
+            limit = 100, 
+            offset = 0 
+        } = req.query;
+
+        const options = {
+            limit: parseInt(String(limit), 10) || 100,
+            offset: parseInt(String(offset), 10) || 0
+        };
+
+        const result = await youtubeService.getAllCompletedAnalyses(options);
+
+        if (!result.success) {
+            return res.status(404).json({
+                success: false,
+                message: result.message,
+                error: result.error
+            });
+        }
+
+        res.json({
+            success: true,
+            message: 'YouTube analyses retrieved successfully',
+            data: result.data,
+            pagination: {
+                limit: options.limit,
+                offset: options.offset,
+                totalCount: result.data.length
+            }
+        });
+
+    } catch (error) {
+        console.error('Get all YouTube analyses error:', error);
+        
+        const statusCode = error.statusCode || 500;
+        res.status(statusCode).json({
+            success: false,
+            message: error.message || 'Failed to retrieve YouTube analyses',
+            error: process.env.NODE_ENV === 'development' ? error.stack : undefined
+        });
+    } finally {
+        console.log(`YouTube analyses list requested at ${new Date().toISOString()}`);
+    }
+});
+
+/**
  * Get YouTube analysis by ID
  * GET /api/youtube/analysis/:id
  * @param {express.Request} req - Express request

@@ -31,6 +31,8 @@ module.exports = {
     updateAnalysisStatus: youtubeDb.updateAnalysisStatus,
     getAnalysisJob: youtubeDb.getAnalysisJob,
     deleteAnalysisJob: youtubeDb.deleteAnalysisJob,
+    getAllCompletedAnalyses: youtubeDb.getAllCompletedAnalyses,
+    findExistingAnalysis: youtubeDb.findExistingAnalysis,
     
     // Channel management functions
     storeChannelData: youtubeDb.storeChannelData,
