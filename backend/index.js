@@ -8,7 +8,7 @@ const cors = require('cors');
 require('dotenv').config();
 
 // Route imports
-const apiRoutes = require('./routes/api');
+const apiRoutes = require('./routes/api/index');
 
 /**
  * @typedef {Object} ServerConfig
@@ -34,7 +34,7 @@ function createApp() {
 
         // Basic middleware setup
         app.use(cors({
-            origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+            origin: process.env.FRONTEND_URL || 'http://localhost:5173',
             credentials: true
         }));
         
@@ -67,7 +67,7 @@ function createApp() {
         app.use('/api', apiRoutes);
 
         // 404 handler
-        app.use('*', (req, res) => {
+        app.use((req, res) => {
             try {
                 res.status(404).json({
                     success: false,
