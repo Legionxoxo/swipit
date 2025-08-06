@@ -10,6 +10,9 @@ require('dotenv').config();
 // Route imports
 const apiRoutes = require('./routes/api/index');
 
+// Database imports
+const { getDatabase, testDatabaseConnection, databaseHealthCheck } = require('./database/connection');
+
 /**
  * @typedef {Object} ServerConfig
  * @property {number} port - Server port number
@@ -41,14 +44,17 @@ function createApp() {
         app.use(express.json({ limit: '10mb' }));
         app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-        // Health check endpoint
-        app.get('/health', (req, res) => {
+        // Health check endpoint with database status
+        app.get('/health', async (req, res) => {
             try {
+                const dbHealth = await databaseHealthCheck();
+                
                 res.status(200).json({
                     success: true,
                     message: 'BuzzHunt Backend is running',
                     timestamp: new Date().toISOString(),
-                    environment: process.env.NODE_ENV || 'development'
+                    environment: process.env.NODE_ENV || 'development',
+                    database: dbHealth
                 });
             } catch (error) {
                 console.error('Health check error:', error);
@@ -192,9 +198,22 @@ if (require.main === module) {
         try {
             console.log('Initializing BuzzHunt Backend...');
             
+            // Step 1: Validate environment
             const config = validateEnvironment();
+            
+            // Step 2: Initialize database
+            console.log('Initializing database connection...');
+            const databaseConnected = await testDatabaseConnection();
+            
+            if (!databaseConnected) {
+                throw new Error('Database connection failed - cannot start server');
+            }
+            console.log('Database connected successfully');
+            
+            // Step 3: Create Express app
             const app = createApp();
             
+            // Step 4: Start server
             await startServer(app, config);
 
         } catch (error) {
