@@ -6,18 +6,34 @@
 const { getDatabase } = require('../../database/connection');
 
 /**
- * Get user video interactions
+ * Get user video interactions with full video details
  * @param {string} userId - User ID
- * @returns {Promise<Object>} Service response with video interactions data
+ * @returns {Promise<Object>} Service response with video interactions data including full video details
  */
 async function getUserVideoInteractions(userId) {
     try {
         const db = await getDatabase();
         
+        // Join user interactions with actual video data from youtube_data table
         const interactions = await db.all(`
-            SELECT * FROM user_video_interactions 
-            WHERE user_id = ? 
-            ORDER BY updated_at DESC
+            SELECT 
+                uvi.*,
+                yd.video_title as title,
+                yd.video_description as description,
+                yd.video_thumbnail_url as thumbnail_url,
+                yd.video_url,
+                yd.video_upload_date as upload_date,
+                yd.video_duration as duration,
+                yd.video_view_count as view_count,
+                yd.video_like_count as like_count,
+                yd.video_comment_count as comment_count,
+                yd.video_category_id as category_id,
+                yd.channel_name,
+                yd.channel_thumbnail_url as channel_thumbnail_url
+            FROM user_video_interactions uvi
+            LEFT JOIN youtube_data yd ON uvi.video_id = yd.video_id
+            WHERE uvi.user_id = ? 
+            ORDER BY uvi.updated_at DESC
         `, [userId]);
 
         return {
@@ -55,25 +71,67 @@ async function updateVideoInteraction(userId, videoId, platform, interaction) {
         
         const { starRating, comment, isFavorite } = interaction;
         
-        // Use INSERT OR REPLACE to handle upsert
-        const result = await db.run(`
-            INSERT OR REPLACE INTO user_video_interactions 
-            (user_id, video_id, platform, star_rating, comment, is_favorite, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-        `, [
-            userId, 
-            videoId, 
-            platform, 
-            starRating || 0, 
-            comment || null, 
-            isFavorite || false
-        ]);
-
-        return {
-            success: true,
-            message: 'Video interaction updated successfully',
-            data: { id: result.lastID }
-        };
+        // First, check if record exists
+        const existingRecord = await db.get(`
+            SELECT * FROM user_video_interactions 
+            WHERE user_id = ? AND video_id = ? AND platform = ?
+        `, [userId, videoId, platform]);
+        
+        if (existingRecord) {
+            // Update existing record - only update fields that are provided
+            const updates = [];
+            const values = [];
+            
+            if (starRating !== undefined) {
+                updates.push('star_rating = ?');
+                values.push(starRating);
+            }
+            
+            if (comment !== undefined) {
+                updates.push('comment = ?');
+                values.push(comment);
+            }
+            
+            if (isFavorite !== undefined) {
+                updates.push('is_favorite = ?');
+                values.push(isFavorite);
+            }
+            
+            updates.push('updated_at = CURRENT_TIMESTAMP');
+            values.push(userId, videoId, platform);
+            
+            const result = await db.run(`
+                UPDATE user_video_interactions 
+                SET ${updates.join(', ')}
+                WHERE user_id = ? AND video_id = ? AND platform = ?
+            `, values);
+            
+            return {
+                success: true,
+                message: 'Video interaction updated successfully',
+                data: { id: existingRecord.id }
+            };
+        } else {
+            // Insert new record
+            const result = await db.run(`
+                INSERT INTO user_video_interactions 
+                (user_id, video_id, platform, star_rating, comment, is_favorite, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+            `, [
+                userId, 
+                videoId, 
+                platform, 
+                starRating || 0, 
+                comment || null, 
+                isFavorite || false
+            ]);
+            
+            return {
+                success: true,
+                message: 'Video interaction created successfully',
+                data: { id: result.lastID }
+            };
+        }
 
     } catch (error) {
         console.error('Update video interaction error:', error);
@@ -139,27 +197,84 @@ async function updateCreatorInteraction(userId, creatorId, interaction) {
         
         const { isFavorite, hubId, channelName, channelId, thumbnailUrl, platform } = interaction;
         
-        // Use INSERT OR REPLACE to handle upsert
-        const result = await db.run(`
-            INSERT OR REPLACE INTO user_creator_interactions 
-            (user_id, creator_id, is_favorite, hub_id, channel_name, channel_id, thumbnail_url, platform, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-        `, [
-            userId, 
-            creatorId, 
-            isFavorite || false, 
-            hubId || null,
-            channelName,
-            channelId || null,
-            thumbnailUrl || null,
-            platform
-        ]);
-
-        return {
-            success: true,
-            message: 'Creator interaction updated successfully',
-            data: { id: result.lastID }
-        };
+        // First, check if record exists
+        const existingRecord = await db.get(`
+            SELECT * FROM user_creator_interactions 
+            WHERE user_id = ? AND creator_id = ?
+        `, [userId, creatorId]);
+        
+        if (existingRecord) {
+            // Update existing record - only update fields that are provided
+            const updates = [];
+            const values = [];
+            
+            if (isFavorite !== undefined) {
+                updates.push('is_favorite = ?');
+                values.push(isFavorite);
+            }
+            
+            if (hubId !== undefined) {
+                updates.push('hub_id = ?');
+                values.push(hubId);
+            }
+            
+            if (channelName !== undefined) {
+                updates.push('channel_name = ?');
+                values.push(channelName);
+            }
+            
+            if (channelId !== undefined) {
+                updates.push('channel_id = ?');
+                values.push(channelId);
+            }
+            
+            if (thumbnailUrl !== undefined) {
+                updates.push('thumbnail_url = ?');
+                values.push(thumbnailUrl);
+            }
+            
+            if (platform !== undefined) {
+                updates.push('platform = ?');
+                values.push(platform);
+            }
+            
+            updates.push('updated_at = CURRENT_TIMESTAMP');
+            values.push(userId, creatorId);
+            
+            const result = await db.run(`
+                UPDATE user_creator_interactions 
+                SET ${updates.join(', ')}
+                WHERE user_id = ? AND creator_id = ?
+            `, values);
+            
+            return {
+                success: true,
+                message: 'Creator interaction updated successfully',
+                data: { id: existingRecord.id }
+            };
+        } else {
+            // Insert new record
+            const result = await db.run(`
+                INSERT INTO user_creator_interactions 
+                (user_id, creator_id, is_favorite, hub_id, channel_name, channel_id, thumbnail_url, platform, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+            `, [
+                userId, 
+                creatorId, 
+                isFavorite || false, 
+                hubId || null,
+                channelName,
+                channelId || null,
+                thumbnailUrl || null,
+                platform
+            ]);
+            
+            return {
+                success: true,
+                message: 'Creator interaction created successfully',
+                data: { id: result.lastID }
+            };
+        }
 
     } catch (error) {
         console.error('Update creator interaction error:', error);

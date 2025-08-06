@@ -5,7 +5,7 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000
 class ApiService {
     private transformVideoData(video: any) {
         return {
-            videoId: video.id,
+            videoId: video.videoId,
             title: video.title,
             description: video.description,
             thumbnailUrl: video.thumbnailUrl,

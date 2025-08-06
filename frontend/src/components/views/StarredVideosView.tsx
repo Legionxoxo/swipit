@@ -49,25 +49,25 @@ function StarredVideosSection({ rating, videos }: StarredVideosSectionProps) {
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {videos.map(interaction => {
-                    // Convert interaction to VideoData format
+                    // Convert interaction with full video details to VideoData format
                     const videoData: VideoData = {
                         videoId: interaction.video_id,
-                        title: `Video ${interaction.video_id.slice(0, 8)}...`,
-                        description: interaction.comment || '',
-                        thumbnailUrl: '',
-                        videoUrl: `https://youtube.com/watch?v=${interaction.video_id}`,
-                        uploadDate: interaction.created_at,
-                        duration: 'PT0S',
-                        viewCount: 0,
-                        likeCount: 0,
-                        commentCount: 0,
-                        categoryId: '28'
+                        title: interaction.title || `Video ${interaction.video_id.slice(0, 8)}...`,
+                        description: interaction.description || interaction.comment || '',
+                        thumbnailUrl: interaction.thumbnail_url || '',
+                        videoUrl: interaction.video_url || `https://youtube.com/watch?v=${interaction.video_id}`,
+                        uploadDate: interaction.upload_date || interaction.created_at,
+                        duration: interaction.duration || 'PT0S',
+                        viewCount: interaction.view_count || 0,
+                        likeCount: interaction.like_count || 0,
+                        commentCount: interaction.comment_count || 0,
+                        categoryId: interaction.category_id || '28'
                     };
                     return (
                         <VideoCard 
                             key={interaction.video_id} 
                             video={videoData} 
-                            channelName="Unknown Channel"
+                            channelName={interaction.channel_name || 'Unknown Channel'}
                         />
                     );
                 })}
@@ -93,7 +93,7 @@ export default function StarredVideosView() {
             
             // Filter for starred videos only (rating > 0)
             const starredVideoInteractions = videoInteractions.filter(
-                interaction => interaction.star_rating > 0
+                interaction => (interaction.star_rating || 0) > 0
             );
 
             setStarredVideos(starredVideoInteractions);

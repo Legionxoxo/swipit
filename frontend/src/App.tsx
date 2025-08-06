@@ -190,6 +190,7 @@ function App() {
                 onChannelRightClick={handleChannelRightClick}
                 onTrackChannel={handleTrackChannelClick}
                 onHubsChange={setHubs}
+                onHubsRefresh={loadHubs}
                 totalAnalyses={unifiedCreators.length}
             />
         );

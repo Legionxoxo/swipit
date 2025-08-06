@@ -19,9 +19,9 @@ export default function FavoriteVideosView() {
             const userId = userService.getUserId();
             const videoInteractions = await apiService.getUserVideoInteractions(userId);
             
-            // Filter for favorite videos only
+            // Filter for favorite videos only (database stores 1/0, so check for truthy values)
             const favoriteVideoInteractions = videoInteractions.filter(
-                interaction => interaction.is_favorite === true
+                interaction => interaction.is_favorite === 1 || interaction.is_favorite === true
             );
 
             setFavoriteVideos(favoriteVideoInteractions);
@@ -73,25 +73,25 @@ export default function FavoriteVideosView() {
             <h2 className="text-2xl font-bold text-gray-900 mb-6">Favorite Videos</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {favoriteVideos.map(interaction => {
-                    // Convert interaction to VideoData format
+                    // Convert interaction with full video details to VideoData format
                     const videoData: VideoData = {
                         videoId: interaction.video_id,
-                        title: `Video ${interaction.video_id.slice(0, 8)}...`, // We don't have full video data
-                        description: interaction.comment || '',
-                        thumbnailUrl: '', // We don't have thumbnail URL in interactions
-                        videoUrl: `https://youtube.com/watch?v=${interaction.video_id}`,
-                        uploadDate: interaction.created_at,
-                        duration: 'PT0S',
-                        viewCount: 0,
-                        likeCount: 0,
-                        commentCount: 0,
-                        categoryId: '28'
+                        title: interaction.title || `Video ${interaction.video_id.slice(0, 8)}...`,
+                        description: interaction.description || interaction.comment || '',
+                        thumbnailUrl: interaction.thumbnail_url || '',
+                        videoUrl: interaction.video_url || `https://youtube.com/watch?v=${interaction.video_id}`,
+                        uploadDate: interaction.upload_date || interaction.created_at,
+                        duration: interaction.duration || 'PT0S',
+                        viewCount: interaction.view_count || 0,
+                        likeCount: interaction.like_count || 0,
+                        commentCount: interaction.comment_count || 0,
+                        categoryId: interaction.category_id || '28'
                     };
                     return (
                         <VideoCard 
                             key={interaction.video_id} 
                             video={videoData} 
-                            channelName="Unknown Channel" // We don't have channel info in interactions
+                            channelName={interaction.channel_name || 'Unknown Channel'}
                         />
                     );
                 })}

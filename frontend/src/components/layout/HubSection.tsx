@@ -23,20 +23,10 @@ export default function HubSection({
     onToggle,
     isCollapsed
 }: HubSectionProps) {
-    const [expandedHubs, setExpandedHubs] = useState<Set<string>>(new Set());
     const [isCreatingHub, setIsCreatingHub] = useState(false);
     const [newHubName, setNewHubName] = useState('');
     const [error, setError] = useState<string>('');
 
-    const toggleHubExpansion = (hubId: string) => {
-        const newExpanded = new Set(expandedHubs);
-        if (newExpanded.has(hubId)) {
-            newExpanded.delete(hubId);
-        } else {
-            newExpanded.add(hubId);
-        }
-        setExpandedHubs(newExpanded);
-    };
 
     const handleCreateHub = async () => {
         try {
@@ -49,11 +39,35 @@ export default function HubSection({
                 onHubsChange(updatedHubs);
                 setNewHubName('');
                 setIsCreatingHub(false);
-                setExpandedHubs(prev => new Set([...prev, newHub.id]));
             }
         } catch (error) {
             console.error('Error creating hub:', error);
             setError('Failed to create hub');
+        } finally {
+            // Required by architecture rules
+        }
+    };
+
+    const handleDeleteHub = async (e: React.MouseEvent, hubId: string) => {
+        try {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            if (confirm('Are you sure you want to delete this hub? All creators will be moved back to the home view.')) {
+                const userId = userService.getUserId();
+                await apiService.deleteHub(userId, hubId);
+                const updatedHubs = await apiService.getUserHubs(userId);
+                
+                onHubsChange(updatedHubs);
+                
+                // If we're currently viewing the deleted hub, redirect to home
+                if (currentView === `hub-${hubId}`) {
+                    onViewChange('home');
+                }
+            }
+        } catch (error) {
+            console.error('Error deleting hub:', error);
+            setError('Failed to delete hub');
         } finally {
             // Required by architecture rules
         }
@@ -89,28 +103,28 @@ export default function HubSection({
             >
                 <div className="ml-6 space-y-1">
                     {hubs.map(hub => (
-                        <NavItem
-                            key={hub.id}
-                            icon={<div className="w-2 h-2 rounded-full bg-blue-400"></div>}
-                            label={hub.name}
-                            isActive={currentView === `hub-${hub.id}`}
-                            onClick={() => onViewChange(`hub-${hub.id}`)}
-                            hasDropdown={hub.creatorIds.length > 0}
-                            isExpanded={expandedHubs.has(hub.id)}
-                            onToggle={() => toggleHubExpansion(hub.id)}
-                            isCollapsed={isCollapsed}
-                        >
-                            <div className="ml-6 space-y-1">
-                                {hub.creatorIds.map(creatorId => (
-                                    <div
-                                        key={creatorId}
-                                        className="px-3 py-1 text-xs text-gray-500 hover:text-gray-700 cursor-pointer"
-                                    >
-                                        Creator {creatorId.slice(0, 8)}...
-                                    </div>
-                                ))}
+                        <div key={hub.id} className="flex items-center">
+                            <div className="flex-1">
+                                <NavItem
+                                    icon={<div className="w-2 h-2 rounded-full bg-blue-400"></div>}
+                                    label={`${hub.name} (${hub.creatorIds.length})`}
+                                    isActive={currentView === `hub-${hub.id}`}
+                                    onClick={() => onViewChange(`hub-${hub.id}`)}
+                                    isCollapsed={isCollapsed}
+                                />
                             </div>
-                        </NavItem>
+                            {!isCollapsed && (
+                                <button
+                                    onClick={(e) => handleDeleteHub(e, hub.id)}
+                                    className="p-1 hover:bg-red-100 rounded transition-colors ml-1"
+                                    title={`Delete ${hub.name}`}
+                                >
+                                    <svg className="w-3 h-3 text-gray-400 hover:text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+                                </button>
+                            )}
+                        </div>
                     ))}
                     
                     {/* Add New Hub */}

@@ -41,7 +41,7 @@ export async function getUnorganizedCreatorsAsync(allCreatorIds: string[]): Prom
         const organizedIds = new Set<string>();
         
         hubs.forEach(hub => {
-            hub.creatorIds.forEach(id => organizedIds.add(id));
+            hub.creatorIds.forEach((id: string) => organizedIds.add(id));
         });
         
         return allCreatorIds.filter(id => !organizedIds.has(id));
@@ -58,7 +58,7 @@ export async function getFavoriteCreatorsAsync(): Promise<string[]> {
         const userId = userService.getUserId();
         const interactions = await apiService.getUserCreatorInteractions(userId);
         return interactions
-            .filter(interaction => interaction.is_favorite)
+            .filter(interaction => interaction.is_favorite === 1 || interaction.is_favorite === true)
             .map(interaction => interaction.creator_id);
     } catch (error) {
         console.error('Error getting favorite creators:', error);

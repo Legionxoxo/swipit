@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { apiService } from '../../services/api';
+import { userService } from '../../services/userService';
 
 interface UnifiedCreator {
     analysisId: string;
@@ -12,23 +14,125 @@ interface UnifiedCreatorCardProps {
     isLoading?: boolean;
     onClick?: (creator: UnifiedCreator) => void;
     onRightClick?: (e: React.MouseEvent, analysisId: string) => void;
+    onHubAssign?: (analysisId: string, hubId: string) => void;
+    hubs?: any[];
 }
 
 export default function UnifiedCreatorCard({ 
     creator, 
     isLoading = false, 
     onClick, 
-    onRightClick 
+    onRightClick,
+    onHubAssign,
+    hubs = []
 }: UnifiedCreatorCardProps) {
     const [imageError, setImageError] = useState(false);
+    const [isFavorite, setIsFavorite] = useState(false);
+    const [showMenu, setShowMenu] = useState(false);
+    const menuRef = useRef<HTMLDivElement>(null);
+
+    // Load creator interactions on component mount
+    useEffect(() => {
+        loadCreatorInteraction();
+    }, [creator.analysisId]);
+
+    // Click outside handler for menu
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (showMenu && menuRef.current && !menuRef.current.contains(event.target as Node)) {
+                // Only close if click is outside the dropdown area too
+                const dropdownElement = document.querySelector('[data-dropdown-menu="true"]');
+                if (!dropdownElement || !dropdownElement.contains(event.target as Node)) {
+                    setShowMenu(false);
+                }
+            }
+        };
+
+        if (showMenu) {
+            document.addEventListener('mousedown', handleClickOutside);
+            return () => {
+                document.removeEventListener('mousedown', handleClickOutside);
+            };
+        }
+    }, [showMenu]);
+
+    const loadCreatorInteraction = async () => {
+        try {
+            const userId = userService.getUserId();
+            const interactions = await apiService.getUserCreatorInteractions(userId);
+            
+            const creatorInteraction = interactions.find(
+                interaction => interaction.creator_id === creator.analysisId
+            );
+            
+            if (creatorInteraction) {
+                setIsFavorite(creatorInteraction.is_favorite === 1 || creatorInteraction.is_favorite === true);
+            }
+        } catch (error) {
+            console.error('Error loading creator interaction:', error);
+        }
+    };
+
+
+    const handleFavoriteClick = async (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        try {
+            const userId = userService.getUserId();
+            const newFavoriteState = !isFavorite;
+            const info = getCreatorInfo();
+            
+            await apiService.updateCreatorInteraction(userId, creator.analysisId, {
+                isFavorite: newFavoriteState,
+                channelName: info.name,
+                channelId: creator.platform === 'youtube' ? creator.data?.channelInfo?.youtubeChannelId : creator.analysisId,
+                thumbnailUrl: info.thumbnail,
+                platform: creator.platform
+            });
+            
+            setIsFavorite(newFavoriteState);
+        } catch (error) {
+            console.error('Error updating favorite status:', error);
+        }
+    };
+
+    const handleMenuClick = (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setShowMenu(!showMenu);
+    };
+
+    const handleHubAssign = async (e: React.MouseEvent, hubId: string) => {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        try {
+            const userId = userService.getUserId();
+            const info = getCreatorInfo();
+            
+            await apiService.updateCreatorInteraction(userId, creator.analysisId, {
+                hubId: hubId,
+                channelName: info.name,
+                channelId: creator.platform === 'youtube' ? creator.data?.channelInfo?.youtubeChannelId : creator.analysisId,
+                thumbnailUrl: info.thumbnail,
+                platform: creator.platform
+            });
+            
+            setShowMenu(false);
+            onHubAssign?.(creator.analysisId, hubId);
+        } catch (error) {
+            console.error('Error assigning creator to hub:', error);
+        }
+    };
 
     const getCreatorInfo = () => {
         if (creator.platform === 'youtube' && creator.data) {
             return {
-                name: creator.data.channelInfo?.channelTitle || 'Unknown Channel',
+                name: creator.data.channelInfo?.channelName || 'Unknown Channel',
                 subscriber_count: creator.data.channelInfo?.subscriberCount || 0,
                 video_count: creator.data.totalVideos || 0,
-                thumbnail: creator.data.channelInfo?.thumbnails?.high?.url || '',
+                thumbnail: creator.data.channelInfo?.thumbnailUrl || '',
                 description: creator.data.channelInfo?.description || '',
                 status: creator.data.status,
                 platform: 'youtube' as const
@@ -115,7 +219,7 @@ export default function UnifiedCreatorCard({
 
     return (
         <div
-            className={`bg-white rounded-lg shadow-md hover:shadow-lg transition-all duration-200 overflow-hidden ${
+            className={`bg-white rounded-lg shadow-md hover:shadow-lg transition-all duration-200 overflow-visible relative ${
                 isClickable ? 'cursor-pointer' : 'cursor-default'
             }`}
             onClick={() => isClickable && onClick?.(creator)}
@@ -148,7 +252,96 @@ export default function UnifiedCreatorCard({
                 <div className="absolute top-2 right-2 flex items-center space-x-1 bg-white bg-opacity-90 px-2 py-1 rounded">
                     {getStatusIcon(info.status)}
                 </div>
+
+                {/* Action icons - only show for completed creators */}
+                {isClickable && (
+                    <div className="absolute bottom-2 right-2 flex space-x-2">
+                        {/* Favorite Icon */}
+                        <button
+                            onClick={handleFavoriteClick}
+                            className="p-2 rounded-full bg-black bg-opacity-50 hover:bg-opacity-70 transition-all duration-200"
+                            title={isFavorite ? "Remove from Favorites" : "Add to Favorites"}
+                        >
+                            <svg 
+                                className={`w-4 h-4 ${isFavorite ? 'text-red-500 fill-current' : 'text-white'}`} 
+                                fill={isFavorite ? 'currentColor' : 'none'} 
+                                stroke="currentColor" 
+                                viewBox="0 0 24 24"
+                            >
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                            </svg>
+                        </button>
+
+                        {/* Menu Icon */}
+                        <div className="relative" ref={menuRef}>
+                            <button
+                                onClick={handleMenuClick}
+                                className={`p-2 rounded-full bg-black transition-all duration-200 ${
+                                    showMenu 
+                                        ? 'bg-opacity-70 ring-2 ring-white ring-opacity-50' 
+                                        : 'bg-opacity-50 hover:bg-opacity-70'
+                                }`}
+                                title="Creator Options"
+                            >
+                                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                )}
+
             </div>
+
+            {/* Hub Dropdown Menu */}
+            {showMenu && (
+                <div 
+                    data-dropdown-menu="true"
+                    style={{
+                        position: 'absolute',
+                        top: '50%',
+                        left: '50%',
+                        transform: 'translate(-50%, -50%)',
+                        zIndex: 10000
+                    }}
+                    className="bg-white rounded-lg shadow-2xl border border-gray-200 min-w-48"
+                    onMouseDown={(e) => e.stopPropagation()}
+                    onClick={(e) => e.stopPropagation()}
+                >
+                    {/* Header */}
+                    <div className="px-3 py-2 border-b border-gray-100">
+                        <div className="flex items-center justify-center text-xs font-semibold text-gray-600">
+                            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16l-4-4m0 0l4-4m-4 4h18" />
+                            </svg>
+                            Move to Hub
+                        </div>
+                    </div>
+                    
+                    {/* Hub List */}
+                    <div className="py-1">
+                        {hubs.length === 0 ? (
+                            <div className="px-4 py-3 text-sm text-gray-500">
+                                No hubs available
+                            </div>
+                        ) : (
+                            hubs.map((hub) => (
+                                <div
+                                    key={hub.id}
+                                    className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-all duration-150 flex items-center justify-between group cursor-pointer"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleHubAssign(e, hub.id);
+                                    }}
+                                >
+                                    <span className="font-medium">{hub.name}</span>
+                                    <span className="text-xs text-gray-500 group-hover:text-blue-600">({hub.creatorIds?.length || 0})</span>
+                                </div>
+                            ))
+                        )}
+                    </div>
+                </div>
+            )}
 
             {/* Content */}
             <div className="p-4">

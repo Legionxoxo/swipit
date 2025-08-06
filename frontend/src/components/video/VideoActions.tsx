@@ -88,6 +88,8 @@ export default function VideoActions({
             const userId = userService.getUserId();
             const newFavoriteState = !isFavorite;
 
+            console.log('Video interaction params:', { userId, videoId, platform: 'youtube', isFavorite: newFavoriteState });
+
             await apiService.updateVideoInteraction(userId, videoId, 'youtube', {
                 isFavorite: newFavoriteState
             });
