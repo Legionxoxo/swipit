@@ -9,6 +9,7 @@ const exportRoutes = require('./export');
 const instagramRoutes = require('./instagram');
 const youtubeRoutes = require('./youtube');
 const userInteractionsRoutes = require('./userInteractions');
+const transcriptionRoutes = require('./transcription');
 const { router: extensionRoutes } = require('./extension');
 
 const router = express.Router();
@@ -38,6 +39,7 @@ router.get('/', (req, res) => {
                 instagram: '/api/instagram',
                 youtube: '/api/youtube',
                 userInteractions: '/api/user-interactions',
+                transcription: '/api/transcription',
                 extension: '/api/extension'
             }
         });
@@ -61,6 +63,7 @@ router.use('/export', exportRoutes);
 router.use('/instagram', instagramRoutes);
 router.use('/youtube', youtubeRoutes);
 router.use('/user-interactions', userInteractionsRoutes);
+router.use('/transcription', transcriptionRoutes);
 router.use('/extension', extensionRoutes);
 
 module.exports = router;

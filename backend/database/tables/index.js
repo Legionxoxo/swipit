@@ -8,6 +8,7 @@ const youtubeTable = require('./youtubeTable');
 const userVideoInteractionsTable = require('./userVideoInteractionsTable');
 const userCreatorInteractionsTable = require('./userCreatorInteractionsTable');
 const userHubsTable = require('./userHubsTable');
+const videoTranscriptionsTable = require('./videoTranscriptionsTable');
 
 /**
  * Initialize all database tables
@@ -28,6 +29,9 @@ async function initializeAllTables(db) {
         await userVideoInteractionsTable.initializeUserVideoInteractionsTable(db);
         await userCreatorInteractionsTable.initializeUserCreatorInteractionsTable(db);
         await userHubsTable.initializeUserHubsTable(db);
+
+        // Initialize video transcriptions table
+        await videoTranscriptionsTable.initializeVideoTranscriptionsTable(db);
 
         console.log('All database tables initialized successfully');
 
@@ -53,6 +57,9 @@ async function dropAllTables(db) {
         await userVideoInteractionsTable.dropUserVideoInteractionsTable(db);
         await userHubsTable.dropUserHubsTable(db);
 
+        // Drop video transcriptions table
+        await videoTranscriptionsTable.dropVideoTranscriptionsTable(db);
+
         // Drop Instagram table
         await instagramTable.dropInstagramTable(db);
 
@@ -75,6 +82,7 @@ module.exports = {
     userVideoInteractionsTable,
     userCreatorInteractionsTable,
     userHubsTable,
+    videoTranscriptionsTable,
     initializeAllTables,
     dropAllTables,
     tableNames: {
@@ -82,6 +90,7 @@ module.exports = {
         youtube: youtubeTable.tableName,
         userVideoInteractions: userVideoInteractionsTable.tableName,
         userCreatorInteractions: userCreatorInteractionsTable.tableName,
-        userHubs: userHubsTable.tableName
+        userHubs: userHubsTable.tableName,
+        videoTranscriptions: videoTranscriptionsTable.tableName
     }
 };

@@ -20,8 +20,8 @@ const { initializeAllTables } = require('./tables/index');
 
 // Database configuration
 const DB_CONFIG = {
-    filename: path.join(__dirname, '../../data/buzzhunt.db'),
-    directory: path.join(__dirname, '../../data')
+    filename: path.join(__dirname, 'swipit.db'),
+    directory: path.dirname(path.join(__dirname, 'swipit.db'))
 };
 
 let databaseConnection = null;
