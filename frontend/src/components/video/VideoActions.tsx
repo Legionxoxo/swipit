@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { apiService } from '../../services/api';
 import { userService } from '../../services/userService';
+import { transcriptionService } from '../../services/transcriptionService';
 import VideoDualSidebar from './VideoDualSidebar';
 import VideoActionMenu from './VideoActionMenu';
 
@@ -16,9 +17,9 @@ interface VideoActionsProps {
 export default function VideoActions({ 
     videoId, 
     videoTitle, 
-    channelName, 
-    thumbnailUrl, 
-    videoUrl,
+    channelName: _channelName, 
+    thumbnailUrl: _thumbnailUrl, 
+    videoUrl: _videoUrl,
     platform = 'youtube'
 }: VideoActionsProps) {
     const [isFavorite, setIsFavorite] = useState<boolean>(false);
@@ -28,6 +29,7 @@ export default function VideoActions({
     const [showTranscriptionSidebar, setShowTranscriptionSidebar] = useState<boolean>(false);
     const [comment, setComment] = useState<string>('');
     const [hasComment, setHasComment] = useState<boolean>(false);
+    const [hasTranscription, setHasTranscription] = useState<boolean>(false);
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [error, setError] = useState<string>('');
     const menuRef = useRef<HTMLDivElement>(null);
@@ -35,6 +37,7 @@ export default function VideoActions({
     // Load user video interactions on component mount
     useEffect(() => {
         loadVideoInteractions();
+        checkTranscription();
     }, [videoId]);
 
     // Click outside handler
@@ -82,6 +85,18 @@ export default function VideoActions({
             setError('Failed to load video data. Please try again.');
         } finally {
             setIsLoading(false);
+        }
+    };
+
+    const checkTranscription = async () => {
+        try {
+            const transcription = await transcriptionService.getVideoTranscription(videoId, platform);
+            setHasTranscription(!!transcription && transcription.status === 'completed');
+        } catch (error) {
+            console.error('Error checking transcription:', error);
+            setHasTranscription(false);
+        } finally {
+            // Required by architecture rules
         }
     };
 
@@ -221,7 +236,7 @@ export default function VideoActions({
                     }`}
                     title={hasComment ? "View/Edit Comment" : "Add Comment"}
                 >
-                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-5 h-5 text-white" fill={hasComment ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
                     </svg>
                 </button>
@@ -230,13 +245,13 @@ export default function VideoActions({
                 <button
                     onClick={handleSidebarTranscriptionClick}
                     className={`p-2 rounded-full transition-all duration-200 ${
-                        showTranscriptionSidebar
+                        hasTranscription
                             ? 'bg-green-500 bg-opacity-90 hover:bg-opacity-100'
                             : 'bg-black bg-opacity-50 hover:bg-opacity-70'
                     }`}
-                    title="View Transcription"
+                    title={hasTranscription ? "View Transcription" : "Generate Transcription"}
                 >
-                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-5 h-5 text-white" fill={hasTranscription ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
                     </svg>
                 </button>

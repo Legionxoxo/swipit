@@ -29,7 +29,8 @@ async function getUserVideoInteractions(userId) {
                 yd.video_comment_count as comment_count,
                 yd.video_category_id as category_id,
                 yd.channel_name,
-                yd.channel_thumbnail_url as channel_thumbnail_url
+                yd.channel_thumbnail_url as channel_thumbnail_url,
+                yd.channel_subscriber_count as subscriber_count
             FROM user_video_interactions uvi
             LEFT JOIN youtube_data yd ON uvi.video_id = yd.video_id
             WHERE uvi.user_id = ? 

@@ -6,13 +6,14 @@ import VideoDetails from './VideoDetails';
 interface VideoCardProps {
     video: VideoData;
     channelName: string;
+    subscriberCount?: number;
 }
 
-export default function VideoCard({ video, channelName }: VideoCardProps) {
+export default function VideoCard({ video, channelName, subscriberCount }: VideoCardProps) {
     return (
         <div className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300 relative flex flex-col h-full">
             <div className="relative">
-                <VideoThumbnail video={video} />
+                <VideoThumbnail video={video} subscriberCount={subscriberCount} />
                 <VideoActions
                     videoId={video.videoId}
                     videoTitle={video.title}

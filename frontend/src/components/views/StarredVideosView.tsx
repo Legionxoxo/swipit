@@ -68,6 +68,7 @@ function StarredVideosSection({ rating, videos }: StarredVideosSectionProps) {
                             key={interaction.video_id} 
                             video={videoData} 
                             channelName={interaction.channel_name || 'Unknown Channel'}
+                            subscriberCount={interaction.subscriber_count || 0}
                         />
                     );
                 })}

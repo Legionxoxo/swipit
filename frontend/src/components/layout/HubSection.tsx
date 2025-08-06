@@ -33,7 +33,7 @@ export default function HubSection({
             setError('');
             if (newHubName.trim()) {
                 const userId = userService.getUserId();
-                const newHub = await apiService.createHub(userId, newHubName.trim());
+                await apiService.createHub(userId, newHubName.trim());
                 const updatedHubs = await apiService.getUserHubs(userId);
                 
                 onHubsChange(updatedHubs);
