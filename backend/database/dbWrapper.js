@@ -139,7 +139,7 @@ async function createDatabaseWrapper(dbPath) {
 
 /**
  * Create async wrapper for existing SQLite database instance
- * @param {sqlite3.Database} db - Existing SQLite database instance
+ * @param {Object} db - Existing SQLite database instance
  * @returns {DatabaseWrapper} Database wrapper with async methods
  */
 function wrapDatabase(db) {

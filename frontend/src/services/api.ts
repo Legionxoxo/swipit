@@ -123,6 +123,96 @@ class ApiService {
         }
     }
 
+    async startInstagramAnalysis(username: string): Promise<StartAnalysisResponse> {
+        try {
+            const response = await fetch(`${API_BASE_URL}/instagram/analyze`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ username }),
+            });
+
+            if (!response.ok) {
+                const error: ApiError = await response.json();
+                throw new Error(error.message || 'Failed to start Instagram analysis');
+            }
+
+            const backendResponse = await response.json();
+            
+            return {
+                analysisId: backendResponse.analysisId,
+                estimatedCompletionTime: backendResponse.estimatedTime || 'Processing...'
+            };
+        } catch (error) {
+            throw error;
+        } finally {
+            // No cleanup needed for fetch
+        }
+    }
+
+    async getInstagramAnalysisStatus(analysisId: string): Promise<any> {
+        try {
+            const response = await fetch(`${API_BASE_URL}/instagram/analysis/${analysisId}`);
+
+            if (!response.ok) {
+                const error: ApiError = await response.json();
+                throw new Error(error.message || 'Failed to get Instagram analysis status');
+            }
+
+            const backendResponse = await response.json();
+            
+            return {
+                analysisId: backendResponse.analysisId,
+                status: backendResponse.status,
+                progress: backendResponse.progress || 0,
+                totalReels: backendResponse.totalReels || 0,
+                profile: backendResponse.profile,
+                reels: backendResponse.reels || [],
+                reelSegments: backendResponse.reelSegments || null,
+                error: backendResponse.error
+            };
+        } catch (error) {
+            throw error;
+        } finally {
+            // No cleanup needed for fetch
+        }
+    }
+
+    async exportInstagramToCsv(analysisId: string): Promise<Blob> {
+        try {
+            const response = await fetch(`${API_BASE_URL}/export/${analysisId}/csv`);
+
+            if (!response.ok) {
+                const error: ApiError = await response.json();
+                throw new Error(error.message || 'Failed to export Instagram CSV');
+            }
+
+            return await response.blob();
+        } catch (error) {
+            throw error;
+        } finally {
+            // No cleanup needed for fetch
+        }
+    }
+
+    async exportInstagramToJson(analysisId: string): Promise<Blob> {
+        try {
+            const response = await fetch(`${API_BASE_URL}/export/${analysisId}/json`);
+
+            if (!response.ok) {
+                const error: ApiError = await response.json();
+                throw new Error(error.message || 'Failed to export Instagram JSON');
+            }
+
+            return await response.blob();
+        } catch (error) {
+            throw error;
+        } finally {
+            // No cleanup needed for fetch
+        }
+    }
+
     downloadFile(blob: Blob, filename: string): void {
         try {
             const url = URL.createObjectURL(blob);

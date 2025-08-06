@@ -1,0 +1,8 @@
+# Instagram scraper Python dependencies
+instaloader>=4.9.6
+
+# Standard library dependencies (usually included with Python)
+# json - built-in
+# sys - built-in  
+# argparse - built-in
+# datetime - built-in

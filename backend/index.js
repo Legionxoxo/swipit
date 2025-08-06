@@ -137,7 +137,7 @@ function validateEnvironment() {
         }
 
         return {
-            port: parseInt(process.env.PORT, 10) || 3001,
+            port: parseInt(process.env.PORT, 10) || 3000,
             nodeEnv: process.env.NODE_ENV || 'development',
             youtubeApiKey: process.env.YOUTUBE_API_KEY
         };

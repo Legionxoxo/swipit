@@ -1,0 +1,35 @@
+{"type": "progress", "message": "Starting Instagram analysis for @toxx_unfiltered", "timestamp": "2025-08-06T15:18:18.961418+00:00", "progress": 0}
+{"type": "progress", "message": "Attempting Instagram authentication", "timestamp": "2025-08-06T15:18:18.961784+00:00", "progress": 5}
+{"type": "progress", "message": "Proceeding without authentication (limited data available)", "timestamp": "2025-08-06T15:18:18.961830+00:00", "progress": 10}
+{"type": "progress", "message": "Fetching profile information for @toxx_unfiltered", "timestamp": "2025-08-06T15:18:18.961850+00:00", "progress": 15}
+{"type": "progress", "message": "Profile information retrieved", "timestamp": "2025-08-06T15:18:22.961999+00:00", "progress": 25}
+{"type": "progress", "message": "Profile data extracted", "timestamp": "2025-08-06T15:18:22.962111+00:00", "progress": 30}
+{"type": "progress", "message": "Fetching posts and reels data", "timestamp": "2025-08-06T15:18:22.962133+00:00", "progress": 40}
+JSON Query to graphql/query: 403 Forbidden when accessing https://www.instagram.com/graphql/query [retrying; skip with ^C]
+JSON Query to graphql/query: 401 Unauthorized - "fail" status, message "Please wait a few minutes before you try again." when accessing https://www.instagram.com/graphql/query?variables=%7B%22data%22%3A%7B%22count%22%3A12%2C%22include_relationship_info%22%3Atrue%2C%22latest_besties_reel_media%22%3Atrue%2C%22latest_reel_media%22%3Atrue%7D%2C%22username%22%3A%22toxx_unfiltered%22%2C%22__relay_internal__pv__PolarisFeedShareMenurelayprovider%22%3Afalse%7D&doc_id=7898261790222653&server_timestamps=true [retrying; skip with ^C]
+{"type": "error", "message": "Error accessing posts: JSON Query to graphql/query: 401 Unauthorized - \"fail\" status, message \"Please wait a few minutes before you try again.\" when accessing https://www.instagram.com/graphql/query?variables=%7B%22data%22%3A%7B%22count%22%3A12%2C%22include_relationship_info%22%3Atrue%2C%22latest_besties_reel_media%22%3Atrue%2C%22latest_reel_media%22%3Atrue%7D%2C%22username%22%3A%22toxx_unfiltered%22%2C%22__relay_internal__pv__PolarisFeedShareMenurelayprovider%22%3Afalse%7D&doc_id=7898261790222653&server_timestamps=true", "timestamp": "2025-08-06T15:18:32.012633+00:00", "error": "JSON Query to graphql/query: 401 Unauthorized - \"fail\" status, message \"Please wait a few minutes before you try again.\" when accessing https://www.instagram.com/graphql/query?variables=%7B%22data%22%3A%7B%22count%22%3A12%2C%22include_relationship_info%22%3Atrue%2C%22latest_besties_reel_media%22%3Atrue%2C%22latest_reel_media%22%3Atrue%7D%2C%22username%22%3A%22toxx_unfiltered%22%2C%22__relay_internal__pv__PolarisFeedShareMenurelayprovider%22%3Afalse%7D&doc_id=7898261790222653&server_timestamps=true"}
+{"type": "progress", "message": "Data extraction completed", "timestamp": "2025-08-06T15:18:32.012909+00:00", "progress": 95}
+{"type": "progress", "message": "Analysis completed successfully", "timestamp": "2025-08-06T15:18:32.012971+00:00", "progress": 100}
+{
+  "success": true,
+  "profile": {
+    "instagram_user_id": "75847051576",
+    "username": "toxx_unfiltered",
+    "full_name": "toxx unfiltered",
+    "biography": "\ud83c\udf99\ufe0f Serving daily doses of drama, chaos & real talk.",
+    "follower_count": 2,
+    "following_count": 3,
+    "media_count": 3,
+    "is_private": false,
+    "is_verified": false,
+    "external_url": null,
+    "profile_pic_url": "https://instagram.fpnq7-3.fna.fbcdn.net/v/t51.2885-19/511557395_17842076835531577_1552045131824427797_n.jpg?stp=dst-jpg_s320x320_tt6&efg=eyJ2ZW5jb2RlX3RhZyI6InByb2ZpbGVfcGljLmRqYW5nby4xMDI0LmMyIn0&_nc_ht=instagram.fpnq7-3.fna.fbcdn.net&_nc_cat=101&_nc_oc=Q6cZ2QF4YvkfVVVPVLbzzLeYjO774zlfTRZpfFluNPFPpw3ICRvRRZgARlwQQV-X_azbD3U&_nc_ohc=WhpgvyFQeHQQ7kNvwG6-T9F&_nc_gid=xE0d2k9R8JAXEk_NpTp9qw&edm=AOQ1c0wBAAAA&ccb=7-5&oh=00_AfXRdjdIn_KY4iiYF9tbWDsM-wETAy8pGpKOQK7VrQ2VaQ&oe=68994C73&_nc_sid=8b3546"
+  },
+  "reels": [],
+  "all_posts": [],
+  "total_reels": 0,
+  "total_posts": 0,
+  "authenticated": false,
+  "message": "Successfully extracted 0 posts (0 reels) from @toxx_unfiltered",
+  "warning": "Limited data access without authentication. Login to get full post data."
+}

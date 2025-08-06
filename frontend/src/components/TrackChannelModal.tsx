@@ -5,7 +5,7 @@ import Modal from './Modal';
 interface TrackChannelModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onAnalysisStarted: (analysisId: string) => void;
+    onAnalysisStarted: (analysisId: string, platform: 'youtube' | 'instagram') => void;
 }
 
 export default function TrackChannelModal({ isOpen, onClose, onAnalysisStarted }: TrackChannelModalProps) {
@@ -13,11 +13,42 @@ export default function TrackChannelModal({ isOpen, onClose, onAnalysisStarted }
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
+    const detectPlatform = (url: string): 'youtube' | 'instagram' | 'unknown' => {
+        const input = url.toLowerCase().trim();
+        
+        if (input.includes('youtube.com') || input.includes('youtu.be')) {
+            return 'youtube';
+        }
+        
+        if (input.includes('instagram.com') || input.startsWith('@')) {
+            return 'instagram';
+        }
+        
+        // For plain usernames, default to YouTube for backward compatibility
+        return 'youtube';
+    };
+
+    const extractUsernameForInstagram = (input: string): string => {
+        // Remove @ if present at the start
+        if (input.startsWith('@')) {
+            return input.slice(1);
+        }
+
+        // Handle Instagram URLs
+        const instagramMatch = input.match(/instagram\.com\/([^\/\?]+)/);
+        if (instagramMatch) {
+            return instagramMatch[1];
+        }
+
+        // Return as-is for plain usernames
+        return input;
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         
         if (!channelUrl.trim()) {
-            setError('Please enter a YouTube channel URL');
+            setError('Please enter a YouTube or Instagram URL');
             return;
         }
 
@@ -25,8 +56,18 @@ export default function TrackChannelModal({ isOpen, onClose, onAnalysisStarted }
         setError(null);
 
         try {
-            const response = await apiService.startChannelAnalysis(channelUrl.trim());
-            onAnalysisStarted(response.analysisId);
+            const platform = detectPlatform(channelUrl.trim());
+            let response;
+
+            if (platform === 'instagram') {
+                const username = extractUsernameForInstagram(channelUrl.trim());
+                response = await apiService.startInstagramAnalysis(username);
+            } else {
+                // Default to YouTube
+                response = await apiService.startChannelAnalysis(channelUrl.trim());
+            }
+
+            onAnalysisStarted(response.analysisId, platform === 'unknown' ? 'youtube' : platform);
             
             // Reset form and close modal
             setChannelUrl('');
@@ -48,18 +89,18 @@ export default function TrackChannelModal({ isOpen, onClose, onAnalysisStarted }
     };
 
     return (
-        <Modal isOpen={isOpen} onClose={handleClose} title="Track New YouTube Channel" maxWidth="lg">
+        <Modal isOpen={isOpen} onClose={handleClose} title="Track New Creator" maxWidth="lg">
             <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
                     <label htmlFor="channelUrl" className="block text-sm font-medium text-gray-700 mb-2">
-                        YouTube Channel URL
+                        Creator URL or Username
                     </label>
                     <input
-                        type="url"
+                        type="text"
                         id="channelUrl"
                         value={channelUrl}
                         onChange={(e) => setChannelUrl(e.target.value)}
-                        placeholder="https://www.youtube.com/@channelname"
+                        placeholder="YouTube: @channelname, Instagram: @username, or any profile URL"
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
                         disabled={isLoading}
                         autoFocus
@@ -73,12 +114,17 @@ export default function TrackChannelModal({ isOpen, onClose, onAnalysisStarted }
                 )}
 
                 <div className="bg-gray-50 rounded-lg p-4">
-                    <h4 className="text-sm font-medium text-gray-900 mb-2">Supported URL formats:</h4>
+                    <h4 className="text-sm font-medium text-gray-900 mb-2">Supported formats:</h4>
                     <div className="text-xs text-gray-600 space-y-1">
+                        <p className="font-medium text-red-700 mb-1">YouTube:</p>
                         <p>• <code className="bg-gray-200 px-1 rounded">https://www.youtube.com/@channelname</code></p>
                         <p>• <code className="bg-gray-200 px-1 rounded">https://www.youtube.com/c/channelname</code></p>
                         <p>• <code className="bg-gray-200 px-1 rounded">https://www.youtube.com/channel/CHANNEL_ID</code></p>
-                        <p>• <code className="bg-gray-200 px-1 rounded">https://www.youtube.com/user/username</code></p>
+                        <p className="font-medium text-purple-700 mb-1 mt-2">Instagram:</p>
+                        <p>• <code className="bg-gray-200 px-1 rounded">https://www.instagram.com/username</code></p>
+                        <p>• <code className="bg-gray-200 px-1 rounded">@username</code></p>
+                        <p className="font-medium text-gray-700 mb-1 mt-2">General:</p>
+                        <p>• <code className="bg-gray-200 px-1 rounded">username</code> (defaults to YouTube)</p>
                     </div>
                 </div>
 
@@ -89,7 +135,7 @@ export default function TrackChannelModal({ isOpen, onClose, onAnalysisStarted }
                         </svg>
                         <div className="text-sm text-blue-800">
                             <p className="font-medium">Analysis Process</p>
-                            <p className="mt-1">The analysis typically takes 2-10 minutes depending on the channel size. You'll see real-time progress updates.</p>
+                            <p className="mt-1">YouTube analysis takes 2-10 minutes, Instagram analysis takes 1-3 minutes. You'll see real-time progress updates for both platforms.</p>
                         </div>
                     </div>
                 </div>

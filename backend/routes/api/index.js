@@ -6,6 +6,8 @@
 const express = require('express');
 const analyzeRoutes = require('./analyze');
 const exportRoutes = require('./export');
+const instagramRoutes = require('./instagram');
+const { router: extensionRoutes } = require('./extension');
 
 const router = express.Router();
 
@@ -30,7 +32,9 @@ router.get('/', (req, res) => {
             endpoints: {
                 analyze: '/api/analyze',
                 analysis: '/api/analysis/:id',
-                export: '/api/export/:id/:format'
+                export: '/api/export/:id/:format',
+                instagram: '/api/instagram',
+                extension: '/api/extension'
             }
         });
     } catch (error) {
@@ -50,5 +54,7 @@ router.get('/', (req, res) => {
 router.use('/analyze', analyzeRoutes);
 router.use('/analysis', analyzeRoutes);
 router.use('/export', exportRoutes);
+router.use('/instagram', instagramRoutes);
+router.use('/extension', extensionRoutes);
 
 module.exports = router;

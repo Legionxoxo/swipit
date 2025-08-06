@@ -3,6 +3,7 @@ import './App.css';
 import Sidebar from './components/layout/Sidebar';
 import Header from './components/layout/Header';
 import VideosList from './components/VideosList';
+import InstagramReelsList from './components/InstagramReelsList';
 import TrackChannelModal from './components/TrackChannelModal';
 import ContextMenu from './components/common/ContextMenu';
 import CreatorsView from './components/views/CreatorsView';
@@ -11,6 +12,7 @@ import StarredVideosView from './components/views/StarredVideosView';
 import type { AnalysisResponse, CreatorHub } from './types/api';
 import { localStorageService } from './services/localStorage';
 import { useAnalysisTracking } from './hooks/useAnalysisTracking';
+import { useInstagramAnalysisTracking } from './hooks/useInstagramAnalysisTracking';
 import { useContextMenu } from './hooks/useContextMenu';
 import { getCreatorsForView } from './utils/creatorFilters';
 
@@ -19,15 +21,52 @@ interface AnalysisData {
     data: AnalysisResponse;
 }
 
+interface InstagramAnalysisData {
+    analysisId: string;
+    status: 'processing' | 'completed' | 'failed';
+    progress: number;
+    profile?: any;
+    reels?: any[];
+    reelSegments?: any;
+    totalReels?: number;
+    error?: string;
+}
+
+interface UnifiedCreator {
+    analysisId: string;
+    platform: 'youtube' | 'instagram';
+    data?: AnalysisResponse;
+    instagramData?: InstagramAnalysisData;
+}
+
 function App() {
     const [currentView, setCurrentView] = useState<string>('home');
     const [previousView, setPreviousView] = useState<string>('home');
     const [selectedAnalysis, setSelectedAnalysis] = useState<AnalysisData | null>(null);
+    const [selectedInstagramAnalysis, setSelectedInstagramAnalysis] = useState<InstagramAnalysisData | null>(null);
     const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
     const [hubs, setHubs] = useState<CreatorHub[]>([]);
 
     const { analyses, loadingAnalyses, handleAnalysisStarted } = useAnalysisTracking();
+    const { instagramAnalyses, loadingInstagramAnalyses, handleInstagramAnalysisStarted } = useInstagramAnalysisTracking();
+    
+    // Create unified creator list
+    const unifiedCreators: UnifiedCreator[] = [
+        ...analyses.map(analysis => ({
+            analysisId: analysis.analysisId,
+            platform: 'youtube' as const,
+            data: analysis.data
+        })),
+        ...instagramAnalyses.map(analysis => ({
+            analysisId: analysis.analysisId,
+            platform: 'instagram' as const,
+            instagramData: analysis
+        }))
+    ];
+
+    const allLoadingAnalyses = [...loadingAnalyses, ...loadingInstagramAnalyses];
+    
     const { contextMenu, setContextMenu, handleChannelRightClick, getContextMenuItems } = useContextMenu(analyses, hubs, setHubs);
 
     // Load hubs from localStorage on mount
@@ -42,17 +81,25 @@ function App() {
         }
     }, []);
 
-    const handleChannelClick = (analysis: AnalysisData) => {
-        if (analysis.data.status === 'completed') {
-            setPreviousView(currentView); // Store the current view before switching
-            setSelectedAnalysis(analysis);
+    const handleCreatorClick = (creator: UnifiedCreator) => {
+        if (creator.platform === 'youtube' && creator.data?.status === 'completed') {
+            setPreviousView(currentView);
+            setSelectedAnalysis({
+                analysisId: creator.analysisId,
+                data: creator.data
+            });
             setCurrentView('videos');
+        } else if (creator.platform === 'instagram' && creator.instagramData?.status === 'completed') {
+            setPreviousView(currentView);
+            setSelectedInstagramAnalysis(creator.instagramData);
+            setCurrentView('reels');
         }
     };
 
     const handleBackToChannels = () => {
-        setCurrentView(previousView); // Return to the previous view
+        setCurrentView(previousView);
         setSelectedAnalysis(null);
+        setSelectedInstagramAnalysis(null);
     };
 
     const handleTrackChannelClick = () => {
@@ -63,20 +110,27 @@ function App() {
         setIsModalOpen(false);
     };
 
-    const handleViewChange = (view: string) => {
-        // Only update previousView if we're not going to the videos view (which is handled by handleChannelClick)
-        if (view !== 'videos') {
-            setPreviousView(currentView);
-        }
-        setCurrentView(view);
-        // If switching to videos view, clear selected analysis
-        if (!view.startsWith('hub-') && view !== 'home' && view !== 'favorite-creators' && view !== 'favorite-videos' && view !== 'starred-videos') {
-            setSelectedAnalysis(null);
+    const handleUnifiedAnalysisStarted = (analysisId: string, platform: 'youtube' | 'instagram') => {
+        if (platform === 'youtube') {
+            handleAnalysisStarted(analysisId);
+        } else {
+            handleInstagramAnalysisStarted(analysisId);
         }
     };
 
+    const handleViewChange = (view: string) => {
+        if (view !== 'videos' && view !== 'reels') {
+            setPreviousView(currentView);
+        }
+        setCurrentView(view);
+        // Clear selected analyses when switching views
+        if (!view.startsWith('hub-') && view !== 'home' && view !== 'favorite-creators' && view !== 'favorite-videos' && view !== 'starred-videos') {
+            setSelectedAnalysis(null);
+            setSelectedInstagramAnalysis(null);
+        }
+    };
 
-    // Handle video view
+    // Handle video view (YouTube)
     if (selectedAnalysis) {
         return (
             <VideosList
@@ -84,6 +138,19 @@ function App() {
                 videos={selectedAnalysis.data.videoData}
                 videoSegments={selectedAnalysis.data.videoSegments}
                 analysisId={selectedAnalysis.analysisId}
+                onBack={handleBackToChannels}
+            />
+        );
+    }
+
+    // Handle reels view (Instagram)
+    if (selectedInstagramAnalysis) {
+        return (
+            <InstagramReelsList
+                profileInfo={selectedInstagramAnalysis.profile}
+                reels={selectedInstagramAnalysis.reels || []}
+                reelSegments={selectedInstagramAnalysis.reelSegments}
+                analysisId={selectedInstagramAnalysis.analysisId}
                 onBack={handleBackToChannels}
             />
         );
@@ -103,13 +170,21 @@ function App() {
             <CreatorsView
                 currentView={currentView}
                 creatorsToShow={getCreatorsForView(currentView, analyses)}
-                loadingAnalyses={loadingAnalyses}
+                unifiedCreators={unifiedCreators}
+                loadingAnalyses={new Set(allLoadingAnalyses)}
                 hubs={hubs}
-                onChannelClick={handleChannelClick}
+                onChannelClick={(analysis: AnalysisData) => {
+                    if (analysis.data.status === 'completed') {
+                        setPreviousView(currentView);
+                        setSelectedAnalysis(analysis);
+                        setCurrentView('videos');
+                    }
+                }}
+                onCreatorClick={handleCreatorClick}
                 onChannelRightClick={handleChannelRightClick}
                 onTrackChannel={handleTrackChannelClick}
                 onHubsChange={setHubs}
-                totalAnalyses={analyses.length}
+                totalAnalyses={unifiedCreators.length}
             />
         );
     };
@@ -139,7 +214,7 @@ function App() {
             <TrackChannelModal
                 isOpen={isModalOpen}
                 onClose={handleCloseModal}
-                onAnalysisStarted={handleAnalysisStarted}
+                onAnalysisStarted={handleUnifiedAnalysisStarted}
             />
 
             <ContextMenu
