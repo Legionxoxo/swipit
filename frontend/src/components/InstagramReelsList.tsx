@@ -50,7 +50,10 @@ export default function InstagramReelsList({ profileInfo, reels, reelSegments, a
     const [selectedSegment, setSelectedSegment] = useState<string>('all');
     const [isExporting, setIsExporting] = useState(false);
 
-    const formatNumber = (num: number): string => {
+    const formatNumber = (num: number | undefined): string => {
+        if (num === undefined || num === null) {
+            return '0';
+        }
         if (num >= 1000000) {
             return (num / 1000000).toFixed(1) + 'M';
         }

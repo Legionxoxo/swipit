@@ -11,6 +11,7 @@
   "host_permissions": [
     "*://*.youtube.com/*",
     "*://*.instagram.com/*",
+    "http://localhost:3000/*",
     "http://localhost:3001/*"
   ],
   "background": {

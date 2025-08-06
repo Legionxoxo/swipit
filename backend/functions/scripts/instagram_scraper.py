@@ -11,6 +11,8 @@ import instaloader
 from datetime import datetime, timezone
 import os
 import getpass
+import time
+import random
 
 
 def log_progress(message, progress=None):
@@ -39,6 +41,84 @@ def log_error(message, error=None):
     print(json.dumps(error_data), flush=True)
 
 
+def validate_cookies(session_data):
+    """
+    Validate that cookies contain the minimum required fields for authentication
+    
+    Args:
+        session_data (dict): Dictionary containing cookie data
+        
+    Returns:
+        bool: True if cookies are valid, False otherwise
+    """
+    try:
+        # Check for required cookies
+        required_cookies = ['sessionid', 'ds_user_id', 'csrftoken']
+        for cookie in required_cookies:
+            if not session_data.get(cookie):
+                log_progress(f"Missing required cookie: {cookie}", None)
+                return False
+        
+        # Validate cookie quality
+        sessionid = session_data.get('sessionid', '')
+        if len(sessionid) < 10:
+            log_progress("Session ID appears to be invalid (too short)", None)
+            return False
+            
+        # Check if ds_user_id is numeric (should be Instagram user ID)
+        try:
+            int(session_data.get('ds_user_id', '0'))
+        except ValueError:
+            log_progress("ds_user_id is not a valid numeric ID", None)
+            return False
+            
+        log_progress("Cookie validation passed", None)
+        return True
+        
+    except Exception as e:
+        log_error(f"Cookie validation error: {str(e)}", e)
+        return False
+
+
+def exponential_backoff_retry(func, max_retries=3, initial_delay=60):
+    """
+    Retry a function with exponential backoff on 401/403 errors
+    
+    Args:
+        func: Function to retry
+        max_retries: Maximum number of retry attempts
+        initial_delay: Initial delay in seconds
+        
+    Returns:
+        Function result if successful
+        
+    Raises:
+        Last exception if all retries fail
+    """
+    last_exception = None
+    
+    for attempt in range(max_retries):
+        try:
+            return func()
+        except Exception as e:
+            last_exception = e
+            error_str = str(e).lower()
+            
+            # Check if it's a rate limit or auth error
+            if any(code in error_str for code in ['401', '403', 'unauthorized', 'forbidden', 'rate limit', 'wait']):
+                if attempt < max_retries - 1:  # Don't sleep on last attempt
+                    wait_time = initial_delay * (2 ** attempt)  # Exponential backoff
+                    log_progress(f"Rate limit detected, waiting {wait_time} seconds before retry {attempt + 2}/{max_retries}", None)
+                    time.sleep(wait_time)
+                    continue
+            
+            # If it's not a rate limit error, don't retry
+            raise e
+    
+    # All retries failed
+    raise last_exception
+
+
 def setup_instaloader():
     """Setup instaloader with proper configuration"""
     try:
@@ -60,7 +140,21 @@ def setup_instaloader():
         )
         
         # Set slower request rate to avoid rate limits
-        loader.context.sleep_factor = 2.0
+        loader.context.sleep_factor = 10.0  # Increased to 10.0 for better rate limiting
+        
+        # Add proper headers to mimic real browser behavior
+        loader.context._session.headers.update({
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.5',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'DNT': '1',
+            'Connection': 'keep-alive',
+            'Upgrade-Insecure-Requests': '1',
+            'Sec-Fetch-Dest': 'document',
+            'Sec-Fetch-Mode': 'navigate',
+            'Sec-Fetch-Site': 'none'
+        })
         
         return loader
         
@@ -89,37 +183,31 @@ def authenticate_instagram(loader, username=None, password=None, extension_cooki
         if extension_cookies:
             try:
                 log_progress("Trying to load session with extension cookies", 6)
-                # Convert extension cookies to session data format
+                # Convert extension cookies to session data format with expanded cookie support
                 session_data = {}
+                username_from_cookies = None
+                
                 for cookie in extension_cookies:
-                    if cookie['name'] in ['sessionid', 'csrftoken', 'ds_user_id', 'mid', 'ig_did', 'shbid', 'shbts', 'rur']:
+                    # Include all relevant Instagram cookies
+                    if cookie['name'] in ['sessionid', 'csrftoken', 'ds_user_id', 'mid', 'ig_did', 'shbid', 'shbts', 'rur', 'datr', 'dpr']:
+                        session_data[cookie['name']] = cookie['value']
+                    # Also capture any fbsr_* cookies
+                    elif cookie['name'].startswith('fbsr_'):
                         session_data[cookie['name']] = cookie['value']
                 
-                if session_data.get('sessionid'):
-                    # Create a dummy username for session loading
-                    loader.load_session("extension_user", session_data)
+                # Validate cookies before attempting to use them
+                if validate_cookies(session_data):
+                    # Use a more realistic session username derived from ds_user_id
+                    session_username = f"user_{session_data.get('ds_user_id', 'extension')}"
+                    loader.load_session(session_username, session_data)
                     log_progress("Successfully loaded session with extension cookies", 10)
                     return True
                 else:
-                    log_progress("No sessionid found in extension cookies", 7)
+                    log_progress("Extension cookies failed validation", 7)
             except Exception as session_error:
                 log_progress(f"Extension cookie session loading failed: {str(session_error)}", 7)
         
-        # Method 2: Try to load session with hardcoded cookies (fallback)
-        try:
-            log_progress("Trying to load session with fallback cookies", 6)
-            session_data = {
-                "csrftoken": "P1OEVTOfy4AaElXRPw7HxzuMTM5LLRFM",
-                "sessionid": "",
-                "ds_user_id": "",
-                "mid": "",
-                "ig_did": ""
-            }
-            loader.load_session("dummy_user", session_data)
-            log_progress("Successfully loaded session with fallback cookies", 10)
-            return True
-        except Exception as session_error:
-            log_progress("Fallback cookie session loading failed, trying other methods", 7)
+        # Method 2: Skip fallback empty cookies (they cause 401 errors)
         
         # Method 3: Try to load existing session from file
         if username:
@@ -307,6 +395,11 @@ def scrape_instagram_profile(username, analysis_id, auth_username=None, auth_pas
             # Get posts (requires authentication for full access)
             for post_index, post in enumerate(profile.get_posts()):
                 try:
+                    # Add random delay between requests to avoid rate limiting
+                    if post_index > 0:
+                        delay = random.uniform(2, 5)
+                        time.sleep(delay)
+                    
                     # Update progress
                     if post_index % 5 == 0:
                         progress = min(40 + int((post_index / max(total_media, 1)) * 50), 90)
