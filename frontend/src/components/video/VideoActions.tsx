@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { apiService } from '../../services/api';
 import { userService } from '../../services/userService';
-import VideoCommentOverlay from './VideoCommentOverlay';
+import VideoDualSidebar from './VideoDualSidebar';
 import VideoActionMenu from './VideoActionMenu';
 
 interface VideoActionsProps {
@@ -22,7 +22,8 @@ export default function VideoActions({
     const [isFavorite, setIsFavorite] = useState<boolean>(false);
     const [starRating, setStarRating] = useState<number>(0);
     const [showMenu, setShowMenu] = useState<boolean>(false);
-    const [showComment, setShowComment] = useState<boolean>(false);
+    const [showCommentSidebar, setShowCommentSidebar] = useState<boolean>(false);
+    const [showTranscriptionSidebar, setShowTranscriptionSidebar] = useState<boolean>(false);
     const [comment, setComment] = useState<string>('');
     const [hasComment, setHasComment] = useState<boolean>(false);
     const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -135,7 +136,8 @@ export default function VideoActions({
 
             setComment(trimmedComment);
             setHasComment(!!trimmedComment);
-            setShowComment(false);
+            setShowCommentSidebar(false);
+            setShowTranscriptionSidebar(false);
         } catch (error) {
             console.error('Error updating comment:', error);
             setError('Failed to save comment. Please try again.');
@@ -144,8 +146,26 @@ export default function VideoActions({
         }
     };
 
-    const handleAddCommentClick = () => {
-        setShowComment(true);
+
+    const handleSidebarCommentClick = () => {
+        setShowCommentSidebar(true);
+    };
+
+    const handleSidebarTranscriptionClick = () => {
+        setShowTranscriptionSidebar(true);
+    };
+
+    const handleToggleComment = () => {
+        setShowCommentSidebar(!showCommentSidebar);
+    };
+
+    const handleToggleTranscription = () => {
+        setShowTranscriptionSidebar(!showTranscriptionSidebar);
+    };
+
+    const handleCloseSidebar = () => {
+        setShowCommentSidebar(false);
+        setShowTranscriptionSidebar(false);
     };
 
     // Show loading state
@@ -168,32 +188,55 @@ export default function VideoActions({
                 </div>
             )}
 
-            {/* Floating comment overlay */}
-            {showComment && (
-                <VideoCommentOverlay
-                    videoId={videoId}
-                    comment={comment}
-                    setComment={setComment}
-                    onClose={() => setShowComment(false)}
-                    onSubmit={handleCommentSubmit}
-                    hasComment={hasComment}
-                />
-            )}
 
-            {/* Icons: Comment, Heart, Menu */}
+            {/* Dual Sidebar for Comments and Transcriptions */}
+            <VideoDualSidebar
+                isCommentOpen={showCommentSidebar}
+                isTranscriptionOpen={showTranscriptionSidebar}
+                onToggleComment={handleToggleComment}
+                onToggleTranscription={handleToggleTranscription}
+                onClose={handleCloseSidebar}
+                videoId={videoId}
+                videoTitle={videoTitle}
+                comment={comment}
+                setComment={setComment}
+                onSubmit={handleCommentSubmit}
+                hasComment={hasComment}
+            />
+
+            {/* Icons: Comment, Transcription, Heart, Menu */}
             <div className="absolute top-2 right-2 flex space-x-2">
-                {/* Comment Icon - Only show if video has a comment */}
-                {hasComment && (
-                    <button
-                        onClick={handleAddCommentClick}
-                        className="p-2 rounded-full bg-yellow-500 bg-opacity-90 hover:bg-opacity-100 transition-all duration-200"
-                        title="View/Edit Comment"
-                    >
-                        <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
-                        </svg>
-                    </button>
-                )}
+                {/* Comment Icon */}
+                <button
+                    onClick={handleSidebarCommentClick}
+                    className={`p-2 rounded-full transition-all duration-200 ${
+                        showCommentSidebar
+                            ? 'bg-blue-500 bg-opacity-90 hover:bg-opacity-100'
+                            : hasComment 
+                                ? 'bg-yellow-500 bg-opacity-90 hover:bg-opacity-100' 
+                                : 'bg-black bg-opacity-50 hover:bg-opacity-70'
+                    }`}
+                    title={hasComment ? "View/Edit Comment" : "Add Comment"}
+                >
+                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+                    </svg>
+                </button>
+
+                {/* Transcription Icon */}
+                <button
+                    onClick={handleSidebarTranscriptionClick}
+                    className={`p-2 rounded-full transition-all duration-200 ${
+                        showTranscriptionSidebar
+                            ? 'bg-green-500 bg-opacity-90 hover:bg-opacity-100'
+                            : 'bg-black bg-opacity-50 hover:bg-opacity-70'
+                    }`}
+                    title="View Transcription"
+                >
+                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                    </svg>
+                </button>
 
                 {/* Heart Icon */}
                 <button
@@ -229,7 +272,7 @@ export default function VideoActions({
                             videoId={videoId}
                             starRating={starRating}
                             onStarClick={handleStarClick}
-                            onAddCommentClick={handleAddCommentClick}
+                            onAddCommentClick={handleSidebarCommentClick}
                         />
                     )}
                 </div>

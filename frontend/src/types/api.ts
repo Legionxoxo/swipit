@@ -99,12 +99,21 @@ export interface VideoComment {
     updatedAt: string;
 }
 
+export interface VideoTranscription {
+    videoId: string;
+    transcription: string;
+    confidence: number;
+    language: string;
+    generatedAt: string;
+}
+
 export interface AppData {
     hubs: CreatorHub[];
     favoriteCreators: FavoriteCreator[];
     favoriteVideos: FavoriteVideo[];
     starredVideos: StarredVideo[];
     videoComments: VideoComment[];
+    videoTranscriptions: VideoTranscription[];
 }
 
 export interface AnalysisData {
