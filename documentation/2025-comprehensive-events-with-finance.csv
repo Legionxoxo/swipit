@@ -1,0 +1,146 @@
+Date,Event_Name,Type,Category,Sub_Category,Location,Target_Group,Global_Impact,Duration,Status
+2025-01-20,Presidential Inauguration Day,Political Event,Government,Presidential Ceremony,Washington DC USA,US Citizens/Global Audience,Global,1 Day,Confirmed
+2025-01-29,Chinese New Year,Cultural Event,Cultural,Lunar New Year,Global,Chinese Community/General Public,Global,1 Day,Confirmed
+2025-02-09,Super Bowl LIX,Sports Championship,Sports,American Football,New Orleans USA,Sports Fans/General Public,Global,1 Day,Confirmed
+2025-02-27,State of the Union Address,Political Event,Government,Presidential Address,Washington DC USA,US Citizens/Political Community,Regional,1 Day,Expected
+2025-03-29,Ramadan Start,Religious Holiday,Religious,Islamic Observance,Global Islamic,Muslim Community,Global,30 Days,Confirmed
+2025-04-10,Masters Tournament Start,Sports Championship,Sports,Golf,Augusta Georgia USA,Golf Fans/Sports Enthusiasts,Global,4 Days,Confirmed
+2025-04-11,Coachella Weekend 1,Music Festival,Entertainment,Multi-genre Music,California USA,Music Fans/Youth,Global,3 Days,Expected
+2025-04-13,Masters Tournament Final,Sports Championship,Sports,Golf,Augusta Georgia USA,Golf Fans/Sports Enthusiasts,Global,4 Days,Confirmed
+2025-04-18,Coachella Weekend 2,Music Festival,Entertainment,Multi-genre Music,California USA,Music Fans/Youth,Global,3 Days,Expected
+2025-04-28,Ramadan End,Religious Holiday,Religious,Islamic Observance,Global Islamic,Muslim Community,Global,30 Days,Confirmed
+2025-04-30,Eid al-Fitr,Religious Holiday,Religious,Islamic Celebration,Global Islamic,Muslim Community,Global,1 Day,Confirmed
+2025-05-04,UK Local Elections,Political Event,Government,Democratic Process,United Kingdom,UK Citizens/Political Community,Regional,1 Day,Expected
+2025-06-02,UEFA Champions League Final,Sports Championship,Sports,Football/Soccer,Munich Germany,Football Fans/Sports Community,Global,1 Day,Confirmed
+2025-06-11,G7 Summit,Political Event,International,Economic Cooperation,Canada,World Leaders/Global Economy,Global,3 Days,Expected
+2025-06-15,NBA Finals Start,Sports Championship,Sports,Basketball,USA,Basketball Fans/Sports Community,Global,7 Days,Expected
+2025-06-25,Glastonbury Festival,Music Festival,Entertainment,Multi-genre Music,England UK,Music Fans/Arts Community,Global,5 Days,Expected
+2025-06-29,Stanley Cup Finals End,Sports Championship,Sports,Ice Hockey,USA/Canada,Hockey Fans/Sports Community,Regional,7 Days,Expected
+2025-06-30,Wimbledon Start,Sports Championship,Sports,Tennis,London UK,Tennis Fans/Sports Community,Global,14 Days,Confirmed
+2025-07-13,Wimbledon Final,Sports Championship,Sports,Tennis,London UK,Tennis Fans/Sports Community,Global,14 Days,Confirmed
+2025-07-24,Comic-Con International,Pop Culture Convention,Entertainment,Comics/Gaming/Movies,San Diego USA,Pop Culture Fans/Industry,Global,4 Days,Expected
+2025-08-01,Lollapalooza Day 2,Music Festival,Entertainment,Alternative/Electronic,Chicago IL USA,Music Fans/Youth,Global,4 Days,Confirmed
+2025-08-02,Lollapalooza Day 3,Music Festival,Entertainment,Alternative/Electronic,Chicago IL USA,Music Fans/Youth,Global,4 Days,Confirmed
+2025-08-03,Lollapalooza Final Day,Music Festival,Entertainment,Alternative/Electronic,Chicago IL USA,Music Fans/Youth,Global,4 Days,Confirmed
+2025-08-07,Melbourne Film Festival,Film Festival,Entertainment,Cinema/Arts,Melbourne Australia,Film Industry/Arts Community,Regional,19 Days,Confirmed
+2025-08-08,Edinburgh Festival,Cultural Festival,Arts & Culture,Performance Arts,Edinburgh Scotland,Arts Community/Tourists,Global,24 Days,Confirmed
+2025-08-10,Perseid Meteor Shower Peak,Natural Event,Science,Astronomy,Global,Astronomers/Science Enthusiasts,Regional,1 Day,Confirmed
+2025-08-11,VJ Day,National Holiday,Government,Historical Commemoration,United States,General Public/Veterans,Regional,1 Day,Confirmed
+2025-08-14,Pakistan Independence Day,National Holiday,Government,National Celebration,Pakistan,Pakistani Citizens,Regional,1 Day,Confirmed
+2025-08-15,Assumption of Mary,Religious Holiday,Religious,Catholic Feast,Global Catholic,Catholic Community,Regional,1 Day,Confirmed
+2025-08-15,Burning Man,Cultural Festival,Arts & Culture,Counterculture/Arts,Nevada USA,Artists/Alternative Community,Global,9 Days,Confirmed
+2025-08-15,Independence Day India,National Holiday,Government,National Celebration,India,Indian Citizens,Regional,1 Day,Confirmed
+2025-08-17,Crypto 2025 Conference,Tech Conference,Finance,Cryptocurrency/Blockchain,Santa Barbara CA USA,Crypto/Tech Community,Global,5 Days,Confirmed
+2025-08-17,Indonesia Independence Day,National Holiday,Government,National Celebration,Indonesia,Indonesian Citizens,Regional,1 Day,Confirmed
+2025-08-20,Gamescom,Gaming Convention,Technology,Video Games,Cologne Germany,Gamers/Tech Industry,Global,5 Days,Confirmed
+2025-08-21,Crypto 2025 Conference End,Tech Conference,Finance,Cryptocurrency/Blockchain,Santa Barbara CA USA,Crypto/Tech Community,Global,5 Days,Confirmed
+2025-08-24,Gamescom Ends,Gaming Convention,Technology,Video Games,Cologne Germany,Gamers/Tech Industry,Global,5 Days,Confirmed
+2025-08-25,Melbourne Film Festival End,Film Festival,Entertainment,Cinema/Arts,Melbourne Australia,Film Industry/Arts Community,Regional,19 Days,Confirmed
+2025-08-25,Uruguay Independence Day,National Holiday,Government,National Celebration,Uruguay,Uruguayan Citizens,Regional,1 Day,Confirmed
+2025-08-26,National Dog Day,Cultural Event,Lifestyle,Pet/Animal Welfare,United States,Pet Owners/Animal Lovers,Regional,1 Day,Confirmed
+2025-08-27,Bank Holiday UK,National Holiday,Government,Public Holiday,United Kingdom,UK Citizens,Regional,1 Day,Confirmed
+2025-08-28,US Open Tennis,Sports Championship,Sports,Tennis,New York USA,Tennis Fans/Sports Enthusiasts,Global,11 Days,Confirmed
+2025-08-28,WebX Asia 2025,Tech Conference,Finance,Blockchain/Web3,Tokyo Japan,Crypto/Web3 Community,Regional,2 Days,Confirmed
+2025-08-29,WebX Asia 2025 End,Tech Conference,Finance,Blockchain/Web3,Tokyo Japan,Crypto/Web3 Community,Regional,2 Days,Confirmed
+2025-08-30,Venice Film Festival,Film Festival,Entertainment,Cinema/Arts,Venice Italy,Film Industry/Arts Community,Global,8 Days,Confirmed
+2025-08-30,World Cup 2026 Qualifiers,Sports Event,Sports,Football/Soccer,Various Countries,Football Fans,Global,1 Day,Expected
+2025-08-31,Edinburgh Festival End,Cultural Festival,Arts & Culture,Performance Arts,Edinburgh Scotland,Arts Community/Tourists,Global,24 Days,Confirmed
+2025-08-31,La Liga Season Start,Sports Event,Sports,Football/Soccer,Spain,Football Fans/Spanish Sports,Global,Season Start,Expected
+2025-09-01,Labor Day,National Holiday,Government,Workers Rights,United States & Canada,Working Population,Regional,1 Day,Confirmed
+2025-09-02,Burning Man End,Cultural Festival,Arts & Culture,Counterculture/Arts,Nevada USA,Artists/Alternative Community,Global,9 Days,Confirmed
+2025-09-04,Toronto Film Festival,Film Festival,Entertainment,Cinema/Arts,Toronto Canada,Film Industry/Arts Community,Global,11 Days,Expected
+2025-09-05,Mawlid al-Nabi,Religious Holiday,Religious,Islamic Celebration,Global Islamic,Muslim Community,Global,1 Day,Confirmed
+2025-09-05,World Cup 2026 Qualifiers,Sports Event,Sports,Football/Soccer,Various Countries,Football Fans,Global,1 Day,Expected
+2025-09-06,Venice Film Festival End,Film Festival,Entertainment,Cinema/Arts,Venice Italy,Film Industry/Arts Community,Global,8 Days,Confirmed
+2025-09-07,Brazil Independence Day,National Holiday,Government,National Celebration,Brazil,Brazilian Citizens,Regional,1 Day,Confirmed
+2025-09-07,Grandparents Day,Cultural Event,Social,Family Celebration,United States,Families/Senior Citizens,Regional,1 Day,Confirmed
+2025-09-07,US Open Tennis Final,Sports Championship,Sports,Tennis,New York USA,Tennis Fans/Sports Enthusiasts,Global,11 Days,Confirmed
+2025-09-09,Apple iPhone Event,Tech Launch,Technology,Consumer Electronics,Cupertino CA USA,Tech Enthusiasts/General Consumers,Global,1 Day,Expected
+2025-09-09,North Korea Foundation Day,National Holiday,Government,National Celebration,North Korea,North Korean Citizens,Regional,1 Day,Confirmed
+2025-09-10,Madrid Derby,Sports Event,Sports,Football/Soccer,Madrid Spain,Football Fans/Spanish Sports,Regional,1 Day,Expected
+2025-09-12,iPhone 17 Launch,Tech Launch,Technology,Consumer Electronics,Global,Tech Enthusiasts/General Consumers,Global,1 Day,Expected
+2025-09-14,Emmy Awards,Awards Ceremony,Entertainment,Television Industry,Los Angeles USA,Entertainment Industry/TV Fans,Global,1 Day,Confirmed
+2025-09-14,Manchester Derby,Sports Event,Sports,Football/Soccer,Manchester UK,Football Fans/British Sports,Global,1 Day,Expected
+2025-09-14,Toronto Film Festival End,Film Festival,Entertainment,Cinema/Arts,Toronto Canada,Film Industry/Arts Community,Global,11 Days,Expected
+2025-09-15,Constitution Day,National Holiday,Government,Civic Education,United States,Citizens/Educational Institutions,Regional,1 Day,Confirmed
+2025-09-16,Mexico Independence Day,National Holiday,Government,National Celebration,Mexico,Mexican Citizens,Regional,1 Day,Confirmed
+2025-09-17,FOMC Interest Rate Decision,Financial Event,Finance,Monetary Policy,United States,Investors/Financial Markets,Global,1 Day,Confirmed
+2025-09-18,International Talk Like a Pirate Day,Cultural Event,Pop Culture,Humor/Internet Culture,Global,Internet Communities/General Public,Regional,1 Day,Confirmed
+2025-09-19,Azerbaijan Grand Prix,Sports Event,Sports,Formula 1 Racing,Baku Azerbaijan,F1 Fans/Motorsport Enthusiasts,Global,3 Days,Confirmed
+2025-09-19,World Athletics Championships,Sports Championship,Sports,Track & Field,Tokyo Japan,Athletics Fans/Sports Community,Global,10 Days,Confirmed
+2025-09-20,Oktoberfest Munich Start,Cultural Festival,Cultural,Beer/Food Festival,Munich Germany,Tourists/Beer Enthusiasts,Global,16 Days,Confirmed
+2025-09-20,iOS 19 Release,Tech Launch,Technology,Software/Mobile OS,Global,iPhone Users/Tech Community,Global,1 Day,Expected
+2025-09-25,Ryder Cup Golf,Sports Event,Sports,Golf Championship,Farmingdale NY USA,Golf Fans/Sports Enthusiasts,Global,3 Days,Confirmed
+2025-09-26,European Day of Languages,Cultural Event,Education,Linguistic Diversity,Europe,Educators/Language Communities,Regional,1 Day,Confirmed
+2025-09-28,German Federal Election,Political Event,Government,Democratic Process,Germany,German Citizens/European Community,Regional,1 Day,Expected
+2025-09-28,World Athletics Championships End,Sports Championship,Sports,Track & Field,Tokyo Japan,Athletics Fans/Sports Community,Global,10 Days,Confirmed
+2025-10-01,China National Day,National Holiday,Government,National Celebration,China,Chinese Citizens,Regional,1 Day,Confirmed
+2025-10-01,NH7 Weekender Season,Music Festival,Entertainment,Multi-genre Music,India,Music Fans/Youth,Regional,31 Days,Expected
+2025-10-02,Gandhi Jayanti,National Holiday,Government,Historical Commemoration,India,Indian Citizens/Peace Advocates,Regional,1 Day,Confirmed
+2025-10-03,German Unity Day,National Holiday,Government,Historical Commemoration,Germany,German Citizens,Regional,1 Day,Confirmed
+2025-10-03,Singapore Grand Prix,Sports Event,Sports,Formula 1 Racing,Singapore,F1 Fans/Motorsport Enthusiasts,Global,3 Days,Confirmed
+2025-10-05,Arsenal vs Tottenham,Sports Event,Sports,Football/Soccer,London UK,Football Fans/Premier League,Regional,1 Day,Expected
+2025-10-05,Oktoberfest Munich End,Cultural Festival,Cultural,Beer/Food Festival,Munich Germany,Tourists/Beer Enthusiasts,Global,16 Days,Confirmed
+2025-10-06,OpenAI Dev Day,Tech Conference,Technology,AI/Machine Learning,San Francisco CA USA,Developers/AI Researchers,Global,1 Day,Confirmed
+2025-10-09,Hangul Day,National Holiday,Government,Cultural Heritage,South Korea,Korean Citizens,Regional,1 Day,Confirmed
+2025-10-10,Tron: Ares Movie Release,Movie Release,Entertainment,Sci-Fi Blockbuster,Global,Sci-Fi Fans/Movie Audiences,Global,Ongoing,Expected
+2025-10-10,World Cup 2026 Qualifiers,Sports Event,Sports,Football/Soccer,Various Countries,Football Fans,Global,1 Day,Expected
+2025-10-12,Columbus Day,National Holiday,Government,Historical Commemoration,United States,US Citizens,Regional,1 Day,Confirmed
+2025-10-12,Spain National Day,National Holiday,Government,National Celebration,Spain,Spanish Citizens,Regional,1 Day,Confirmed
+2025-10-13,Indigenous Peoples Day,National Holiday,Government,Cultural Recognition,United States,Indigenous Communities/US Citizens,Regional,1 Day,Confirmed
+2025-10-13,Thanksgiving Canada,National Holiday,Government,Harvest Celebration,Canada,Canadian Citizens,Regional,1 Day,Confirmed
+2025-10-15,Apple October Event,Tech Launch,Technology,Consumer Electronics,Cupertino USA,Tech Enthusiasts/Consumers,Global,1 Day,Expected
+2025-10-17,The Black Phone 2 Movie Release,Movie Release,Entertainment,Horror/Thriller,Global,Horror Fans/Movie Audiences,Global,Ongoing,Expected
+2025-10-18,UEFA Nations League,Sports Event,Sports,Football/Soccer,Europe,Football Fans/European Sports,Regional,1 Day,Expected
+2025-10-20,Diwali,Religious Holiday,Religious,Hindu Festival,Global Hindu,Hindu Community,Global,1 Day,Confirmed
+2025-10-21,Orionid Meteor Shower,Natural Event,Science,Astronomy,Global,Astronomers/Science Enthusiasts,Regional,1 Day,Confirmed
+2025-10-24,Mortal Kombat 2 Movie Release,Movie Release,Entertainment,Action/Fantasy,Global,Action Movie Fans/Gamers,Global,Ongoing,Expected
+2025-10-26,El Clasico,Sports Event,Sports,Football/Soccer,Madrid Spain,Football Fans/Global Sports,Global,1 Day,Confirmed
+2025-10-27,British Summer Time Ends,Time Change,Utility,Daylight Saving,United Kingdom,UK Citizens,Regional,1 Day,Confirmed
+2025-10-28,World Series Start,Sports Championship,Sports,Baseball,USA,Baseball Fans/Sports Community,Regional,7 Days,Expected
+2025-10-30,Q3 Earnings Season Peak,Financial Event,Finance,Corporate Earnings,United States,Investors/Financial Analysts,Global,1 Week,Expected
+2025-10-31,Halloween,Cultural Event,Pop Culture,Traditional Celebration,Global,General Public/Families,Global,1 Day,Confirmed
+2025-10-31,NH7 Weekender Season End,Music Festival,Entertainment,Multi-genre Music,India,Music Fans/Youth,Regional,31 Days,Expected
+2025-11-01,All Saints Day,Religious Holiday,Religious,Christian Feast,Global Christian,Christian Community,Regional,1 Day,Confirmed
+2025-11-01,Bacardi NH7 Weekender,Music Festival,Entertainment,Multi-genre Music,Pune India,Music Fans/Youth,Regional,3 Days,Expected
+2025-11-02,Daylight Saving Time Ends,Time Change,Utility,Time Adjustment,United States,US Citizens,Regional,1 Day,Confirmed
+2025-11-03,Bacardi NH7 Weekender End,Music Festival,Entertainment,Multi-genre Music,Pune India,Music Fans/Youth,Regional,3 Days,Expected
+2025-11-07,FOMC Interest Rate Decision,Financial Event,Finance,Monetary Policy,United States,Investors/Financial Markets,Global,1 Day,Expected
+2025-11-08,Liverpool vs Manchester United,Sports Event,Sports,Football/Soccer,Liverpool UK,Football Fans/Premier League,Global,1 Day,Expected
+2025-11-09,Fall of Berlin Wall Anniversary,Historical Event,Historical,Commemorative,Germany,German Citizens/International,Regional,1 Day,Confirmed
+2025-11-11,Singles Day,Commercial Event,E-commerce,Shopping Festival,China/Global,Online Shoppers/Retailers,Global,1 Day,Confirmed
+2025-11-11,Veterans Day,National Holiday,Government,Military Appreciation,United States,Veterans/US Citizens,Regional,1 Day,Confirmed
+2025-11-14,World Cup 2026 Qualifiers,Sports Event,Sports,Football/Soccer,Various Countries,Football Fans,Global,1 Day,Expected
+2025-11-14,World Diabetes Day,Health Observance,Health,Disease Awareness,Global,Healthcare/Diabetic Community,Global,1 Day,Confirmed
+2025-11-15,Black Friday Early Sales,Commercial Event,E-commerce,Shopping Event,Global,Consumers/Retailers,Global,1 Day,Expected
+2025-11-15,G20 Summit,Political Event,International,Economic Cooperation,Brazil,World Leaders/Global Economy,Global,2 Days,Expected
+2025-11-15,UEFA Nations League,Sports Event,Sports,Football/Soccer,Europe,Football Fans/European Sports,Regional,1 Day,Expected
+2025-11-15,Web Summit Lisbon,Tech Conference,Finance,Startup/Tech Innovation,Lisbon Portugal,Tech Industry/Startups,Global,3 Days,Expected
+2025-11-17,Web Summit Lisbon End,Tech Conference,Finance,Startup/Tech Innovation,Lisbon Portugal,Tech Industry/Startups,Global,3 Days,Expected
+2025-11-22,Clasico Femenino,Sports Event,Sports,Women's Football,Spain,Football Fans/Women's Sports,Regional,1 Day,Expected
+2025-11-23,Japan Labor Thanksgiving Day,National Holiday,Government,Worker Appreciation,Japan,Japanese Citizens,Regional,1 Day,Confirmed
+2025-11-27,Q4 Earnings Announcements Begin,Financial Event,Finance,Corporate Earnings,United States,Investors/Financial Analysts,Global,1 Week,Expected
+2025-11-28,Qatar Grand Prix,Sports Event,Sports,Formula 1 Racing,Lusail Qatar,F1 Fans/Motorsport Enthusiasts,Global,3 Days,Confirmed
+2025-11-28,Thanksgiving US,National Holiday,Government,Family Celebration,United States,US Citizens/Families,Regional,1 Day,Confirmed
+2025-11-29,Black Friday,Commercial Event,E-commerce,Shopping Event,Global,Consumers/Retailers,Global,1 Day,Confirmed
+2025-11-30,Zootopia 2 Movie Release,Movie Release,Entertainment,Animated Family,Global,Families/Disney Fans,Global,Ongoing,Expected
+2025-12-01,AWS re:Invent,Tech Conference,Finance,Cloud Computing,Las Vegas USA,Tech Industry/Developers,Global,5 Days,Expected
+2025-12-01,FIFA Club World Cup Draw,Sports Event,Sports,Football/Soccer,Global,Football Fans/FIFA,Global,1 Day,Expected
+2025-12-01,World AIDS Day,Health Observance,Health,Disease Awareness,Global,Healthcare/HIV Organizations,Global,1 Day,Confirmed
+2025-12-02,Cyber Monday,Commercial Event,E-commerce,Online Shopping,Global,Online Consumers/E-retailers,Global,1 Day,Confirmed
+2025-12-05,AWS re:Invent End,Tech Conference,Finance,Cloud Computing,Las Vegas USA,Tech Industry/Developers,Global,5 Days,Expected
+2025-12-05,Abu Dhabi Grand Prix,Sports Event,Sports,Formula 1 Racing,Abu Dhabi UAE,F1 Fans/Motorsport Enthusiasts,Global,3 Days,Confirmed
+2025-12-06,St. Nicholas Day,Religious Holiday,Religious,Christian Tradition,Europe,Christian Families/Children,Regional,1 Day,Confirmed
+2025-12-08,Game Awards,Awards Ceremony,Entertainment,Video Gaming,Los Angeles USA,Gaming Industry/Gamers,Global,1 Day,Expected
+2025-12-12,FOMC Interest Rate Decision,Financial Event,Finance,Monetary Policy,United States,Investors/Financial Markets,Global,1 Day,Expected
+2025-12-12,World Cup 2026 Draw,Sports Event,Sports,Football/Soccer,Global,Football Fans/FIFA,Global,1 Day,Expected
+2025-12-14,Geminid Meteor Shower,Natural Event,Science,Astronomy,Global,Astronomers/Science Enthusiasts,Regional,1 Day,Confirmed
+2025-12-14,Premier League Matchday 16,Sports Event,Sports,Football/Soccer,England,Football Fans/Premier League,Global,1 Day,Confirmed
+2025-12-15,Holiday Shopping Peak,Commercial Event,E-commerce,Seasonal Shopping,Global,Consumers/Retailers,Global,1 Day,Expected
+2025-12-18,El Clasico Copa del Rey,Sports Event,Sports,Football/Soccer,Spain,Football Fans/Spanish Sports,Regional,1 Day,Possible
+2025-12-20,Five Nights at Freddy's 2 Movie Release,Movie Release,Entertainment,Horror/Gaming,Global,Horror Fans/Gaming Community,Global,Ongoing,Expected
+2025-12-23,Emperor's Birthday,National Holiday,Government,Royal Celebration,Japan,Japanese Citizens,Regional,1 Day,Confirmed
+2025-12-25,Avatar: Fire and Ash Movie Release,Movie Release,Entertainment,Sci-Fi Blockbuster,Global,Sci-Fi Fans/Movie Audiences,Global,Ongoing,Expected
+2025-12-25,Christmas Day,Religious Holiday,Religious,Christian Celebration,Global Christian,Christian Community/Families,Global,1 Day,Confirmed
+2025-12-26,Boxing Day,National Holiday,Government,Post-Christmas Holiday,UK/Commonwealth,Commonwealth Citizens,Regional,1 Day,Confirmed
+2025-12-31,New Year's Eve,Cultural Event,Cultural,Year-End Celebration,Global,Global Population,Global,1 Day,Confirmed

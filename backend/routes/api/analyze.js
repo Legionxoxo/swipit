@@ -3,6 +3,9 @@
  * @author Backend Team
  */
 
+// Import type definitions
+require('../../types/common');
+
 const express = require('express');
 const { startAnalysis, getAnalysisStatus } = require('../../functions/route_fns/analyzeChannel');
 
@@ -20,7 +23,8 @@ const router = express.Router();
  * @property {string} analysisId - Analysis ID for tracking
  * @property {string} status - Analysis status (processing, completed, error)
  * @property {number} [progress] - Progress percentage
- * @property {VideoData[]} [data] - Analysis results
+ * @property {Array} [data] - Analysis results
+ * @property {number} [processingTime] - Processing time in seconds
  */
 
 /**

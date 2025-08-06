@@ -1,5 +1,5 @@
 /**
- * @fileoverview API routes for YouTube Channel Analyzer
+ * @fileoverview API routes for BuzzHunt
  * @author Backend Team
  */
 
@@ -25,7 +25,7 @@ router.get('/', (req, res) => {
     try {
         res.json({
             success: true,
-            message: 'YouTube Channel Analyzer API',
+            message: 'BuzzHunt API',
             version: '1.0.0',
             endpoints: {
                 analyze: '/api/analyze',

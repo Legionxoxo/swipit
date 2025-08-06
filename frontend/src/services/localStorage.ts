@@ -1,25 +1,38 @@
-import type { AppData, CreatorHub, FavoriteCreator, FavoriteVideo, StarredVideo, VideoComment } from '../types/api';
+/**
+ * @fileoverview Local storage service for managing app data
+ * @author Frontend Team
+ */
 
-const STORAGE_KEY = 'youtube-analyzer-data';
+import type { AppData } from '../types/api';
+import { hubsStorage } from './storage/hubsStorage';
+import { favoritesStorage } from './storage/favoritesStorage';
+import { starsAndCommentsStorage } from './storage/starsAndCommentsStorage';
 
+const APP_DATA_KEY = 'buzzhunt_data';
+
+/**
+ * Service for managing localStorage operations
+ */
 class LocalStorageService {
-    private getAppData(): AppData {
+    /**
+     * Get all app data from localStorage
+     * @returns {AppData} App data
+     */
+    getAppData(): AppData {
         try {
-            const data = localStorage.getItem(STORAGE_KEY);
+            const data = localStorage.getItem(APP_DATA_KEY);
             if (!data) {
-                const initialData: AppData = {
+                return {
                     hubs: [],
                     favoriteCreators: [],
                     favoriteVideos: [],
                     starredVideos: [],
                     videoComments: []
                 };
-                this.saveAppData(initialData);
-                return initialData;
             }
             return JSON.parse(data);
         } catch (error) {
-            console.error('Error reading from localStorage:', error);
+            console.error('Error getting app data:', error);
             return {
                 hubs: [],
                 favoriteCreators: [],
@@ -27,220 +40,96 @@ class LocalStorageService {
                 starredVideos: [],
                 videoComments: []
             };
+        } finally {
+            // Required by architecture rules
         }
     }
 
-    private saveAppData(data: AppData): void {
+    /**
+     * Set all app data to localStorage
+     * @param {AppData} data - App data to save
+     */
+    setAppData(data: AppData): void {
         try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+            localStorage.setItem(APP_DATA_KEY, JSON.stringify(data));
         } catch (error) {
-            console.error('Error saving to localStorage:', error);
+            console.error('Error setting app data:', error);
+        } finally {
+            // Required by architecture rules
         }
     }
 
-    // Hub management
-    getHubs(): CreatorHub[] {
-        return this.getAppData().hubs;
-    }
+    // Creator Hubs Management - delegated to hubsStorage
+    getHubs = hubsStorage.getHubs.bind(hubsStorage);
+    setHubs = hubsStorage.setHubs.bind(hubsStorage);
+    addHub = hubsStorage.addHub.bind(hubsStorage);
+    removeHub = hubsStorage.removeHub.bind(hubsStorage);
+    updateHub = hubsStorage.updateHub.bind(hubsStorage);
+    addCreatorToHub = hubsStorage.addCreatorToHub.bind(hubsStorage);
+    removeCreatorFromHub = hubsStorage.removeCreatorFromHub.bind(hubsStorage);
+    getCreatorsInHub = hubsStorage.getCreatorsInHub.bind(hubsStorage);
 
-    createHub(name: string): CreatorHub {
-        const data = this.getAppData();
-        const newHub: CreatorHub = {
+    // For backward compatibility, add createHub method
+    createHub(name: string) {
+        const newHub = {
             id: `hub-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
             name,
             createdAt: new Date().toISOString(),
             creatorIds: []
         };
-        data.hubs.push(newHub);
-        this.saveAppData(data);
+        this.addHub(newHub);
         return newHub;
     }
 
-    updateHub(hubId: string, updates: Partial<Omit<CreatorHub, 'id'>>): void {
-        const data = this.getAppData();
-        const hubIndex = data.hubs.findIndex(h => h.id === hubId);
-        if (hubIndex >= 0) {
-            data.hubs[hubIndex] = { ...data.hubs[hubIndex], ...updates };
-            this.saveAppData(data);
-        }
-    }
+    deleteHub = this.removeHub;
 
-    deleteHub(hubId: string): void {
-        const data = this.getAppData();
-        data.hubs = data.hubs.filter(h => h.id !== hubId);
-        this.saveAppData(data);
-    }
-
-    addCreatorToHub(hubId: string, creatorId: string): void {
-        const data = this.getAppData();
-        const hub = data.hubs.find(h => h.id === hubId);
-        if (hub && !hub.creatorIds.includes(creatorId)) {
-            hub.creatorIds.push(creatorId);
-            this.saveAppData(data);
-        }
-    }
-
-    removeCreatorFromHub(hubId: string, creatorId: string): void {
-        const data = this.getAppData();
-        const hub = data.hubs.find(h => h.id === hubId);
-        if (hub) {
-            hub.creatorIds = hub.creatorIds.filter(id => id !== creatorId);
-            this.saveAppData(data);
-        }
-    }
-
-    getCreatorsInHub(hubId: string): string[] {
-        const hub = this.getHubs().find(h => h.id === hubId);
-        return hub ? hub.creatorIds : [];
-    }
-
+    /**
+     * Get unorganized creators (not in any hub)
+     * @param {string[]} allCreatorIds - All creator IDs
+     * @returns {string[]} Array of unorganized creator IDs
+     */
     getUnorganizedCreators(allCreatorIds: string[]): string[] {
-        const data = this.getAppData();
-        const organizedIds = new Set(data.hubs.flatMap(hub => hub.creatorIds));
-        return allCreatorIds.filter(id => !organizedIds.has(id));
-    }
-
-    // Favorite creators management
-    getFavoriteCreators(): FavoriteCreator[] {
-        return this.getAppData().favoriteCreators;
-    }
-
-    addFavoriteCreator(creator: Omit<FavoriteCreator, 'addedAt'>): void {
-        const data = this.getAppData();
-        if (!data.favoriteCreators.find(c => c.analysisId === creator.analysisId)) {
-            data.favoriteCreators.push({
-                ...creator,
-                addedAt: new Date().toISOString()
+        try {
+            const hubs = this.getHubs();
+            const organizedIds = new Set<string>();
+            
+            hubs.forEach(hub => {
+                hub.creatorIds.forEach(id => organizedIds.add(id));
             });
-            this.saveAppData(data);
+            
+            return allCreatorIds.filter(id => !organizedIds.has(id));
+        } catch (error) {
+            console.error('Error getting unorganized creators:', error);
+            return allCreatorIds;
+        } finally {
+            // Required by architecture rules
         }
     }
 
-    removeFavoriteCreator(analysisId: string): void {
-        const data = this.getAppData();
-        data.favoriteCreators = data.favoriteCreators.filter(c => c.analysisId !== analysisId);
-        this.saveAppData(data);
-    }
+    // Favorites Management - delegated to favoritesStorage
+    getFavoriteCreators = favoritesStorage.getFavoriteCreators.bind(favoritesStorage);
+    setFavoriteCreators = favoritesStorage.setFavoriteCreators.bind(favoritesStorage);
+    addFavoriteCreator = favoritesStorage.addFavoriteCreator.bind(favoritesStorage);
+    removeFavoriteCreator = favoritesStorage.removeFavoriteCreator.bind(favoritesStorage);
+    isCreatorFavorite = favoritesStorage.isCreatorFavorite.bind(favoritesStorage);
+    getFavoriteVideos = favoritesStorage.getFavoriteVideos.bind(favoritesStorage);
+    setFavoriteVideos = favoritesStorage.setFavoriteVideos.bind(favoritesStorage);
+    addFavoriteVideo = favoritesStorage.addFavoriteVideo.bind(favoritesStorage);
+    removeFavoriteVideo = favoritesStorage.removeFavoriteVideo.bind(favoritesStorage);
+    isVideoFavorite = favoritesStorage.isVideoFavorite.bind(favoritesStorage);
 
-    isCreatorFavorite(analysisId: string): boolean {
-        return this.getFavoriteCreators().some(c => c.analysisId === analysisId);
-    }
-
-    // Favorite videos management
-    getFavoriteVideos(): FavoriteVideo[] {
-        return this.getAppData().favoriteVideos;
-    }
-
-    addFavoriteVideo(video: Omit<FavoriteVideo, 'addedAt'>): void {
-        const data = this.getAppData();
-        if (!data.favoriteVideos.find(v => v.videoId === video.videoId)) {
-            data.favoriteVideos.push({
-                ...video,
-                addedAt: new Date().toISOString()
-            });
-            this.saveAppData(data);
-        }
-    }
-
-    removeFavoriteVideo(videoId: string): void {
-        const data = this.getAppData();
-        data.favoriteVideos = data.favoriteVideos.filter(v => v.videoId !== videoId);
-        this.saveAppData(data);
-    }
-
-    isVideoFavorite(videoId: string): boolean {
-        return this.getFavoriteVideos().some(v => v.videoId === videoId);
-    }
-
-    // Starred videos management
-    getStarredVideos(): StarredVideo[] {
-        return this.getAppData().starredVideos;
-    }
-
-    addStarredVideo(video: Omit<StarredVideo, 'starredAt'>): void {
-        const data = this.getAppData();
-        const existingIndex = data.starredVideos.findIndex(v => v.videoId === video.videoId);
-        if (existingIndex >= 0) {
-            // Update existing starred video
-            data.starredVideos[existingIndex] = {
-                ...data.starredVideos[existingIndex],
-                ...video,
-                starredAt: data.starredVideos[existingIndex].starredAt // Keep original starred date
-            };
-        } else {
-            // Add new starred video
-            data.starredVideos.push({
-                ...video,
-                starredAt: new Date().toISOString()
-            });
-        }
-        this.saveAppData(data);
-    }
-
-    removeStarredVideo(videoId: string): void {
-        const data = this.getAppData();
-        data.starredVideos = data.starredVideos.filter(v => v.videoId !== videoId);
-        this.saveAppData(data);
-    }
-
-    updateStarredVideo(videoId: string, updates: Partial<Omit<StarredVideo, 'videoId'>>): void {
-        const data = this.getAppData();
-        const videoIndex = data.starredVideos.findIndex(v => v.videoId === videoId);
-        if (videoIndex >= 0) {
-            data.starredVideos[videoIndex] = { ...data.starredVideos[videoIndex], ...updates };
-            this.saveAppData(data);
-        }
-    }
-
-    isVideoStarred(videoId: string): boolean {
-        return this.getStarredVideos().some(v => v.videoId === videoId);
-    }
-
-    getVideoStarRating(videoId: string): number {
-        const starredVideo = this.getStarredVideos().find(v => v.videoId === videoId);
-        return starredVideo ? starredVideo.rating : 0;
-    }
-
-    // Video comments management
-    getVideoComments(): VideoComment[] {
-        return this.getAppData().videoComments;
-    }
-
-    getVideoComment(videoId: string): VideoComment | undefined {
-        return this.getVideoComments().find(c => c.videoId === videoId);
-    }
-
-    addOrUpdateVideoComment(videoId: string, comment: string): void {
-        const data = this.getAppData();
-        const existingIndex = data.videoComments.findIndex(c => c.videoId === videoId);
-        
-        if (existingIndex >= 0) {
-            // Update existing comment
-            data.videoComments[existingIndex] = {
-                videoId,
-                comment,
-                updatedAt: new Date().toISOString()
-            };
-        } else {
-            // Add new comment
-            data.videoComments.push({
-                videoId,
-                comment,
-                updatedAt: new Date().toISOString()
-            });
-        }
-        this.saveAppData(data);
-    }
-
-    removeVideoComment(videoId: string): void {
-        const data = this.getAppData();
-        data.videoComments = data.videoComments.filter(c => c.videoId !== videoId);
-        this.saveAppData(data);
-    }
-
-    hasVideoComment(videoId: string): boolean {
-        return this.getVideoComments().some(c => c.videoId === videoId);
-    }
+    // Stars and Comments Management - delegated to starsAndCommentsStorage
+    getStarredVideos = starsAndCommentsStorage.getStarredVideos.bind(starsAndCommentsStorage);
+    setStarredVideos = starsAndCommentsStorage.setStarredVideos.bind(starsAndCommentsStorage);
+    addStarredVideo = starsAndCommentsStorage.addStarredVideo.bind(starsAndCommentsStorage);
+    removeStarredVideo = starsAndCommentsStorage.removeStarredVideo.bind(starsAndCommentsStorage);
+    getVideoStarRating = starsAndCommentsStorage.getVideoStarRating.bind(starsAndCommentsStorage);
+    getVideoComments = starsAndCommentsStorage.getVideoComments.bind(starsAndCommentsStorage);
+    setVideoComments = starsAndCommentsStorage.setVideoComments.bind(starsAndCommentsStorage);
+    addOrUpdateVideoComment = starsAndCommentsStorage.addOrUpdateVideoComment.bind(starsAndCommentsStorage);
+    removeVideoComment = starsAndCommentsStorage.removeVideoComment.bind(starsAndCommentsStorage);
+    getVideoComment = starsAndCommentsStorage.getVideoComment.bind(starsAndCommentsStorage);
+    hasVideoComment = starsAndCommentsStorage.hasVideoComment.bind(starsAndCommentsStorage);
 }
 
 export const localStorageService = new LocalStorageService();

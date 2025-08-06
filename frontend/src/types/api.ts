@@ -106,3 +106,8 @@ export interface AppData {
     starredVideos: StarredVideo[];
     videoComments: VideoComment[];
 }
+
+export interface AnalysisData {
+    analysisId: string;
+    data: AnalysisResponse;
+}

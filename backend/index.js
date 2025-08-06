@@ -1,5 +1,5 @@
 /**
- * @fileoverview Main entry point for YouTube Channel Analyzer Backend
+ * @fileoverview Main entry point for BuzzHunt Backend
  * @author Backend Team
  */
 
@@ -46,7 +46,7 @@ function createApp() {
             try {
                 res.status(200).json({
                     success: true,
-                    message: 'YouTube Channel Analyzer Backend is running',
+                    message: 'BuzzHunt Backend is running',
                     timestamp: new Date().toISOString(),
                     environment: process.env.NODE_ENV || 'development'
                 });
@@ -154,7 +154,7 @@ async function startServer(app, config) {
     try {
         const server = app.listen(config.port, () => {
             console.log('='.repeat(50));
-            console.log('🚀 YouTube Channel Analyzer Backend Started');
+            console.log('🚀 BuzzHunt Backend Started');
             console.log(`📡 Server running on port ${config.port}`);
             console.log(`🌍 Environment: ${config.nodeEnv}`);
             console.log(`⏰ Started at: ${new Date().toISOString()}`);
@@ -190,7 +190,7 @@ async function startServer(app, config) {
 if (require.main === module) {
     (async () => {
         try {
-            console.log('Initializing YouTube Channel Analyzer Backend...');
+            console.log('Initializing BuzzHunt Backend...');
             
             const config = validateEnvironment();
             const app = createApp();

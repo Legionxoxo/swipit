@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { VideoData, ChannelInfo, VideoSegments } from '../types/api';
-import VideoCard from './VideoCard';
+import VideoCard from './video/VideoCard';
 import { apiService } from '../services/api';
 
 interface VideosListProps {

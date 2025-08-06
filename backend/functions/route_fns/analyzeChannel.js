@@ -3,6 +3,9 @@
  * @author Backend Team
  */
 
+// Import type definitions
+require('../../types/common');
+
 const { generateAnalysisId, parseChannelUrl } = require('../../utils/helpers');
 const { 
     getAnalysisJob, 
@@ -12,18 +15,15 @@ const {
 const { processChannelAnalysis, segmentVideosByViews } = require('../analysis/videoProcessor');
 
 /**
- * @typedef {Object} AnalysisJob
+ * @typedef {Object} AnalysisJobResponse
  * @property {string} analysisId - Unique analysis ID
- * @property {string} channelUrl - Original channel URL
- * @property {string} channelId - YouTube channel ID
  * @property {string} status - Current status (processing, completed, error)
  * @property {number} progress - Progress percentage (0-100)
- * @property {Date} startTime - Analysis start time
- * @property {Date} [endTime] - Analysis end time
- * @property {VideoData[]} [data] - Analysis results
- * @property {ChannelInfo} [channelInfo] - Channel information
- * @property {VideoSegments} [videoSegments] - Video segments by view count
+ * @property {Array} [data] - Analysis results
+ * @property {Object} [channelInfo] - Channel information
+ * @property {Object} [videoSegments] - Video segments by view count
  * @property {number} [totalVideos] - Total number of videos
+ * @property {number} [processingTime] - Processing time in seconds
  * @property {string} [error] - Error message if failed
  */
 
@@ -77,7 +77,7 @@ async function startAnalysis(channelUrl) {
 /**
  * Get analysis status and results
  * @param {string} analysisId - Analysis ID
- * @returns {Promise<AnalysisJob|null>} Analysis job data
+ * @returns {Promise<AnalysisJobResponse|null>} Analysis job data
  */
 async function getAnalysisStatus(analysisId) {
     try {
@@ -100,8 +100,8 @@ async function getAnalysisStatus(analysisId) {
             videoSegments: analysisJob.videoSegments,
             totalVideos: analysisJob.totalVideos || 0,
             processingTime: analysisJob.endTime 
-                ? Math.round((analysisJob.endTime - analysisJob.startTime) / 1000) 
-                : Math.round((new Date() - analysisJob.startTime) / 1000),
+                ? Math.round((analysisJob.endTime.getTime() - analysisJob.startTime.getTime()) / 1000) 
+                : Math.round((new Date().getTime() - analysisJob.startTime.getTime()) / 1000),
             error: analysisJob.error
         };
 

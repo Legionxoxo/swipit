@@ -1,8 +1,8 @@
-# YouTube Channel Analyzer Backend API Documentation
+# BuzzHunt Backend API Documentation
 
 ## Overview
 
-The YouTube Channel Analyzer Backend is a RESTful API service that extracts comprehensive data from YouTube channels, processes video analytics, and provides export functionality. The system can analyze entire channels and export detailed video information to various formats including CSV and JSON.
+The BuzzHunt Backend is a RESTful API service that extracts comprehensive data from YouTube channels, processes video analytics, and provides export functionality. The system can analyze entire channels and export detailed video information to various formats including CSV and JSON.
 
 ## Architecture
 

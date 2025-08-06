@@ -15,9 +15,9 @@ require('../../types/common');
  * @property {number} progress - Progress percentage (0-100)
  * @property {Date} startTime - Analysis start time
  * @property {Date} [endTime] - Analysis end time
- * @property {VideoData[]} [data] - Analysis results
- * @property {ChannelInfo} [channelInfo] - Channel information
- * @property {VideoSegments} [videoSegments] - Video segments by view count
+ * @property {Array} [data] - Analysis results
+ * @property {Object} [channelInfo] - Channel information
+ * @property {Object} [videoSegments] - Video segments by view count
  * @property {number} [totalVideos] - Total number of videos
  * @property {string} [error] - Error message if failed
  */

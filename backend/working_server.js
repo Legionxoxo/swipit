@@ -1,5 +1,5 @@
 /**
- * Working YouTube Channel Analyzer Server
+ * Working BuzzHunt Server
  */
 
 const express = require('express');
@@ -20,7 +20,7 @@ app.use(express.json());
 app.get('/health', (req, res) => {
     res.json({
         success: true,
-        message: 'YouTube Channel Analyzer is running',
+        message: 'BuzzHunt is running',
         timestamp: new Date().toISOString()
     });
 });
@@ -29,7 +29,7 @@ app.get('/health', (req, res) => {
 app.get('/api', (req, res) => {
     res.json({
         success: true,
-        message: 'YouTube Channel Analyzer API',
+        message: 'BuzzHunt API',
         version: '1.0.0',
         endpoints: {
             analyze: 'POST /api/analyze',
@@ -133,7 +133,7 @@ app.get('/api/export/:id/:format', async (req, res) => {
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
     console.log('='.repeat(50));
-    console.log('🚀 YouTube Channel Analyzer Started');
+    console.log('🚀 BuzzHunt Started');
     console.log(`📡 Server: http://localhost:${PORT}`);
     console.log(`⏰ Time: ${new Date().toISOString()}`);
     console.log('='.repeat(50));

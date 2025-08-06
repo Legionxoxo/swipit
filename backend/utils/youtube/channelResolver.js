@@ -80,7 +80,7 @@ async function parseChannelUrl(channelUrl) {
 
 /**
  * Resolve YouTube handle to channel ID
- * @param {string} handle - YouTube handle (without @)
+ * @param {string} handle - YouTube handle without @ symbol
  * @returns {Promise<string>} Channel ID
  */
 async function resolveHandleToChannelId(handle) {
@@ -91,9 +91,9 @@ async function resolveHandleToChannelId(handle) {
         });
 
         const searchResponse = await youtube.search.list({
-            part: 'snippet',
+            part: ['snippet'],
             q: `@${handle}`,
-            type: 'channel',
+            type: ['channel'],
             maxResults: 1
         });
 
@@ -128,7 +128,7 @@ async function resolveUsernameToChannelId(username) {
         });
 
         const response = await youtube.channels.list({
-            part: 'snippet',
+            part: ['snippet'],
             forUsername: username,
             maxResults: 1
         });
@@ -164,9 +164,9 @@ async function resolveCustomUrlToChannelId(customName) {
         });
 
         const searchResponse = await youtube.search.list({
-            part: 'snippet',
+            part: ['snippet'],
             q: customName,
-            type: 'channel',
+            type: ['channel'],
             maxResults: 10
         });
 
@@ -174,8 +174,8 @@ async function resolveCustomUrlToChannelId(customName) {
             for (const item of searchResponse.data.items) {
                 if (item.snippet?.channelId) {
                     const channelResponse = await youtube.channels.list({
-                        part: 'snippet',
-                        id: item.snippet.channelId
+                        part: ['snippet'],
+                        id: [item.snippet.channelId]
                     });
 
                     if (channelResponse.data && channelResponse.data.items && channelResponse.data.items.length > 0) {

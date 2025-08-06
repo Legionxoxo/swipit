@@ -310,7 +310,7 @@ throw error;
 
 📁 File Structure
 
-youtube-channel-analyzer/
+buzzhunt/
 ├── backend/
 │ ├── src/
 │ │ ├── controllers/
@@ -344,8 +344,8 @@ youtube-channel-analyzer/
 
 # Clone or create project directory
 
-mkdir youtube-channel-analyzer
-cd youtube-channel-analyzer
+mkdir buzzhunt
+cd buzzhunt
 
 # Backend setup
 
