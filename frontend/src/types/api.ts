@@ -100,11 +100,31 @@ export interface VideoComment {
 }
 
 export interface VideoTranscription {
+    transcriptionId: string;
     videoId: string;
-    transcription: string;
-    confidence: number;
-    language: string;
-    generatedAt: string;
+    userId: string;
+    videoUrl: string;
+    platform: string;
+    status: 'pending' | 'processing' | 'completed' | 'failed';
+    progress: number;
+    videoTitle: string;
+    videoDuration: string;
+    videoThumbnailUrl: string;
+    rawTranscript?: string;
+    formattedTranscript?: string;
+    languageDetected?: string;
+    confidenceScore?: number;
+    processingStartedAt?: string;
+    processingCompletedAt?: string;
+    processingTimeSeconds?: number;
+    errorMessage?: string;
+    createdAt: string;
+    updatedAt: string;
+    // Legacy fields for backward compatibility
+    transcription?: string;
+    confidence?: number;
+    language?: string;
+    generatedAt?: string;
 }
 
 export interface AppData {

@@ -10,6 +10,7 @@ interface VideoActionsProps {
     channelName: string;
     thumbnailUrl: string;
     videoUrl: string;
+    platform?: string;
 }
 
 export default function VideoActions({ 
@@ -17,7 +18,8 @@ export default function VideoActions({
     videoTitle, 
     channelName, 
     thumbnailUrl, 
-    videoUrl 
+    videoUrl,
+    platform = 'youtube'
 }: VideoActionsProps) {
     const [isFavorite, setIsFavorite] = useState<boolean>(false);
     const [starRating, setStarRating] = useState<number>(0);
@@ -59,7 +61,7 @@ export default function VideoActions({
             
             // Find interaction for this specific video
             const videoInteraction = interactions.find(
-                interaction => interaction.video_id === videoId && interaction.platform === 'youtube'
+                interaction => interaction.video_id === videoId && interaction.platform === platform
             );
 
             if (videoInteraction) {
@@ -89,9 +91,9 @@ export default function VideoActions({
             const userId = userService.getUserId();
             const newFavoriteState = !isFavorite;
 
-            console.log('Video interaction params:', { userId, videoId, platform: 'youtube', isFavorite: newFavoriteState });
+            console.log('Video interaction params:', { userId, videoId, platform, isFavorite: newFavoriteState });
 
-            await apiService.updateVideoInteraction(userId, videoId, 'youtube', {
+            await apiService.updateVideoInteraction(userId, videoId, platform, {
                 isFavorite: newFavoriteState
             });
 
@@ -110,7 +112,7 @@ export default function VideoActions({
             const userId = userService.getUserId();
             const newRating = rating === starRating ? 0 : rating;
 
-            await apiService.updateVideoInteraction(userId, videoId, 'youtube', {
+            await apiService.updateVideoInteraction(userId, videoId, platform, {
                 starRating: newRating
             });
 
@@ -130,8 +132,8 @@ export default function VideoActions({
             const userId = userService.getUserId();
             const trimmedComment = comment.trim();
 
-            await apiService.updateVideoInteraction(userId, videoId, 'youtube', {
-                comment: trimmedComment || null
+            await apiService.updateVideoInteraction(userId, videoId, platform, {
+                comment: trimmedComment || undefined
             });
 
             setComment(trimmedComment);
@@ -202,6 +204,7 @@ export default function VideoActions({
                 setComment={setComment}
                 onSubmit={handleCommentSubmit}
                 hasComment={hasComment}
+                platform={platform}
             />
 
             {/* Icons: Comment, Transcription, Heart, Menu */}

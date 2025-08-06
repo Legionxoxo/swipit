@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import type { VideoComment, VideoTranscription } from '../../types/api';
+import type { VideoTranscription } from '../../types/api';
 import { transcriptionService } from '../../services/transcriptionService';
 
 interface VideoDualSidebarProps {
@@ -14,6 +14,7 @@ interface VideoDualSidebarProps {
     setComment: (comment: string) => void;
     onSubmit: () => void;
     hasComment: boolean;
+    platform?: string;
 }
 
 export default function VideoDualSidebar({
@@ -27,7 +28,8 @@ export default function VideoDualSidebar({
     comment,
     setComment,
     onSubmit,
-    hasComment
+    hasComment,
+    platform = 'youtube'
 }: VideoDualSidebarProps) {
     const sidebarRef = useRef<HTMLDivElement>(null);
     const [transcription, setTranscription] = useState<VideoTranscription | null>(null);
@@ -53,24 +55,34 @@ export default function VideoDualSidebar({
         };
     }, [isAnyPanelOpen, onClose]);
 
-    // Clear mock transcriptions and load real ones when transcription panel opens
+    // Load transcription when transcription panel opens
     useEffect(() => {
         const loadTranscription = async () => {
             if (!isTranscriptionOpen || !videoId) return;
 
             try {
-                setIsLoadingTranscription(false);
+                setIsLoadingTranscription(true);
                 setTranscriptionError('');
 
-                // Clear any existing mock transcriptions (one-time cleanup)
-                transcriptionService.clearAllTranscriptions();
-                
-                // Since we cleared everything, there won't be any existing transcriptions
-                setTranscription(null);
+                // Check if transcription already exists
+                const existing = await transcriptionService.getVideoTranscription(videoId, platform);
+                setTranscription(existing);
+
+                if (!existing) {
+                    // No transcription exists yet
+                    setIsLoadingTranscription(false);
+                } else if (existing.status === 'processing') {
+                    // Transcription is in progress, continue polling
+                    startPollingTranscription(existing.transcriptionId);
+                } else {
+                    // Transcription is completed or failed
+                    setIsLoadingTranscription(false);
+                }
             } catch (error) {
                 console.error('Error loading transcription:', error);
                 setTranscriptionError('Failed to load transcription.');
                 setTranscription(null);
+                setIsLoadingTranscription(false);
             }
         };
 
@@ -90,8 +102,12 @@ export default function VideoDualSidebar({
 
     const handleCopyTranscription = () => {
         try {
-            if (transcription?.transcription) {
-                navigator.clipboard.writeText(transcription.transcription);
+            const textToCopy = transcription?.formattedTranscript || 
+                             transcription?.rawTranscript || 
+                             transcription?.transcription || '';
+            
+            if (textToCopy) {
+                navigator.clipboard.writeText(textToCopy);
                 // You might want to show a toast notification here
             }
         } catch (error) {
@@ -106,14 +122,53 @@ export default function VideoDualSidebar({
             setIsLoadingTranscription(true);
             setTranscriptionError('');
             
-            const newTranscription = await transcriptionService.generateTranscription(videoId);
-            setTranscription(newTranscription);
+            // Start transcription without waiting for completion
+            const response = await transcriptionService.generateTranscription(videoId, platform);
+            setTranscription(response);
+            
+            // If it's still processing, start polling
+            if (response.status === 'processing') {
+                startPollingTranscription(response.transcriptionId);
+            } else {
+                setIsLoadingTranscription(false);
+            }
         } catch (error) {
             console.error('Error generating transcription:', error);
-            setTranscriptionError('Failed to generate transcription. Please try again.');
-        } finally {
+            setTranscriptionError(`Failed to generate transcription: ${error instanceof Error ? error.message : 'Unknown error'}`);
             setIsLoadingTranscription(false);
         }
+    };
+
+    const startPollingTranscription = (transcriptionId: string) => {
+        const pollInterval = setInterval(async () => {
+            try {
+                const updatedTranscription = await transcriptionService.getTranscriptionStatus(transcriptionId);
+                setTranscription(updatedTranscription);
+                
+                if (updatedTranscription.status === 'completed' || updatedTranscription.status === 'failed') {
+                    clearInterval(pollInterval);
+                    setIsLoadingTranscription(false);
+                    
+                    if (updatedTranscription.status === 'failed') {
+                        setTranscriptionError(updatedTranscription.errorMessage || 'Transcription failed');
+                    }
+                }
+            } catch (error) {
+                console.error('Error polling transcription:', error);
+                clearInterval(pollInterval);
+                setIsLoadingTranscription(false);
+                setTranscriptionError('Failed to check transcription status');
+            }
+        }, 3000); // Poll every 3 seconds
+        
+        // Clear interval after 10 minutes to prevent infinite polling
+        setTimeout(() => {
+            clearInterval(pollInterval);
+            if (isLoadingTranscription) {
+                setIsLoadingTranscription(false);
+                setTranscriptionError('Transcription is taking longer than expected. Please refresh to check status.');
+            }
+        }, 600000);
     };
 
     if (!isAnyPanelOpen) return null;
@@ -268,12 +323,22 @@ export default function VideoDualSidebar({
                                 
                                 {isLoadingTranscription ? (
                                     <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-center">
-                                        <div className="flex items-center justify-center space-x-2">
+                                        <div className="flex items-center justify-center space-x-2 mb-2">
                                             <div className="w-4 h-4 border-2 border-green-500 border-t-transparent rounded-full animate-spin"></div>
-                                            <span className="text-sm text-gray-600">Generating transcription...</span>
+                                            <span className="text-sm text-gray-600">
+                                                {transcription?.status === 'processing' ? 'Processing transcription...' : 'Starting transcription...'}
+                                            </span>
                                         </div>
+                                        {transcription?.progress && (
+                                            <div className="w-full bg-gray-200 rounded-full h-2">
+                                                <div 
+                                                    className="bg-green-500 h-2 rounded-full transition-all duration-300" 
+                                                    style={{ width: `${transcription.progress}%` }}
+                                                ></div>
+                                            </div>
+                                        )}
                                     </div>
-                                ) : transcription ? (
+                                ) : transcription && transcription.status === 'completed' ? (
                                     <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 relative">
                                         {/* Copy button positioned in top-right of transcription text */}
                                         <button
@@ -287,12 +352,13 @@ export default function VideoDualSidebar({
                                         </button>
                                         
                                         <div className="mb-2 text-xs text-gray-500">
-                                            Generated on: {new Date(transcription.generatedAt).toLocaleString()} 
-                                            {transcription.confidence && ` • Confidence: ${Math.round(transcription.confidence * 100)}%`}
-                                            {transcription.language && ` • Language: ${transcription.language.toUpperCase()}`}
+                                            Generated on: {new Date(transcription.processingCompletedAt || transcription.createdAt).toLocaleString()} 
+                                            {transcription.confidenceScore && ` • Confidence: ${Math.round(transcription.confidenceScore * 100)}%`}
+                                            {transcription.languageDetected && ` • Language: ${transcription.languageDetected.toUpperCase()}`}
+                                            {transcription.processingTimeSeconds && ` • Processing Time: ${transcription.processingTimeSeconds}s`}
                                         </div>
                                         <div className="text-sm text-gray-700 whitespace-pre-wrap font-sans pr-8">
-                                            {transcription.transcription}
+                                            {transcription.formattedTranscript || transcription.rawTranscript || transcription.transcription}
                                         </div>
                                     </div>
                                 ) : (
@@ -303,21 +369,28 @@ export default function VideoDualSidebar({
                                             </svg>
                                         </div>
                                         <h3 className="text-lg font-medium text-gray-900 mb-2">
-                                            No Transcription Available
+                                            {transcription?.status === 'failed' ? 'Transcription Failed' : 'No Transcription Available'}
                                         </h3>
                                         <p className="text-sm text-gray-500 mb-6">
-                                            Transcription service integration is coming soon. This feature will allow you to generate transcriptions of video content for better searchability and accessibility.
+                                            {transcription?.status === 'failed' 
+                                                ? `Transcription failed: ${transcription.errorMessage || 'Unknown error'}`
+                                                : 'Generate a transcription of this video content using AI speech-to-text technology.'
+                                            }
                                         </p>
                                         <button
                                             onClick={handleGenerateTranscription}
-                                            disabled={true}
-                                            className="inline-flex items-center px-4 py-2 bg-gray-400 text-white text-sm font-medium rounded-md cursor-not-allowed"
-                                            title="Transcription service coming soon"
+                                            disabled={isLoadingTranscription}
+                                            className={`inline-flex items-center px-4 py-2 text-white text-sm font-medium rounded-md ${
+                                                isLoadingTranscription 
+                                                    ? 'bg-gray-400 cursor-not-allowed' 
+                                                    : 'bg-green-500 hover:bg-green-600'
+                                            }`}
+                                            title={transcription?.status === 'failed' ? "Retry transcription" : "Generate transcription"}
                                         >
                                             <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
                                             </svg>
-                                            Coming Soon
+                                            {transcription?.status === 'failed' ? 'Retry Transcription' : 'Generate Transcription'}
                                         </button>
                                     </div>
                                 )}

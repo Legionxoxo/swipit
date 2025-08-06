@@ -1,4 +1,4 @@
-import type { StartAnalysisRequest, StartAnalysisResponse, AnalysisResponse, ApiError } from '../types/api';
+import type { StartAnalysisRequest, StartAnalysisResponse, AnalysisResponse, ApiError, VideoTranscription } from '../types/api';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
 
@@ -453,6 +453,210 @@ class ApiService {
         } finally {
             // No cleanup needed for fetch
         }
+    }
+
+    // Transcription API methods
+    async getVideoTranscription(videoId: string, platform: string): Promise<VideoTranscription | null> {
+        try {
+            const response = await fetch(`${API_BASE_URL}/transcription/video/${videoId}/${platform}`);
+            
+            if (!response.ok) {
+                if (response.status === 404) {
+                    return null; // No transcription exists
+                }
+                const error: ApiError = await response.json();
+                throw new Error(error.message || 'Failed to get video transcription');
+            }
+
+            const backendResponse = await response.json();
+            return this.mapBackendTranscriptionToFrontend(backendResponse.data);
+        } catch (error) {
+            if (error instanceof Error && error.message.includes('404')) {
+                return null;
+            }
+            throw error;
+        } finally {
+            // No cleanup needed for fetch
+        }
+    }
+
+    async startVideoTranscription(userId: string, videoId: string, platform: string): Promise<{ transcriptionId: string; status: string; estimatedTime: string }> {
+        try {
+            const response = await fetch(`${API_BASE_URL}/transcription`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    userId,
+                    videoId,
+                    platform
+                }),
+            });
+
+            if (!response.ok) {
+                const error: ApiError = await response.json();
+                throw new Error(error.message || 'Failed to start transcription');
+            }
+
+            const backendResponse = await response.json();
+            return {
+                transcriptionId: backendResponse.data.transcriptionId,
+                status: backendResponse.data.status,
+                estimatedTime: backendResponse.data.estimatedTime
+            };
+        } catch (error) {
+            throw error;
+        } finally {
+            // No cleanup needed for fetch
+        }
+    }
+
+    async getTranscriptionStatus(transcriptionId: string): Promise<VideoTranscription> {
+        try {
+            const response = await fetch(`${API_BASE_URL}/transcription/${transcriptionId}`);
+
+            if (!response.ok) {
+                const error: ApiError = await response.json();
+                throw new Error(error.message || 'Failed to get transcription status');
+            }
+
+            const backendResponse = await response.json();
+            const data = backendResponse.data;
+
+            // Transform backend response to frontend type with backward compatibility
+            return {
+                transcriptionId: data.transcriptionId,
+                videoId: data.videoId,
+                userId: data.userId,
+                videoUrl: data.videoUrl,
+                platform: data.platform,
+                status: data.status,
+                progress: data.progress,
+                videoTitle: data.videoTitle,
+                videoDuration: data.videoDuration,
+                videoThumbnailUrl: data.videoThumbnailUrl,
+                rawTranscript: data.rawTranscript,
+                formattedTranscript: data.formattedTranscript,
+                languageDetected: data.languageDetected,
+                confidenceScore: data.confidenceScore,
+                processingStartedAt: data.processingStartedAt,
+                processingCompletedAt: data.processingCompletedAt,
+                processingTimeSeconds: data.processingTimeSeconds,
+                errorMessage: data.errorMessage,
+                createdAt: data.createdAt,
+                updatedAt: data.updatedAt,
+                // Legacy compatibility fields
+                transcription: data.formattedTranscript || data.rawTranscript || '',
+                confidence: data.confidenceScore || 0,
+                language: data.languageDetected || 'unknown',
+                generatedAt: data.processingCompletedAt || data.createdAt
+            };
+        } catch (error) {
+            throw error;
+        } finally {
+            // No cleanup needed for fetch
+        }
+    }
+
+    async getUserTranscriptions(userId: string, options?: { limit?: number; offset?: number; status?: string }): Promise<VideoTranscription[]> {
+        try {
+            const params = new URLSearchParams();
+            if (options?.limit) params.append('limit', options.limit.toString());
+            if (options?.offset) params.append('offset', options.offset.toString());
+            if (options?.status) params.append('status', options.status);
+
+            const response = await fetch(`${API_BASE_URL}/transcription/user/${userId}?${params.toString()}`);
+
+            if (!response.ok) {
+                const error: ApiError = await response.json();
+                throw new Error(error.message || 'Failed to get user transcriptions');
+            }
+
+            const backendResponse = await response.json();
+            return (backendResponse.data || []).map((data: any): VideoTranscription => ({
+                transcriptionId: data.transcriptionId,
+                videoId: data.videoId,
+                userId: data.userId,
+                videoUrl: data.videoUrl,
+                platform: data.platform,
+                status: data.status,
+                progress: data.progress,
+                videoTitle: data.videoTitle,
+                videoDuration: data.videoDuration,
+                videoThumbnailUrl: data.videoThumbnailUrl,
+                rawTranscript: data.rawTranscript,
+                formattedTranscript: data.formattedTranscript,
+                languageDetected: data.languageDetected,
+                confidenceScore: data.confidenceScore,
+                processingStartedAt: data.processingStartedAt,
+                processingCompletedAt: data.processingCompletedAt,
+                processingTimeSeconds: data.processingTimeSeconds,
+                errorMessage: data.errorMessage,
+                createdAt: data.createdAt,
+                updatedAt: data.updatedAt,
+                // Legacy compatibility fields
+                transcription: data.formattedTranscript || data.rawTranscript || '',
+                confidence: data.confidenceScore || 0,
+                language: data.languageDetected || 'unknown',
+                generatedAt: data.processingCompletedAt || data.createdAt
+            }));
+        } catch (error) {
+            throw error;
+        } finally {
+            // No cleanup needed for fetch
+        }
+    }
+
+    async deleteTranscription(transcriptionId: string, userId: string): Promise<void> {
+        try {
+            const response = await fetch(`${API_BASE_URL}/transcription/${transcriptionId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ userId }),
+            });
+
+            if (!response.ok) {
+                const error: ApiError = await response.json();
+                throw new Error(error.message || 'Failed to delete transcription');
+            }
+        } catch (error) {
+            throw error;
+        } finally {
+            // No cleanup needed for fetch
+        }
+    }
+
+    private mapBackendTranscriptionToFrontend(data: any): VideoTranscription {
+        return {
+            transcriptionId: data.transcriptionId,
+            videoId: data.videoId,
+            userId: data.initiatedBy, // Use initiatedBy as userId for compatibility
+            videoUrl: data.videoUrl,
+            platform: data.platform,
+            status: data.status,
+            progress: data.progress,
+            videoTitle: data.videoTitle,
+            videoDuration: data.videoDuration,
+            videoThumbnailUrl: data.videoThumbnailUrl,
+            rawTranscript: data.rawTranscript,
+            formattedTranscript: data.formattedTranscript,
+            languageDetected: data.languageDetected,
+            confidenceScore: data.confidenceScore,
+            processingStartedAt: data.processingStartedAt,
+            processingCompletedAt: data.processingCompletedAt,
+            processingTimeSeconds: data.processingTimeSeconds,
+            errorMessage: data.errorMessage,
+            createdAt: data.createdAt,
+            updatedAt: data.updatedAt,
+            // Legacy compatibility fields
+            transcription: data.formattedTranscript || data.rawTranscript || '',
+            confidence: data.confidenceScore || 0,
+            language: data.languageDetected || 'unknown',
+            generatedAt: data.processingCompletedAt || data.createdAt
+        };
     }
 }
 

@@ -27,7 +27,8 @@ class LocalStorageService {
                     favoriteCreators: [],
                     favoriteVideos: [],
                     starredVideos: [],
-                    videoComments: []
+                    videoComments: [],
+                    videoTranscriptions: []
                 };
             }
             return JSON.parse(data);
@@ -38,7 +39,8 @@ class LocalStorageService {
                 favoriteCreators: [],
                 favoriteVideos: [],
                 starredVideos: [],
-                videoComments: []
+                videoComments: [],
+                videoTranscriptions: []
             };
         } finally {
             // Required by architecture rules
