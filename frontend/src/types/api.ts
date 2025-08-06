@@ -56,3 +56,53 @@ export interface ApiError {
     error: string;
     message: string;
 }
+
+// Extended types for organization features
+export interface CreatorHub {
+    id: string;
+    name: string;
+    createdAt: string;
+    creatorIds: string[];
+}
+
+export interface FavoriteCreator {
+    analysisId: string;
+    channelId: string;
+    channelName: string;
+    thumbnailUrl: string;
+    addedAt: string;
+}
+
+export interface FavoriteVideo {
+    videoId: string;
+    title: string;
+    channelName: string;
+    thumbnailUrl: string;
+    videoUrl: string;
+    addedAt: string;
+}
+
+export interface StarredVideo {
+    videoId: string;
+    title: string;
+    channelName: string;
+    thumbnailUrl: string;
+    videoUrl: string;
+    starredAt: string;
+    rating: number; // Star rating 1-5
+    note?: string; // Optional note for starred videos
+}
+
+export interface VideoComment {
+    videoId: string;
+    comment: string;
+    updatedAt: string;
+}
+
+export interface AppData {
+    hubs: CreatorHub[];
+    favoriteCreators: FavoriteCreator[];
+    favoriteVideos: FavoriteVideo[];
+    starredVideos: StarredVideo[];
+    videoComments: VideoComment[];
+}
