@@ -5,6 +5,9 @@
 
 const instagramTable = require('./instagramTable');
 const youtubeTable = require('./youtubeTable');
+const userVideoInteractionsTable = require('./userVideoInteractionsTable');
+const userCreatorInteractionsTable = require('./userCreatorInteractionsTable');
+const userHubsTable = require('./userHubsTable');
 
 /**
  * Initialize all database tables
@@ -20,6 +23,11 @@ async function initializeAllTables(db) {
 
         // Initialize YouTube table
         await youtubeTable.initializeYouTubeTable(db);
+
+        // Initialize user interaction tables
+        await userVideoInteractionsTable.initializeUserVideoInteractionsTable(db);
+        await userCreatorInteractionsTable.initializeUserCreatorInteractionsTable(db);
+        await userHubsTable.initializeUserHubsTable(db);
 
         console.log('All database tables initialized successfully');
 
@@ -40,6 +48,11 @@ async function dropAllTables(db) {
     try {
         console.log('Starting database table cleanup...');
 
+        // Drop user interaction tables first (foreign key dependencies)
+        await userCreatorInteractionsTable.dropUserCreatorInteractionsTable(db);
+        await userVideoInteractionsTable.dropUserVideoInteractionsTable(db);
+        await userHubsTable.dropUserHubsTable(db);
+
         // Drop Instagram table
         await instagramTable.dropInstagramTable(db);
 
@@ -59,10 +72,16 @@ async function dropAllTables(db) {
 module.exports = {
     instagramTable,
     youtubeTable,
+    userVideoInteractionsTable,
+    userCreatorInteractionsTable,
+    userHubsTable,
     initializeAllTables,
     dropAllTables,
     tableNames: {
         instagram: instagramTable.tableName,
-        youtube: youtubeTable.tableName
+        youtube: youtubeTable.tableName,
+        userVideoInteractions: userVideoInteractionsTable.tableName,
+        userCreatorInteractions: userCreatorInteractionsTable.tableName,
+        userHubs: userHubsTable.tableName
     }
 };

@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
-import { localStorageService } from '../../services/localStorage';
+import { apiService } from '../../services/api';
+import { userService } from '../../services/userService';
 import VideoCommentOverlay from './VideoCommentOverlay';
 import VideoActionMenu from './VideoActionMenu';
 
@@ -18,18 +19,22 @@ export default function VideoActions({
     thumbnailUrl, 
     videoUrl 
 }: VideoActionsProps) {
-    const [isFavorite, setIsFavorite] = useState<boolean>(localStorageService.isVideoFavorite(videoId));
-    const [starRating, setStarRating] = useState<number>(localStorageService.getVideoStarRating(videoId));
+    const [isFavorite, setIsFavorite] = useState<boolean>(false);
+    const [starRating, setStarRating] = useState<number>(0);
     const [showMenu, setShowMenu] = useState<boolean>(false);
     const [showComment, setShowComment] = useState<boolean>(false);
     const [comment, setComment] = useState<string>('');
+    const [hasComment, setHasComment] = useState<boolean>(false);
+    const [isLoading, setIsLoading] = useState<boolean>(true);
+    const [error, setError] = useState<string>('');
     const menuRef = useRef<HTMLDivElement>(null);
 
+    // Load user video interactions on component mount
     useEffect(() => {
-        const existingComment = localStorageService.getVideoComment(videoId);
-        setComment(existingComment?.comment || '');
+        loadVideoInteractions();
     }, [videoId]);
 
+    // Click outside handler
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
@@ -43,66 +48,95 @@ export default function VideoActions({
         };
     }, []);
 
-    const handleHeartClick = () => {
+    const loadVideoInteractions = async () => {
         try {
-            if (isFavorite) {
-                localStorageService.removeFavoriteVideo(videoId);
-                setIsFavorite(false);
+            setIsLoading(true);
+            setError('');
+            
+            const userId = userService.getUserId();
+            const interactions = await apiService.getUserVideoInteractions(userId);
+            
+            // Find interaction for this specific video
+            const videoInteraction = interactions.find(
+                interaction => interaction.video_id === videoId && interaction.platform === 'youtube'
+            );
+
+            if (videoInteraction) {
+                setStarRating(videoInteraction.star_rating || 0);
+                setComment(videoInteraction.comment || '');
+                setIsFavorite(videoInteraction.is_favorite || false);
+                setHasComment(!!videoInteraction.comment);
             } else {
-                localStorageService.addFavoriteVideo({
-                    videoId,
-                    title: videoTitle,
-                    channelName,
-                    thumbnailUrl,
-                    videoUrl,
-                    addedAt: new Date().toISOString()
-                });
-                setIsFavorite(true);
+                // No interaction found, set defaults
+                setStarRating(0);
+                setComment('');
+                setIsFavorite(false);
+                setHasComment(false);
             }
+
+        } catch (error) {
+            console.error('Error loading video interactions:', error);
+            setError('Failed to load video data. Please try again.');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleHeartClick = async () => {
+        try {
+            setError('');
+            const userId = userService.getUserId();
+            const newFavoriteState = !isFavorite;
+
+            await apiService.updateVideoInteraction(userId, videoId, 'youtube', {
+                isFavorite: newFavoriteState
+            });
+
+            setIsFavorite(newFavoriteState);
         } catch (error) {
             console.error('Error updating favorite status:', error);
+            setError('Failed to update favorite. Please try again.');
         } finally {
             // Required by architecture rules
         }
     };
 
-    const handleStarClick = (rating: number) => {
+    const handleStarClick = async (rating: number) => {
         try {
-            if (rating === starRating) {
-                // Remove star rating
-                localStorageService.removeStarredVideo(videoId);
-                setStarRating(0);
-            } else {
-                // Add or update star rating
-                localStorageService.addStarredVideo({
-                    videoId,
-                    title: videoTitle,
-                    channelName,
-                    thumbnailUrl,
-                    videoUrl,
-                    rating: rating,
-                    starredAt: new Date().toISOString()
-                });
-                setStarRating(rating);
-            }
+            setError('');
+            const userId = userService.getUserId();
+            const newRating = rating === starRating ? 0 : rating;
+
+            await apiService.updateVideoInteraction(userId, videoId, 'youtube', {
+                starRating: newRating
+            });
+
+            setStarRating(newRating);
             setShowMenu(false);
         } catch (error) {
             console.error('Error updating star rating:', error);
+            setError('Failed to update rating. Please try again.');
         } finally {
             // Required by architecture rules
         }
     };
 
-    const handleCommentSubmit = () => {
+    const handleCommentSubmit = async () => {
         try {
-            if (comment.trim()) {
-                localStorageService.addOrUpdateVideoComment(videoId, comment.trim());
-            } else {
-                localStorageService.removeVideoComment(videoId);
-            }
+            setError('');
+            const userId = userService.getUserId();
+            const trimmedComment = comment.trim();
+
+            await apiService.updateVideoInteraction(userId, videoId, 'youtube', {
+                comment: trimmedComment || null
+            });
+
+            setComment(trimmedComment);
+            setHasComment(!!trimmedComment);
             setShowComment(false);
         } catch (error) {
             console.error('Error updating comment:', error);
+            setError('Failed to save comment. Please try again.');
         } finally {
             // Required by architecture rules
         }
@@ -112,8 +146,26 @@ export default function VideoActions({
         setShowComment(true);
     };
 
+    // Show loading state
+    if (isLoading) {
+        return (
+            <div className="absolute top-2 right-2 flex space-x-2">
+                <div className="p-2 rounded-full bg-black bg-opacity-50">
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <>
+            {/* Error message */}
+            {error && (
+                <div className="absolute top-0 left-0 right-0 bg-red-500 text-white text-xs p-2 rounded">
+                    {error}
+                </div>
+            )}
+
             {/* Floating comment overlay */}
             {showComment && (
                 <VideoCommentOverlay
@@ -122,13 +174,14 @@ export default function VideoActions({
                     setComment={setComment}
                     onClose={() => setShowComment(false)}
                     onSubmit={handleCommentSubmit}
+                    hasComment={hasComment}
                 />
             )}
 
             {/* Icons: Comment, Heart, Menu */}
             <div className="absolute top-2 right-2 flex space-x-2">
                 {/* Comment Icon - Only show if video has a comment */}
-                {localStorageService.hasVideoComment(videoId) && (
+                {hasComment && (
                     <button
                         onClick={handleAddCommentClick}
                         className="p-2 rounded-full bg-yellow-500 bg-opacity-90 hover:bg-opacity-100 transition-all duration-200"

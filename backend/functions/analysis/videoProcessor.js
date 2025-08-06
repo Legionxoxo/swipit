@@ -4,6 +4,7 @@
  */
 
 const youtubeService = require('../../utils/youtubeService');
+const youtubeDbService = require('../../utils/youtube/youtubeService');
 const { updateAnalysisStatus } = require('./jobManager');
 
 /**
@@ -43,26 +44,44 @@ async function processChannelAnalysis(analysisId, analysisJob) {
 
         // Step 1: Get channel information
         updateAnalysisStatus(analysisId, 'processing', 10);
+        await youtubeDbService.updateAnalysis(analysisId, 'processing', 10);
+        
         const channelInfo = await youtubeService.getChannelInfo(analysisJob.channelId);
+        
+        // Store channel data in database
+        await youtubeDbService.storeChannel(analysisId, channelInfo);
         
         analysisJob.channelInfo = channelInfo;
         updateAnalysisStatus(analysisId, 'processing', 20);
+        await youtubeDbService.updateAnalysis(analysisId, 'processing', 20);
 
         // Step 2: Get all video IDs from uploads playlist
         updateAnalysisStatus(analysisId, 'processing', 30);
+        await youtubeDbService.updateAnalysis(analysisId, 'processing', 30);
+        
         const videoIds = await youtubeService.getAllVideoIds(channelInfo.uploadsPlaylistId);
         
         analysisJob.totalVideos = videoIds.length;
         updateAnalysisStatus(analysisId, 'processing', 50);
+        await youtubeDbService.updateAnalysis(analysisId, 'processing', 50);
 
         // Step 3: Get detailed video information in batches
         updateAnalysisStatus(analysisId, 'processing', 60);
-        const videos = await youtubeService.getVideoDetails(videoIds, (progress) => {
-            updateAnalysisStatus(analysisId, 'processing', 60 + (progress * 30));
+        await youtubeDbService.updateAnalysis(analysisId, 'processing', 60);
+        
+        const videos = await youtubeService.getVideoDetails(videoIds, async (progress) => {
+            const currentProgress = 60 + (progress * 30);
+            updateAnalysisStatus(analysisId, 'processing', currentProgress);
+            await youtubeDbService.updateAnalysis(analysisId, 'processing', currentProgress);
         });
+
+        // Store video data in database
+        await youtubeDbService.storeVideos(analysisId, analysisJob.channelId, videos);
 
         // Step 4: Segment videos by view count
         updateAnalysisStatus(analysisId, 'processing', 90);
+        await youtubeDbService.updateAnalysis(analysisId, 'processing', 90);
+        
         const videoSegments = segmentVideosByViews(videos);
 
         // Update final results
@@ -71,10 +90,12 @@ async function processChannelAnalysis(analysisId, analysisJob) {
         analysisJob.endTime = new Date();
         
         updateAnalysisStatus(analysisId, 'completed', 100);
+        await youtubeDbService.updateAnalysis(analysisId, 'completed', 100);
 
     } catch (error) {
         console.error(`Process analysis ${analysisId} error:`, error);
         updateAnalysisStatus(analysisId, 'error', 0, { error: error.message });
+        await youtubeDbService.updateAnalysis(analysisId, 'failed', 0, error.message);
         throw error;
     } finally {
         console.log(`Analysis processing completed for: ${analysisId}`);

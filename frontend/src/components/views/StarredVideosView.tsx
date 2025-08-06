@@ -1,6 +1,8 @@
+import { useState, useEffect } from 'react';
 import VideoCard from '../video/VideoCard';
-import { localStorageService } from '../../services/localStorage';
-import type { VideoData, StarredVideo } from '../../types/api';
+import { apiService } from '../../services/api';
+import { userService } from '../../services/userService';
+import type { VideoData } from '../../types/api';
 
 interface StarRatingDisplayProps {
     rating: number;
@@ -27,7 +29,7 @@ function StarRatingDisplay({ rating }: StarRatingDisplayProps) {
 
 interface StarredVideosSectionProps {
     rating: number;
-    videos: StarredVideo[];
+    videos: any[];
 }
 
 function StarredVideosSection({ rating, videos }: StarredVideosSectionProps) {
@@ -46,26 +48,26 @@ function StarredVideosSection({ rating, videos }: StarredVideosSectionProps) {
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {videos.map(video => {
-                    // Convert StarredVideo to VideoData format
+                {videos.map(interaction => {
+                    // Convert interaction to VideoData format
                     const videoData: VideoData = {
-                        videoId: video.videoId,
-                        title: video.title,
-                        description: video.note || '',
-                        thumbnailUrl: video.thumbnailUrl,
-                        videoUrl: video.videoUrl,
-                        uploadDate: video.starredAt,
-                        duration: 'PT0S', // Default duration
-                        viewCount: 0, // Default view count
+                        videoId: interaction.video_id,
+                        title: `Video ${interaction.video_id.slice(0, 8)}...`,
+                        description: interaction.comment || '',
+                        thumbnailUrl: '',
+                        videoUrl: `https://youtube.com/watch?v=${interaction.video_id}`,
+                        uploadDate: interaction.created_at,
+                        duration: 'PT0S',
+                        viewCount: 0,
                         likeCount: 0,
                         commentCount: 0,
                         categoryId: '28'
                     };
                     return (
                         <VideoCard 
-                            key={video.videoId} 
+                            key={interaction.video_id} 
                             video={videoData} 
-                            channelName={video.channelName} 
+                            channelName="Unknown Channel"
                         />
                     );
                 })}
@@ -75,8 +77,58 @@ function StarredVideosSection({ rating, videos }: StarredVideosSectionProps) {
 }
 
 export default function StarredVideosView() {
-    const starredVideos = localStorageService.getStarredVideos();
-    
+    const [starredVideos, setStarredVideos] = useState<any[]>([]);
+    const [isLoading, setIsLoading] = useState<boolean>(true);
+    const [error, setError] = useState<string>('');
+
+    useEffect(() => {
+        loadStarredVideos();
+    }, []);
+
+    const loadStarredVideos = async () => {
+        try {
+            setError('');
+            const userId = userService.getUserId();
+            const videoInteractions = await apiService.getUserVideoInteractions(userId);
+            
+            // Filter for starred videos only (rating > 0)
+            const starredVideoInteractions = videoInteractions.filter(
+                interaction => interaction.star_rating > 0
+            );
+
+            setStarredVideos(starredVideoInteractions);
+        } catch (error) {
+            console.error('Error loading starred videos:', error);
+            setError('Failed to load starred videos. Please try again.');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    if (isLoading) {
+        return (
+            <div>
+                <h2 className="text-2xl font-bold text-gray-900 mb-6">Starred Videos</h2>
+                <div className="flex justify-center py-12">
+                    <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                </div>
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div>
+                <h2 className="text-2xl font-bold text-gray-900 mb-6">Starred Videos</h2>
+                <div className="text-center py-12">
+                    <div className="bg-red-100 text-red-700 p-4 rounded-lg">
+                        {error}
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
     if (starredVideos.length === 0) {
         return (
             <div>
@@ -90,11 +142,11 @@ export default function StarredVideosView() {
 
     // Group videos by star rating (5 to 1)
     const videosByRating = {
-        5: starredVideos.filter(video => video.rating === 5),
-        4: starredVideos.filter(video => video.rating === 4),
-        3: starredVideos.filter(video => video.rating === 3),
-        2: starredVideos.filter(video => video.rating === 2),
-        1: starredVideos.filter(video => video.rating === 1)
+        5: starredVideos.filter(video => video.star_rating === 5),
+        4: starredVideos.filter(video => video.star_rating === 4),
+        3: starredVideos.filter(video => video.star_rating === 3),
+        2: starredVideos.filter(video => video.star_rating === 2),
+        1: starredVideos.filter(video => video.star_rating === 1)
     };
 
     return (

@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { localStorageService } from '../services/localStorage';
+import { apiService } from '../services/api';
+import { userService } from '../services/userService';
 import type { CreatorHub } from '../types/api';
 import { createElement } from 'react';
 
@@ -16,6 +17,8 @@ export function useContextMenu(analyses: AnalysisData[], hubs: CreatorHub[], set
         type: 'creator' | 'hub';
     }>({ isOpen: false, position: { x: 0, y: 0 }, targetId: '', type: 'creator' });
 
+    const [isLoading, setIsLoading] = useState<boolean>(false);
+
     const handleChannelRightClick = (e: React.MouseEvent, analysisId: string) => {
         e.preventDefault();
         setContextMenu({
@@ -31,7 +34,7 @@ export function useContextMenu(analyses: AnalysisData[], hubs: CreatorHub[], set
             return [
                 {
                     id: 'favorite',
-                    label: localStorageService.isCreatorFavorite(contextMenu.targetId) ? 'Remove from Favorites' : 'Add to Favorites',
+                    label: 'Toggle Favorite', // Will need to check async
                     icon: createElement('svg', {
                         className: "w-4 h-4",
                         fill: "none",
@@ -43,25 +46,28 @@ export function useContextMenu(analyses: AnalysisData[], hubs: CreatorHub[], set
                         strokeWidth: 2,
                         d: "M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
                     })),
-                    onClick: () => {
+                    onClick: async () => {
                         try {
+                            setIsLoading(true);
                             const analysis = analyses.find(a => a.analysisId === contextMenu.targetId);
                             if (analysis?.data.channelInfo) {
-                                if (localStorageService.isCreatorFavorite(contextMenu.targetId)) {
-                                    localStorageService.removeFavoriteCreator(contextMenu.targetId);
-                                } else {
-                                    localStorageService.addFavoriteCreator({
-                                        analysisId: contextMenu.targetId,
-                                        channelId: analysis.data.channelInfo.channelId,
-                                        channelName: analysis.data.channelInfo.channelName,
-                                        thumbnailUrl: analysis.data.channelInfo.thumbnailUrl,
-                                        addedAt: new Date().toISOString()
-                                    });
-                                }
+                                const userId = userService.getUserId();
+                                const interactions = await apiService.getUserCreatorInteractions(userId);
+                                const interaction = interactions.find(i => i.creator_id === contextMenu.targetId);
+                                const isFavorite = interaction?.is_favorite || false;
+
+                                await apiService.updateCreatorInteraction(userId, contextMenu.targetId, {
+                                    isFavorite: !isFavorite,
+                                    channelName: analysis.data.channelInfo.channelName,
+                                    channelId: analysis.data.channelInfo.channelId,
+                                    thumbnailUrl: analysis.data.channelInfo.thumbnailUrl,
+                                    platform: 'youtube'
+                                });
                             }
                         } catch (error) {
                             console.error('Error updating favorite:', error);
                         } finally {
+                            setIsLoading(false);
                             // Required by architecture rules
                         }
                     }
@@ -80,19 +86,28 @@ export function useContextMenu(analyses: AnalysisData[], hubs: CreatorHub[], set
                         strokeWidth: 2,
                         d: "M7 16l-4-4m0 0l4-4m-4 4h18"
                     })),
-                    onClick: () => {
+                    onClick: async () => {
                         try {
-                            localStorageService.addCreatorToHub(hub.id, contextMenu.targetId);
-                            // Remove from other hubs
-                            hubs.forEach(otherHub => {
-                                if (otherHub.id !== hub.id) {
-                                    localStorageService.removeCreatorFromHub(otherHub.id, contextMenu.targetId);
-                                }
-                            });
-                            setHubs(localStorageService.getHubs());
+                            setIsLoading(true);
+                            const analysis = analyses.find(a => a.analysisId === contextMenu.targetId);
+                            if (analysis?.data.channelInfo) {
+                                const userId = userService.getUserId();
+                                
+                                await apiService.updateCreatorInteraction(userId, contextMenu.targetId, {
+                                    hubId: hub.id,
+                                    channelName: analysis.data.channelInfo.channelName,
+                                    channelId: analysis.data.channelInfo.channelId,
+                                    thumbnailUrl: analysis.data.channelInfo.thumbnailUrl,
+                                    platform: 'youtube'
+                                });
+
+                                const updatedHubs = await apiService.getUserHubs(userId);
+                                setHubs(updatedHubs);
+                            }
                         } catch (error) {
                             console.error('Error moving to hub:', error);
                         } finally {
+                            setIsLoading(false);
                             // Required by architecture rules
                         }
                     }
@@ -106,6 +121,7 @@ export function useContextMenu(analyses: AnalysisData[], hubs: CreatorHub[], set
         contextMenu,
         setContextMenu,
         handleChannelRightClick,
-        getContextMenuItems
+        getContextMenuItems,
+        isLoading
     };
 }

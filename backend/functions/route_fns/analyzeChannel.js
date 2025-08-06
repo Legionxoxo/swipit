@@ -13,6 +13,7 @@ const {
     updateAnalysisStatus 
 } = require('../analysis/jobManager');
 const { processChannelAnalysis, segmentVideosByViews } = require('../analysis/videoProcessor');
+const youtubeService = require('../../utils/youtube/youtubeService');
 
 /**
  * @typedef {Object} AnalysisJobResponse
@@ -52,13 +53,17 @@ async function startAnalysis(channelUrl) {
             totalVideos: 0
         };
 
-        // Store job
+        // Store job in database
+        await youtubeService.createAnalysis(analysisId, channelId, channelUrl);
+        
+        // Store in memory for backward compatibility
         storeAnalysisJob(analysisId, analysisJob);
 
         // Start background processing
-        processChannelAnalysis(analysisId, analysisJob).catch(error => {
+        processChannelAnalysis(analysisId, analysisJob).catch(async error => {
             console.error(`Analysis ${analysisId} failed:`, error);
             updateAnalysisStatus(analysisId, 'error', 0, { error: error.message });
+            await youtubeService.updateAnalysis(analysisId, 'failed', 0, error.message);
         });
 
         return {
@@ -85,6 +90,14 @@ async function getAnalysisStatus(analysisId) {
             throw new Error('Analysis ID is required');
         }
 
+        // Try to get from database first
+        const dbResult = await youtubeService.getAnalysis(analysisId);
+        
+        if (dbResult.success && dbResult.data) {
+            return dbResult.data;
+        }
+
+        // Fallback to memory store
         const analysisJob = getAnalysisJob(analysisId);
         
         if (!analysisJob) {

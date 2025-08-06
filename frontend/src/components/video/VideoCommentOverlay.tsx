@@ -1,5 +1,4 @@
 import { useRef } from 'react';
-import { localStorageService } from '../../services/localStorage';
 
 interface VideoCommentOverlayProps {
     videoId: string;
@@ -7,6 +6,7 @@ interface VideoCommentOverlayProps {
     setComment: (comment: string) => void;
     onClose: () => void;
     onSubmit: () => void;
+    hasComment: boolean;
 }
 
 export default function VideoCommentOverlay({
@@ -14,15 +14,15 @@ export default function VideoCommentOverlay({
     comment,
     setComment,
     onClose,
-    onSubmit
+    onSubmit,
+    hasComment
 }: VideoCommentOverlayProps) {
     const commentRef = useRef<HTMLDivElement>(null);
 
     const handleDelete = () => {
         try {
-            localStorageService.removeVideoComment(videoId);
             setComment('');
-            onClose();
+            onSubmit(); // This will handle the API call to remove the comment
         } catch (error) {
             console.error('Error deleting comment:', error);
         } finally {
@@ -47,7 +47,7 @@ export default function VideoCommentOverlay({
             </div>
             
             <div className="flex justify-end space-x-2">
-                {localStorageService.hasVideoComment(videoId) && (
+                {hasComment && (
                     <button
                         onClick={handleDelete}
                         className="px-2 py-1 text-xs bg-red-500 text-white rounded hover:bg-red-600 transition-colors duration-200"

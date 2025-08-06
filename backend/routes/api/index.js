@@ -7,6 +7,8 @@ const express = require('express');
 const analyzeRoutes = require('./analyze');
 const exportRoutes = require('./export');
 const instagramRoutes = require('./instagram');
+const youtubeRoutes = require('./youtube');
+const userInteractionsRoutes = require('./userInteractions');
 const { router: extensionRoutes } = require('./extension');
 
 const router = express.Router();
@@ -34,6 +36,8 @@ router.get('/', (req, res) => {
                 analysis: '/api/analysis/:id',
                 export: '/api/export/:id/:format',
                 instagram: '/api/instagram',
+                youtube: '/api/youtube',
+                userInteractions: '/api/user-interactions',
                 extension: '/api/extension'
             }
         });
@@ -55,6 +59,8 @@ router.use('/analyze', analyzeRoutes);
 router.use('/analysis', analyzeRoutes);
 router.use('/export', exportRoutes);
 router.use('/instagram', instagramRoutes);
+router.use('/youtube', youtubeRoutes);
+router.use('/user-interactions', userInteractionsRoutes);
 router.use('/extension', extensionRoutes);
 
 module.exports = router;

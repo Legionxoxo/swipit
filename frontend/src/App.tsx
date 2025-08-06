@@ -10,7 +10,8 @@ import CreatorsView from './components/views/CreatorsView';
 import FavoriteVideosView from './components/views/FavoriteVideosView';
 import StarredVideosView from './components/views/StarredVideosView';
 import type { AnalysisResponse, CreatorHub } from './types/api';
-import { localStorageService } from './services/localStorage';
+import { apiService } from './services/api';
+import { userService } from './services/userService';
 import { useAnalysisTracking } from './hooks/useAnalysisTracking';
 import { useInstagramAnalysisTracking } from './hooks/useInstagramAnalysisTracking';
 import { useContextMenu } from './hooks/useContextMenu';
@@ -69,17 +70,22 @@ function App() {
     
     const { contextMenu, setContextMenu, handleChannelRightClick, getContextMenuItems } = useContextMenu(analyses, hubs, setHubs);
 
-    // Load hubs from localStorage on mount
+    // Load hubs from database on mount
     useEffect(() => {
+        loadHubs();
+    }, []);
+
+    const loadHubs = async () => {
         try {
-            const savedHubs = localStorageService.getHubs();
+            const userId = userService.getUserId();
+            const savedHubs = await apiService.getUserHubs(userId);
             setHubs(savedHubs);
         } catch (error) {
-            console.error('Error loading hubs from localStorage:', error);
+            console.error('Error loading hubs:', error);
         } finally {
             // Required by architecture rules
         }
-    }, []);
+    };
 
     const handleCreatorClick = (creator: UnifiedCreator) => {
         if (creator.platform === 'youtube' && creator.data?.status === 'completed') {

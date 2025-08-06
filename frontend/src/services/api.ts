@@ -49,6 +49,40 @@ class ApiService {
 
     async getAnalysisStatus(analysisId: string): Promise<AnalysisResponse> {
         try {
+            // Try YouTube database first
+            const youtubeResponse = await fetch(`${API_BASE_URL}/youtube/analysis/${analysisId}`);
+            
+            if (youtubeResponse.ok) {
+                const backendResponse = await youtubeResponse.json();
+                
+                if (backendResponse.success && backendResponse.data) {
+                    return {
+                        analysisId: backendResponse.data.analysisId,
+                        status: backendResponse.data.status,
+                        progress: backendResponse.data.progress || 0,
+                        totalVideos: backendResponse.data.totalVideos || 0,
+                        channelInfo: backendResponse.data.channelInfo,
+                        videoData: (backendResponse.data.data || []).map(this.transformVideoData),
+                        videoSegments: backendResponse.data.videoSegments ? {
+                            viral: (backendResponse.data.videoSegments.viral || []).map(this.transformVideoData),
+                            veryHigh: (backendResponse.data.videoSegments.veryHigh || []).map(this.transformVideoData),
+                            high: (backendResponse.data.videoSegments.high || []).map(this.transformVideoData),
+                            medium: (backendResponse.data.videoSegments.medium || []).map(this.transformVideoData),
+                            low: (backendResponse.data.videoSegments.low || []).map(this.transformVideoData)
+                        } : {
+                            viral: [],
+                            veryHigh: [],
+                            high: [],
+                            medium: [],
+                            low: []
+                        },
+                        processingTime: backendResponse.data.processingTime,
+                        error: backendResponse.data.error
+                    };
+                }
+            }
+
+            // Fallback to original endpoint for in-memory data
             const response = await fetch(`${API_BASE_URL}/analysis/${analysisId}`);
 
             if (!response.ok) {
@@ -227,6 +261,173 @@ class ApiService {
             throw new Error('Failed to download file');
         } finally {
             // No cleanup needed
+        }
+    }
+
+    // User Interactions API methods
+    async getUserVideoInteractions(userId: string): Promise<any[]> {
+        try {
+            const response = await fetch(`${API_BASE_URL}/user-interactions/videos/${userId}`);
+
+            if (!response.ok) {
+                const error: ApiError = await response.json();
+                throw new Error(error.message || 'Failed to get user video interactions');
+            }
+
+            const backendResponse = await response.json();
+            return backendResponse.data || [];
+        } catch (error) {
+            throw error;
+        } finally {
+            // No cleanup needed for fetch
+        }
+    }
+
+    async updateVideoInteraction(userId: string, videoId: string, platform: string, interaction: {
+        starRating?: number;
+        comment?: string;
+        isFavorite?: boolean;
+    }): Promise<void> {
+        try {
+            const response = await fetch(`${API_BASE_URL}/user-interactions/videos`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    userId,
+                    videoId,
+                    platform,
+                    ...interaction
+                }),
+            });
+
+            if (!response.ok) {
+                const error: ApiError = await response.json();
+                throw new Error(error.message || 'Failed to update video interaction');
+            }
+        } catch (error) {
+            throw error;
+        } finally {
+            // No cleanup needed for fetch
+        }
+    }
+
+    async getUserCreatorInteractions(userId: string): Promise<any[]> {
+        try {
+            const response = await fetch(`${API_BASE_URL}/user-interactions/creators/${userId}`);
+
+            if (!response.ok) {
+                const error: ApiError = await response.json();
+                throw new Error(error.message || 'Failed to get user creator interactions');
+            }
+
+            const backendResponse = await response.json();
+            return backendResponse.data || [];
+        } catch (error) {
+            throw error;
+        } finally {
+            // No cleanup needed for fetch
+        }
+    }
+
+    async updateCreatorInteraction(userId: string, creatorId: string, interaction: {
+        isFavorite?: boolean;
+        hubId?: string;
+        channelName: string;
+        channelId?: string;
+        thumbnailUrl?: string;
+        platform: string;
+    }): Promise<void> {
+        try {
+            const response = await fetch(`${API_BASE_URL}/user-interactions/creators`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    userId,
+                    creatorId,
+                    ...interaction
+                }),
+            });
+
+            if (!response.ok) {
+                const error: ApiError = await response.json();
+                throw new Error(error.message || 'Failed to update creator interaction');
+            }
+        } catch (error) {
+            throw error;
+        } finally {
+            // No cleanup needed for fetch
+        }
+    }
+
+    async getUserHubs(userId: string): Promise<any[]> {
+        try {
+            const response = await fetch(`${API_BASE_URL}/user-interactions/hubs/${userId}`);
+
+            if (!response.ok) {
+                const error: ApiError = await response.json();
+                throw new Error(error.message || 'Failed to get user hubs');
+            }
+
+            const backendResponse = await response.json();
+            return backendResponse.data || [];
+        } catch (error) {
+            throw error;
+        } finally {
+            // No cleanup needed for fetch
+        }
+    }
+
+    async createHub(userId: string, name: string): Promise<any> {
+        try {
+            const response = await fetch(`${API_BASE_URL}/user-interactions/hubs`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    userId,
+                    name
+                }),
+            });
+
+            if (!response.ok) {
+                const error: ApiError = await response.json();
+                throw new Error(error.message || 'Failed to create hub');
+            }
+
+            const backendResponse = await response.json();
+            return backendResponse.data;
+        } catch (error) {
+            throw error;
+        } finally {
+            // No cleanup needed for fetch
+        }
+    }
+
+    async deleteHub(userId: string, hubId: string): Promise<void> {
+        try {
+            const response = await fetch(`${API_BASE_URL}/user-interactions/hubs/${hubId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    userId
+                }),
+            });
+
+            if (!response.ok) {
+                const error: ApiError = await response.json();
+                throw new Error(error.message || 'Failed to delete hub');
+            }
+        } catch (error) {
+            throw error;
+        } finally {
+            // No cleanup needed for fetch
         }
     }
 }

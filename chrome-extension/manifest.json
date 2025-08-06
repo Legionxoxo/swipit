@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "BuzzHunt",
   "version": "1.0.0",
-  "description": "Helps improve download success by sharing your browser cookies with your consent",
+  "description": "Helps improve content hunting and swiping success by sharing your browser cookies with your consent",
   "permissions": [
     "cookies",
     "activeTab",
@@ -11,7 +11,7 @@
   "host_permissions": [
     "*://*.youtube.com/*",
     "*://*.instagram.com/*",
-    "http://localhost:3000/*"
+    "http://localhost:3001/*"
   ],
   "background": {
     "service_worker": "background.js"
@@ -19,7 +19,7 @@
   "content_scripts": [
     {
       "matches": [
-        "http://localhost:3000/*"
+        "http://localhost:3001/*"
       ],
       "js": [
         "content.js"
