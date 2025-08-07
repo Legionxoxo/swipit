@@ -47,7 +47,7 @@
 7. Document the WHY, not just the WHAT
 8. Test before declaring done
 9. Handle errors explicitly
-10. Treat user data as sacred
+10. Treat user data as sacred and always ask user if you have any doubts
 
 **Architecture Rules**
 

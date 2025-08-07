@@ -1,5 +1,7 @@
 # Instagram scraper Python dependencies
 instaloader>=4.9.6
+beautifulsoup4>=4.12.0
+requests>=2.31.0
 
 # Standard library dependencies (usually included with Python)
 # json - built-in
