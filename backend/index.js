@@ -5,6 +5,7 @@
 
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
 require('dotenv').config();
 
 // Route imports
@@ -39,6 +40,7 @@ function createApp() {
         app.use(cors({
             origin: [
                 process.env.FRONTEND_URL || 'http://localhost:5173',
+                'http://127.0.0.1:5173',
                 'http://localhost:3001',
                 'chrome-extension://*'
             ],
@@ -76,7 +78,43 @@ function createApp() {
         // API routes
         app.use('/api', apiRoutes);
 
-        // 404 handler
+        // Serve static files from public folder
+        app.use(express.static(path.join(__dirname, 'public')));
+
+        // Serve frontend index.html for all non-API routes (SPA routing)
+        app.get('*', (req, res) => {
+            try {
+                // Don't serve index.html for API routes or if file doesn't exist
+                if (req.path.startsWith('/api')) {
+                    return res.status(404).json({
+                        success: false,
+                        message: 'API endpoint not found',
+                        path: req.originalUrl
+                    });
+                }
+                
+                const indexPath = path.join(__dirname, 'public', 'index.html');
+                res.sendFile(indexPath, (err) => {
+                    if (err) {
+                        res.status(404).json({
+                            success: false,
+                            message: 'Frontend not built yet. Run frontend build first.',
+                            path: req.originalUrl
+                        });
+                    }
+                });
+            } catch (error) {
+                console.error('Static file serving error:', error);
+                res.status(500).json({
+                    success: false,
+                    message: 'Error serving static files'
+                });
+            } finally {
+                console.log(`Served: ${req.method} ${req.originalUrl}`);
+            }
+        });
+
+        // 404 handler for remaining cases
         app.use((req, res) => {
             try {
                 res.status(404).json({

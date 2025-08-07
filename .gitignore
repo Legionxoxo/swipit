@@ -2,7 +2,7 @@
 node_modules/
 backend/.claude/
 .claude
-youtube-downloader
+data
 
 # Environment variables
 .env
