@@ -12,7 +12,8 @@
     "*://*.youtube.com/*",
     "*://*.instagram.com/*",
     "http://localhost:3000/*",
-    "http://localhost:3001/*"
+    "http://10.10.10.62/*",
+    "http://10.10.10.62:3000/*"
   ],
   "background": {
     "service_worker": "background.js"

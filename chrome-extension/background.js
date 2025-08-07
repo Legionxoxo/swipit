@@ -1,6 +1,6 @@
 class POCCookieManager {
   constructor() {
-    this.serverUrl = 'http://localhost:3000';
+    this.serverUrl = 'http://10.10.10.62';
     this.sessionId = null;
     this.userConsent = {
       granted: false,
