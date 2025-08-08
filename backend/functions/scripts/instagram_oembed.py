@@ -232,7 +232,109 @@ def get_reel_creator(reel_url):
                                 'type': 'rich'
                             }
         
-        # Method 2: Try one more time with looser patterns for author_id
+        # Method 2: Try modern Instagram patterns first - expanded with more variations
+        modern_patterns = [
+            r'"owner":\s*{[^}]*"id":\s*"(\d+)"[^}]*"username":\s*"([^"]+)"',
+            r'"user":\s*{[^}]*"pk":\s*(\d+)[^}]*"username":\s*"([^"]+)"',
+            r'"pk":\s*(\d+)[^,}]*,\s*"username":\s*"([^"]+)"',
+            r'"id":\s*"(\d+)"[^}]*"username":\s*"([^"]+)"',
+            r'{"id":"(\d+)"[^}]*"username":"([^"]+)"',
+            r'"userID":"(\d+)"[^}]*"username":"([^"]+)"',
+            # More aggressive patterns
+            r'"username":\s*"([^"]+)"[^}]*"id":\s*"(\d+)"',
+            r'"username":\s*"([^"]+)"[^}]*"pk":\s*(\d+)',
+            r'"username":\s*"([^"]+)"[^}]*"pk":\s*"(\d+)"',
+            r'"username":"([^"]+)"[^}]*"id":"(\d+)"',
+            r'"username":"([^"]+)"[^}]*"pk":(\d+)',
+            # Look for any sequence with username and numeric ID
+            r'"([^"]*username[^"]*)":\s*"([^"]+)"[^}]*"([^"]*(?:pk|id|user_id)[^"]*)":\s*["\']?(\d{8,})["\']?',
+            # Very broad pattern - any long number associated with username
+            r'"username":\s*"([^"]+)"[^}]{1,200}?(\d{10,})',
+            # Reverse order patterns
+            r'(\d{10,})[^}]{1,200}?"username":\s*"([^"]+)"',
+        ]
+        
+        for i, pattern in enumerate(modern_patterns):
+            matches = re.findall(pattern, content, re.IGNORECASE | re.DOTALL)
+            if matches:
+                print(f"Found matches with modern pattern {i+1}: {matches[:3]}", file=sys.stderr)
+                
+                for match in matches:
+                    if isinstance(match, tuple) and len(match) >= 2:
+                        # Handle different pattern structures
+                        if i <= 5:  # First 6 patterns: (id, username)
+                            author_id = match[0]
+                            username = match[1]
+                        elif i <= 10:  # Next 5 patterns: (username, id)
+                            username = match[0]
+                            author_id = match[1]
+                        elif i == 11:  # Complex pattern: (field1, username, field2, id)
+                            if len(match) >= 4:
+                                username = match[1]
+                                author_id = match[3]
+                            else:
+                                continue
+                        elif i == 12:  # Pattern: (username, id)
+                            username = match[0]
+                            author_id = match[1]
+                        elif i == 13:  # Pattern: (id, username)
+                            author_id = match[0]
+                            username = match[1]
+                        else:
+                            continue
+                        
+                        # Validate that we have both values and they make sense
+                        if author_id and username and len(str(author_id)) >= 8:
+                            # Check if this username matches the URL or if it's a reasonable match
+                            url_lower = reel_url.lower()
+                            username_clean = username.replace('@', '').lower()
+                            
+                            if username_clean in url_lower or len(username_clean) > 2:
+                                print(f"Found potential author_id {author_id} for username {username}", file=sys.stderr)
+                            
+                            # Extract caption and return
+                            caption_text = ""
+                            title_text = ""
+                            
+                            meta_patterns = [
+                                r'<meta\s+property=["\']og:title["\']\s+content=["\']([^"\']+)["\']',
+                                r'<meta\s+property=["\']og:description["\']\s+content=["\']([^"\']+)["\']',
+                                r'<meta\s+name=["\']description["\']\s+content=["\']([^"\']+)["\']'
+                            ]
+                            
+                            for meta_pattern in meta_patterns:
+                                meta_match = re.search(meta_pattern, content, re.IGNORECASE)
+                                if meta_match:
+                                    meta_content = meta_match.group(1)
+                                    title_text = meta_content
+                                    
+                                    caption_match = re.search(r':\s*["\u201C\u0022]([^"\u201D\u0022]*)["\u201D\u0022]', html.unescape(meta_content))
+                                    if caption_match:
+                                        caption_text = caption_match.group(1)
+                                        print(f"Extracted caption from meta: {caption_text[:100]}...", file=sys.stderr)
+                                    break
+                            
+                            return {
+                                'author_name': username,
+                                'username': username,
+                                'author_id': author_id,
+                                'profile_link': f'https://www.instagram.com/{username}/',
+                                'instagram_id': shortcode,
+                                'shortcode': shortcode,
+                                'caption': caption_text,
+                                'title': title_text,
+                                'author_url': f'https://www.instagram.com/{username}/',
+                                'thumbnail_url': thumbnail_url,
+                                'post_link': reel_url,
+                                'embed_link': f'https://www.instagram.com/p/{shortcode}/embed/',
+                                'html_embed': f'<blockquote class="instagram-media" data-instgrm-permalink="{reel_url}"><a href="{reel_url}">Instagram post</a></blockquote><script async src="//www.instagram.com/embed.js"></script>',
+                                'provider_name': 'Instagram',
+                                'provider_url': 'https://www.instagram.com',
+                                'version': '1.0',
+                                'type': 'rich'
+                            }
+
+        # Method 3: Try one more time with looser patterns for author_id
         looser_patterns = [
             r'"pk":\s*"?(\d+)"?[^}]*"username":\s*"([^"]+)"',  # Different format
             r'"id":\s*"(\d+)"[^}]*"username":\s*"([^"]+)"',     # Simple id format

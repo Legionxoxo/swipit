@@ -252,7 +252,7 @@ async function saveOembedData(oembedData) {
         console.error('Save oEmbed data error:', error);
         throw new Error(`Failed to save oEmbed data: ${error.message}`);
     } finally {
-        console.log('Database save operation completed');
+        // Database save operation completed
     }
 }
 
@@ -288,7 +288,7 @@ async function getExistingOembedData(postUrl) {
                 post_link: existingData.reel_url
             };
             
-            console.log('Found existing oEmbed data in database');
+            // Found existing oEmbed data in database
             return oembedData;
         }
         
@@ -297,7 +297,7 @@ async function getExistingOembedData(postUrl) {
         console.error('Get existing oEmbed data error:', error);
         return null;
     } finally {
-        console.log('Database lookup operation completed');
+        // Database lookup operation completed
     }
 }
 
@@ -311,7 +311,7 @@ async function processOembedRequest(postUrl) {
         // Check if data already exists in database
         const existingData = await getExistingOembedData(postUrl);
         if (existingData) {
-            console.log('Returning existing oEmbed data from database');
+            // Returning existing oEmbed data from database
             return existingData;
         }
 

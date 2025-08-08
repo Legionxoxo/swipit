@@ -6,18 +6,40 @@ interface TrackInstagramModalProps {
     isOpen: boolean;
     onClose: () => void;
     onAnalysisStarted: (analysisId: string) => void;
+    onPostTracked?: (postData: any) => void;
 }
 
-export default function TrackInstagramModal({ isOpen, onClose, onAnalysisStarted }: TrackInstagramModalProps) {
+export default function TrackInstagramModal({ isOpen, onClose, onAnalysisStarted, onPostTracked }: TrackInstagramModalProps) {
     const [instagramUrl, setInstagramUrl] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+
+    const detectInstagramType = (input: string): 'profile' | 'post' | 'unknown' => {
+        const cleanInput = input.toLowerCase().trim();
+        
+        // Check for post/reel patterns
+        if (cleanInput.includes('/p/') || cleanInput.includes('/reel/') || cleanInput.includes('/tv/')) {
+            return 'post';
+        }
+        
+        // Check for profile patterns
+        if (cleanInput.includes('instagram.com/') && !cleanInput.includes('/p/') && !cleanInput.includes('/reel/')) {
+            return 'profile';
+        }
+        
+        // If it's just a username (no URL), assume it's a profile
+        if (!cleanInput.includes('/') || cleanInput.startsWith('@')) {
+            return 'profile';
+        }
+        
+        return 'unknown';
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         
         if (!instagramUrl.trim()) {
-            setError('Please enter an Instagram profile URL');
+            setError('Please enter an Instagram profile URL or post URL');
             return;
         }
 
@@ -26,7 +48,6 @@ export default function TrackInstagramModal({ isOpen, onClose, onAnalysisStarted
 
         try {
             const input = instagramUrl.trim();
-            const username = extractUsernameFromUrl(input);
             
             // Check if this looks like a YouTube URL and suggest using the YouTube tracker
             const isYouTubeUrl = /youtube\.com|youtu\.be/i.test(input);
@@ -35,15 +56,36 @@ export default function TrackInstagramModal({ isOpen, onClose, onAnalysisStarted
                 return;
             }
             
-            const response = await apiService.startInstagramAnalysis(username);
-            onAnalysisStarted(response.analysisId);
+            const instagramType = detectInstagramType(input);
+            
+            if (instagramType === 'post') {
+                // Use oEmbed endpoint for individual posts
+                const response = await apiService.getInstagramOEmbed(input);
+                
+                // Use the new post tracking function instead of analysis started
+                if (onPostTracked) {
+                    onPostTracked(response);
+                } else {
+                    // Fallback to old behavior if handler not provided
+                    const mockAnalysisId = `post_${response.instagram_id}`;
+                    onAnalysisStarted(mockAnalysisId);
+                }
+            } else if (instagramType === 'profile') {
+                // Use existing Instagram analysis for profiles
+                const username = extractUsernameFromUrl(input);
+                const response = await apiService.startInstagramAnalysis(username);
+                onAnalysisStarted(response.analysisId);
+            } else {
+                setError('Please enter a valid Instagram profile URL or post URL');
+                return;
+            }
             
             // Reset form and close modal
             setInstagramUrl('');
             setError(null);
             onClose();
         } catch (err) {
-            setError(err instanceof Error ? err.message : 'Failed to start Instagram analysis');
+            setError(err instanceof Error ? err.message : 'Failed to process Instagram URL');
         } finally {
             setIsLoading(false);
         }
@@ -93,18 +135,18 @@ export default function TrackInstagramModal({ isOpen, onClose, onAnalysisStarted
     };
 
     return (
-        <Modal isOpen={isOpen} onClose={handleClose} title="Track New Instagram Profile" maxWidth="lg">
+        <Modal isOpen={isOpen} onClose={handleClose} title="Track Instagram Profile or Post" maxWidth="lg">
             <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
                     <label htmlFor="instagramUrl" className="block text-sm font-medium text-gray-700 mb-2">
-                        Profile URL or Username
+                        Profile URL, Post URL, or Username
                     </label>
                     <input
                         type="text"
                         id="instagramUrl"
                         value={instagramUrl}
                         onChange={(e) => setInstagramUrl(e.target.value)}
-                        placeholder="Instagram: @username, YouTube: @channelname, or any profile URL"
+                        placeholder="@username, profile URL, or post/reel URL"
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent"
                         disabled={isLoading}
                         autoFocus
@@ -120,25 +162,28 @@ export default function TrackInstagramModal({ isOpen, onClose, onAnalysisStarted
                 <div className="bg-gray-50 rounded-lg p-4">
                     <h4 className="text-sm font-medium text-gray-900 mb-2">Supported formats:</h4>
                     <div className="text-xs text-gray-600 space-y-1">
-                        <p className="font-medium text-purple-700 mb-1">Instagram:</p>
+                        <p className="font-medium text-purple-700 mb-1">Instagram Profiles (Full Analysis):</p>
                         <p>• <code className="bg-gray-200 px-1 rounded">https://www.instagram.com/username</code></p>
                         <p>• <code className="bg-gray-200 px-1 rounded">@username</code></p>
+                        
+                        <p className="font-medium text-pink-700 mb-1 mt-2">Instagram Posts (Quick Track):</p>
+                        <p>• <code className="bg-gray-200 px-1 rounded">https://www.instagram.com/p/ABC123/</code></p>
+                        <p>• <code className="bg-gray-200 px-1 rounded">https://www.instagram.com/reel/ABC123/</code></p>
+                        
                         <p className="font-medium text-red-700 mb-1 mt-2">YouTube (use YouTube tracker instead):</p>
                         <p>• YouTube URLs will show an error message</p>
-                        <p>• Use the "Track YouTube Channel" button for YouTube analysis</p>
-                        <p className="font-medium text-gray-700 mb-1 mt-2">General:</p>
-                        <p>• <code className="bg-gray-200 px-1 rounded">username</code> (plain text)</p>
                     </div>
                 </div>
 
-                <div className="bg-purple-50 rounded-lg p-4">
+                <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg p-4">
                     <div className="flex items-start space-x-3">
                         <svg className="w-5 h-5 text-purple-500 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                             <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
                         </svg>
                         <div className="text-sm text-purple-800">
-                            <p className="font-medium">Instagram Analysis</p>
-                            <p className="mt-1">Profile analysis typically takes 1-3 minutes. We'll extract profile info, reels, and engagement data. Authentication may be required for private profiles.</p>
+                            <p className="font-medium">Two Tracking Methods</p>
+                            <p className="mt-1"><span className="font-semibold">Profiles:</span> Full analysis (1-3 min) - extracts all posts, engagement data</p>
+                            <p><span className="font-semibold">Individual Posts:</span> Instant tracking - gets post details, creator info, hashtags</p>
                         </div>
                     </div>
                 </div>

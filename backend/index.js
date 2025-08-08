@@ -246,13 +246,13 @@ if (require.main === module) {
             const config = validateEnvironment();
             
             // Step 2: Initialize database
-            console.log('Initializing database connection...');
+            // Initializing database connection
             const databaseConnected = await testDatabaseConnection();
             
             if (!databaseConnected) {
                 throw new Error('Database connection failed - cannot start server');
             }
-            console.log('Database connected successfully');
+            // Database connected successfully
             
             // Step 3: Create Express app
             const app = createApp();

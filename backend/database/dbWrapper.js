@@ -46,7 +46,7 @@ async function createDatabaseWrapper(dbPath) {
                 console.error('Database get error:', error);
                 throw new Error(`Database query failed: ${error.message}`);
             } finally {
-                console.log(`Database get executed: ${sql.substring(0, 50)}...`);
+                // Query executed
             }
         }
 
@@ -68,7 +68,7 @@ async function createDatabaseWrapper(dbPath) {
                 console.error('Database all error:', error);
                 throw new Error(`Database query failed: ${error.message}`);
             } finally {
-                console.log(`Database all executed: ${sql.substring(0, 50)}...`);
+                // Query executed
             }
         }
 
@@ -102,7 +102,7 @@ async function createDatabaseWrapper(dbPath) {
                     console.error('Database run error:', error);
                     reject(new Error(`Database command failed: ${error.message}`));
                 } finally {
-                    console.log(`Database run executed: ${sql.substring(0, 50)}...`);
+                    // Query executed
                 }
             });
         }
@@ -118,7 +118,7 @@ async function createDatabaseWrapper(dbPath) {
                 console.error('Database close error:', error);
                 throw new Error(`Failed to close database: ${error.message}`);
             } finally {
-                console.log('Database connection closed');
+                // Connection closed
             }
         }
 
@@ -133,7 +133,7 @@ async function createDatabaseWrapper(dbPath) {
         console.error('Database wrapper creation error:', error);
         throw new Error(`Failed to create database wrapper: ${error.message}`);
     } finally {
-        console.log(`Database wrapper created for: ${dbPath}`);
+        // Database wrapper created
     }
 }
 
@@ -166,7 +166,7 @@ function wrapDatabase(db) {
                 console.error('Wrapped database get error:', error);
                 throw error;
             } finally {
-                console.log(`Wrapped database get executed: ${sql.substring(0, 50)}...`);
+                // Query executed
             }
         }
 
@@ -183,7 +183,7 @@ function wrapDatabase(db) {
                 console.error('Wrapped database all error:', error);
                 throw error;
             } finally {
-                console.log(`Wrapped database all executed: ${sql.substring(0, 50)}...`);
+                // Query executed
             }
         }
 
@@ -212,7 +212,7 @@ function wrapDatabase(db) {
                     console.error('Wrapped database run error:', error);
                     reject(error);
                 } finally {
-                    console.log(`Wrapped database run executed: ${sql.substring(0, 50)}...`);
+                    // Query executed
                 }
             });
         }
@@ -228,7 +228,7 @@ function wrapDatabase(db) {
                 console.error('Wrapped database close error:', error);
                 throw error;
             } finally {
-                console.log('Wrapped database connection closed');
+                // Connection closed
             }
         }
 
@@ -243,7 +243,7 @@ function wrapDatabase(db) {
         console.error('Database wrapping error:', error);
         throw new Error(`Failed to wrap database: ${error.message}`);
     } finally {
-        console.log('Database wrapped successfully');
+        // Database wrapped successfully
     }
 }
 

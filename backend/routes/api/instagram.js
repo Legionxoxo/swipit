@@ -5,6 +5,7 @@
 
 const express = require('express');
 const { analyzeInstagram, getInstagramAnalysisStatus } = require('../../functions/route_fns/analyzeInstagram');
+const { getAllCompletedAnalyses } = require('../../database/instagram/instagramJobs');
 
 const router = express.Router();
 
@@ -186,6 +187,44 @@ router.get('/health', (req, res) => {
         });
     } finally {
         console.log(`Instagram API health check requested at ${new Date().toISOString()}`);
+    }
+});
+
+/**
+ * Get all completed Instagram analyses
+ * GET /api/instagram/analyses
+ * @param {express.Request} req - Express request
+ * @param {express.Response} res - Express response
+ */
+router.get('/analyses', async (req, res) => {
+    try {
+        const { 
+            limit = 100, 
+            offset = 0 
+        } = req.query;
+
+        const options = {
+            limit: parseInt(String(limit), 10) || 100,
+            offset: parseInt(String(offset), 10) || 0
+        };
+
+        const analyses = await getAllCompletedAnalyses(options);
+
+        res.json({
+            success: true,
+            message: 'Instagram analyses retrieved successfully',
+            data: analyses
+        });
+
+    } catch (error) {
+        console.error('Get all Instagram analyses error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to retrieve Instagram analyses',
+            error: process.env.NODE_ENV === 'development' ? error.stack : undefined
+        });
+    } finally {
+        console.log(`Instagram analyses requested at ${new Date().toISOString()}`);
     }
 });
 

@@ -36,9 +36,40 @@ export function useInstagramAnalysisTracking() {
 
     const loadCompletedInstagramAnalyses = async () => {
         try {
-            // TODO: Add API call to get completed Instagram analyses
-            // const completedAnalyses = await apiService.getAllCompletedInstagramAnalyses();
-            console.log('Loading completed Instagram analyses from backend...');
+            const completedAnalyses = await apiService.getAllCompletedInstagramAnalyses();
+            
+            // Transform backend data to frontend format
+            const analysesWithData = await Promise.all(
+                completedAnalyses.map(async (analysis: any) => {
+                    try {
+                        const analysisId = analysis.analysisId || analysis.analysis_id;
+                        
+                        // Only load full profile analyses, not individual posts
+                        // Individual posts will be handled by handleInstagramPostTracked
+                        if (analysisId.startsWith('post_') || analysisId.startsWith('creator_')) {
+                            return null;
+                        }
+                        
+                        const fullAnalysisData = await apiService.getInstagramAnalysisStatus(analysisId);
+                        return {
+                            analysisId: analysisId,
+                            status: fullAnalysisData.status,
+                            progress: fullAnalysisData.progress || 0,
+                            profile: fullAnalysisData.profile,
+                            reels: fullAnalysisData.reels || [],
+                            reelSegments: fullAnalysisData.reelSegments,
+                            totalReels: fullAnalysisData.totalReels || 0,
+                            error: fullAnalysisData.error
+                        };
+                    } catch (error) {
+                        console.error(`Error loading Instagram analysis ${analysis.analysis_id}:`, error);
+                        return null;
+                    }
+                })
+            );
+
+            const validAnalyses = analysesWithData.filter(Boolean) as InstagramAnalysisData[];
+            setInstagramAnalyses(validAnalyses);
         } catch (error) {
             console.error('Error loading completed Instagram analyses:', error);
         }
@@ -109,14 +140,102 @@ export function useInstagramAnalysisTracking() {
     const handleInstagramAnalysisStarted = (analysisId: string) => {
         setLoadingInstagramAnalyses(prev => [...prev, analysisId]);
         
-        // Add initial analysis entry
-        setInstagramAnalyses(prev => [...prev, {
-            analysisId,
-            status: 'processing',
-            progress: 0
-        }]);
+        // Add initial analysis entry (check for duplicates)
+        setInstagramAnalyses(prev => {
+            const existingIndex = prev.findIndex(a => a.analysisId === analysisId);
+            if (existingIndex >= 0) {
+                return prev; // Already exists, don't add duplicate
+            }
+            return [...prev, {
+                analysisId,
+                status: 'processing',
+                progress: 0
+            }];
+        });
         
         startPolling(analysisId);
+    };
+
+    const handleInstagramPostTracked = (postData: any) => {
+        // Use username as the analysis ID to group posts by creator
+        const analysisId = `creator_${postData.username}`;
+        
+        // Create the new post/reel data
+        const newReel = {
+            reel_id: postData.instagram_id,
+            reel_shortcode: postData.instagram_id,
+            reel_url: postData.post_link || '',
+            reel_thumbnail_url: postData.thumbnail_url,
+            reel_caption: postData.caption,
+            reel_likes: 0, // Not available from oEmbed
+            reel_comments: 0, // Not available from oEmbed
+            reel_views: 0, // Not available from oEmbed
+            reel_date_posted: new Date().toISOString(),
+            reel_duration: 0, // Not available from oEmbed
+            reel_hashtags: postData.hashtags || [],
+            reel_mentions: [],
+            // Add embed data for Instagram posts
+            embed_link: postData.embed_link,
+            post_link: postData.post_link,
+            hashtags: postData.hashtags || []
+        };
+
+        setInstagramAnalyses(prev => {
+            // Check if creator already exists
+            const existingIndex = prev.findIndex(a => a.analysisId === analysisId);
+            
+            if (existingIndex >= 0) {
+                // Add post to existing creator
+                const updated = [...prev];
+                const existingAnalysis = updated[existingIndex];
+                
+                // Check if this specific post already exists to avoid duplicates
+                const existingReels = existingAnalysis.reels || [];
+                const postExists = existingReels.some(reel => reel.reel_id === postData.instagram_id);
+                
+                if (!postExists) {
+                    updated[existingIndex] = {
+                        ...existingAnalysis,
+                        reels: [...existingReels, newReel],
+                        totalReels: (existingAnalysis.totalReels || 0) + 1,
+                        profile: existingAnalysis.profile ? {
+                            ...existingAnalysis.profile,
+                            media_count: (existingAnalysis.profile.media_count || 0) + 1
+                        } : undefined
+                    };
+                }
+                return updated;
+            } else {
+                // Create new creator entry with this post
+                const newAnalysis: InstagramAnalysisData = {
+                    analysisId,
+                    status: 'completed',
+                    progress: 100,
+                    profile: {
+                        instagram_user_id: postData.username, // Use username as user ID
+                        username: postData.username,
+                        full_name: postData.username, // Use username as full name for posts
+                        biography: '', // Not available for individual posts
+                        follower_count: 0, // Not available for individual posts
+                        following_count: 0, // Not available for individual posts
+                        media_count: 1, // Starting with this one post
+                        is_private: false, // Assume public if we can get post data
+                        is_verified: false, // Not available for individual posts
+                        profile_pic_url: postData.thumbnail_url || '' // Use post thumbnail as temp profile pic
+                    },
+                    reels: [newReel],
+                    totalReels: 1,
+                    reelSegments: {
+                        viral: [],
+                        veryHigh: [],
+                        high: [],
+                        medium: [],
+                        low: []
+                    }
+                };
+                return [...prev, newAnalysis];
+            }
+        });
     };
 
     // Cleanup intervals on unmount
@@ -129,6 +248,7 @@ export function useInstagramAnalysisTracking() {
     return {
         instagramAnalyses,
         loadingInstagramAnalyses,
-        handleInstagramAnalysisStarted
+        handleInstagramAnalysisStarted,
+        handleInstagramPostTracked
     };
 }

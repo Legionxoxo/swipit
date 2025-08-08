@@ -6,9 +6,10 @@ interface TrackChannelModalProps {
     isOpen: boolean;
     onClose: () => void;
     onAnalysisStarted: (analysisId: string, platform: 'youtube' | 'instagram') => void;
+    onInstagramPostTracked?: (postData: any) => void;
 }
 
-export default function TrackChannelModal({ isOpen, onClose, onAnalysisStarted }: TrackChannelModalProps) {
+export default function TrackChannelModal({ isOpen, onClose, onAnalysisStarted, onInstagramPostTracked }: TrackChannelModalProps) {
     const [channelUrl, setChannelUrl] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -26,6 +27,27 @@ export default function TrackChannelModal({ isOpen, onClose, onAnalysisStarted }
         
         // For plain usernames, default to YouTube for backward compatibility
         return 'youtube';
+    };
+
+    const detectInstagramType = (input: string): 'profile' | 'post' | 'unknown' => {
+        const cleanInput = input.toLowerCase().trim();
+        
+        // Check for post/reel patterns
+        if (cleanInput.includes('/p/') || cleanInput.includes('/reel/') || cleanInput.includes('/tv/')) {
+            return 'post';
+        }
+        
+        // Check for profile patterns
+        if (cleanInput.includes('instagram.com/') && !cleanInput.includes('/p/') && !cleanInput.includes('/reel/')) {
+            return 'profile';
+        }
+        
+        // If it's just a username (no URL), assume it's a profile
+        if (!cleanInput.includes('/') || cleanInput.startsWith('@')) {
+            return 'profile';
+        }
+        
+        return 'unknown';
     };
 
     const extractUsernameForInstagram = (input: string): string => {
@@ -60,14 +82,27 @@ export default function TrackChannelModal({ isOpen, onClose, onAnalysisStarted }
             let response;
 
             if (platform === 'instagram') {
-                const username = extractUsernameForInstagram(channelUrl.trim());
-                response = await apiService.startInstagramAnalysis(username);
+                const instagramType = detectInstagramType(channelUrl.trim());
+                
+                if (instagramType === 'post') {
+                    // Handle individual Instagram posts
+                    const postData = await apiService.getInstagramOEmbed(channelUrl.trim());
+                    
+                    if (onInstagramPostTracked) {
+                        onInstagramPostTracked(postData);
+                    }
+                    // Don't call onAnalysisStarted for posts since they're handled differently
+                } else {
+                    // Handle Instagram profiles (existing behavior)
+                    const username = extractUsernameForInstagram(channelUrl.trim());
+                    response = await apiService.startInstagramAnalysis(username);
+                    onAnalysisStarted(response.analysisId, platform);
+                }
             } else {
                 // Default to YouTube
                 response = await apiService.startChannelAnalysis(channelUrl.trim());
+                onAnalysisStarted(response.analysisId, platform === 'unknown' ? 'youtube' : platform);
             }
-
-            onAnalysisStarted(response.analysisId, platform === 'unknown' ? 'youtube' : platform);
             
             // Reset form and close modal
             setChannelUrl('');
@@ -100,7 +135,7 @@ export default function TrackChannelModal({ isOpen, onClose, onAnalysisStarted }
                         id="channelUrl"
                         value={channelUrl}
                         onChange={(e) => setChannelUrl(e.target.value)}
-                        placeholder="YouTube: @channelname, Instagram: @username, or any profile URL"
+                        placeholder="@username, profile URL, or post/reel URL"
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
                         disabled={isLoading}
                         autoFocus
@@ -120,9 +155,12 @@ export default function TrackChannelModal({ isOpen, onClose, onAnalysisStarted }
                         <p>• <code className="bg-gray-200 px-1 rounded">https://www.youtube.com/@channelname</code></p>
                         <p>• <code className="bg-gray-200 px-1 rounded">https://www.youtube.com/c/channelname</code></p>
                         <p>• <code className="bg-gray-200 px-1 rounded">https://www.youtube.com/channel/CHANNEL_ID</code></p>
-                        <p className="font-medium text-purple-700 mb-1 mt-2">Instagram:</p>
+                        <p className="font-medium text-purple-700 mb-1 mt-2">Instagram Profiles:</p>
                         <p>• <code className="bg-gray-200 px-1 rounded">https://www.instagram.com/username</code></p>
                         <p>• <code className="bg-gray-200 px-1 rounded">@username</code></p>
+                        <p className="font-medium text-pink-700 mb-1 mt-2">Instagram Posts:</p>
+                        <p>• <code className="bg-gray-200 px-1 rounded">https://www.instagram.com/p/ABC123/</code></p>
+                        <p>• <code className="bg-gray-200 px-1 rounded">https://www.instagram.com/reel/ABC123/</code></p>
                         <p className="font-medium text-gray-700 mb-1 mt-2">General:</p>
                         <p>• <code className="bg-gray-200 px-1 rounded">username</code> (defaults to YouTube)</p>
                     </div>
@@ -135,7 +173,7 @@ export default function TrackChannelModal({ isOpen, onClose, onAnalysisStarted }
                         </svg>
                         <div className="text-sm text-blue-800">
                             <p className="font-medium">Analysis Process</p>
-                            <p className="mt-1">YouTube analysis takes 2-10 minutes, Instagram analysis takes 1-3 minutes. You'll see real-time progress updates for both platforms.</p>
+                            <p className="mt-1">YouTube analysis takes 2-10 minutes. Instagram profiles take 1-3 minutes with progress updates. Instagram posts are tracked instantly.</p>
                         </div>
                     </div>
                 </div>

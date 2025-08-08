@@ -50,7 +50,7 @@ function App() {
     const [hubs, setHubs] = useState<CreatorHub[]>([]);
 
     const { analyses, loadingAnalyses, handleAnalysisStarted } = useAnalysisTracking();
-    const { instagramAnalyses, loadingInstagramAnalyses, handleInstagramAnalysisStarted } = useInstagramAnalysisTracking();
+    const { instagramAnalyses, loadingInstagramAnalyses, handleInstagramAnalysisStarted, handleInstagramPostTracked } = useInstagramAnalysisTracking();
     
     // Create unified creator list
     const unifiedCreators: UnifiedCreator[] = [
@@ -222,6 +222,7 @@ function App() {
                 isOpen={isModalOpen}
                 onClose={handleCloseModal}
                 onAnalysisStarted={handleUnifiedAnalysisStarted}
+                onInstagramPostTracked={handleInstagramPostTracked}
             />
 
             <ContextMenu

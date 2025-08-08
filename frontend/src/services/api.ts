@@ -658,6 +658,59 @@ class ApiService {
             generatedAt: data.processingCompletedAt || data.createdAt
         };
     }
+
+    // Instagram oEmbed API methods
+    async getInstagramOEmbed(postUrl: string): Promise<any> {
+        try {
+            const response = await fetch(`${API_BASE_URL}/oembed`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ post_url: postUrl }),
+            });
+
+            if (!response.ok) {
+                const error: ApiError = await response.json();
+                throw new Error(error.message || 'Failed to get Instagram oEmbed data');
+            }
+
+            const backendResponse = await response.json();
+            
+            if (!backendResponse.success) {
+                throw new Error(backendResponse.message || 'Failed to retrieve Instagram data');
+            }
+
+            return backendResponse.data;
+        } catch (error) {
+            throw error;
+        } finally {
+            // No cleanup needed for fetch
+        }
+    }
+
+    async getAllCompletedInstagramAnalyses(): Promise<any[]> {
+        try {
+            const response = await fetch(`${API_BASE_URL}/instagram/analyses`);
+
+            if (!response.ok) {
+                const error: ApiError = await response.json();
+                throw new Error(error.message || 'Failed to get completed Instagram analyses');
+            }
+
+            const backendResponse = await response.json();
+            
+            if (!backendResponse.success) {
+                throw new Error(backendResponse.message || 'Failed to retrieve Instagram analyses');
+            }
+
+            return backendResponse.data || [];
+        } catch (error) {
+            throw error;
+        } finally {
+            // No cleanup needed for fetch
+        }
+    }
 }
 
 export const apiService = new ApiService();

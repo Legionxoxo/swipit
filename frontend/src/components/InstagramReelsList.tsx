@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { apiService } from '../services/api';
+import ReelCard from './reel/ReelCard';
 
 interface InstagramProfile {
     instagram_user_id: string;
@@ -28,6 +29,10 @@ interface InstagramReel {
     reel_duration: number;
     reel_hashtags: string[];
     reel_mentions: string[];
+    // Additional fields for Instagram posts tracked via oEmbed
+    embed_link?: string;
+    post_link?: string;
+    hashtags?: string[];
 }
 
 interface ReelSegments {
@@ -63,14 +68,7 @@ export default function InstagramReelsList({ profileInfo, reels, reelSegments, a
         return num.toString();
     };
 
-    const formatDuration = (seconds: number): string => {
-        if (seconds < 60) {
-            return `${seconds}s`;
-        }
-        const minutes = Math.floor(seconds / 60);
-        const remainingSeconds = seconds % 60;
-        return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
-    };
+
 
     const getReelsForSegment = (segment: string): InstagramReel[] => {
         if (segment === 'all') return reels;
@@ -221,82 +219,18 @@ export default function InstagramReelsList({ profileInfo, reels, reelSegments, a
                     </div>
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                        {reelsToShow.map((reel, index) => (
-                            <div key={reel.reel_id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
-                                {/* Thumbnail */}
-                                <div className="relative aspect-[9/16] bg-gray-100">
-                                    <img 
-                                        src={reel.reel_thumbnail_url}
-                                        alt={`Reel ${index + 1}`}
-                                        className="w-full h-full object-cover"
-                                        loading="lazy"
-                                    />
-                                    <div className="absolute top-2 right-2 bg-black bg-opacity-70 text-white text-xs px-2 py-1 rounded">
-                                        {formatDuration(reel.reel_duration)}
-                                    </div>
-                                    <a 
-                                        href={reel.reel_url} 
-                                        target="_blank" 
-                                        rel="noopener noreferrer"
-                                        className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-0 hover:bg-opacity-30 transition-all"
-                                    >
-                                        <svg className="w-12 h-12 text-white opacity-0 hover:opacity-100 transition-opacity" fill="currentColor" viewBox="0 0 20 20">
-                                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
-                                        </svg>
-                                    </a>
-                                </div>
-                                
-                                {/* Content */}
-                                <div className="p-4">
-                                    <p className="text-sm text-gray-800 mb-3 line-clamp-3">{reel.reel_caption}</p>
-                                    
-                                    {/* Engagement Stats */}
-                                    <div className="flex items-center justify-between text-sm text-gray-500 mb-3">
-                                        <div className="flex items-center space-x-3">
-                                            <span className="flex items-center">
-                                                <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                                    <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
-                                                </svg>
-                                                {formatNumber(reel.reel_likes)}
-                                            </span>
-                                            <span className="flex items-center">
-                                                <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                                                </svg>
-                                                {formatNumber(reel.reel_comments)}
-                                            </span>
-                                            <span className="flex items-center">
-                                                <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                                </svg>
-                                                {formatNumber(reel.reel_views)}
-                                            </span>
-                                        </div>
-                                        <span className="text-xs">
-                                            {new Date(reel.reel_date_posted).toLocaleDateString()}
-                                        </span>
-                                    </div>
-                                    
-                                    {/* Hashtags */}
-                                    {reel.reel_hashtags && reel.reel_hashtags.length > 0 && (
-                                        <div className="flex flex-wrap gap-1 mb-2">
-                                            {reel.reel_hashtags.slice(0, 3).map((hashtag, idx) => (
-                                                <span key={idx} className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                                                    #{hashtag}
-                                                </span>
-                                            ))}
-                                            {reel.reel_hashtags.length > 3 && (
-                                                <span className="text-xs text-gray-500">+{reel.reel_hashtags.length - 3}</span>
-                                            )}
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
+                        {reelsToShow.map((reel) => (
+                            <ReelCard
+                                key={reel.reel_id}
+                                reel={reel}
+                                creatorName={profileInfo.username}
+                                followerCount={profileInfo.follower_count}
+                            />
                         ))}
                     </div>
                 )}
             </div>
+
         </div>
     );
 }

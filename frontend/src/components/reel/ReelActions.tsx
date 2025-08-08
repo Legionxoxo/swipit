@@ -1,0 +1,331 @@
+import { useState, useRef, useEffect } from 'react';
+import { apiService } from '../../services/api';
+import { userService } from '../../services/userService';
+import { transcriptionService } from '../../services/transcriptionService';
+import VideoDualSidebar from '../video/VideoDualSidebar';
+import VideoActionMenu from '../video/VideoActionMenu';
+import InstagramEmbedModal from './InstagramEmbedModal';
+
+interface ReelActionsProps {
+    reelId: string;
+    reelTitle: string;
+    creatorName: string;
+    thumbnailUrl: string;
+    reelUrl: string;
+    embedLink?: string;
+    postLink?: string;
+}
+
+export default function ReelActions({ 
+    reelId, 
+    reelTitle, 
+    creatorName,
+    thumbnailUrl: _thumbnailUrl, 
+    reelUrl: _reelUrl,
+    embedLink,
+    postLink
+}: ReelActionsProps) {
+    const [isFavorite, setIsFavorite] = useState<boolean>(false);
+    const [starRating, setStarRating] = useState<number>(0);
+    const [showMenu, setShowMenu] = useState<boolean>(false);
+    const [showCommentSidebar, setShowCommentSidebar] = useState<boolean>(false);
+    const [showTranscriptionSidebar, setShowTranscriptionSidebar] = useState<boolean>(false);
+    const [showEmbedModal, setShowEmbedModal] = useState<boolean>(false);
+    const [comment, setComment] = useState<string>('');
+    const [hasComment, setHasComment] = useState<boolean>(false);
+    const [hasTranscription, setHasTranscription] = useState<boolean>(false);
+    const [isLoading, setIsLoading] = useState<boolean>(true);
+    const [error, setError] = useState<string>('');
+    const menuRef = useRef<HTMLDivElement>(null);
+
+    // Load user video interactions on component mount
+    useEffect(() => {
+        loadVideoInteractions();
+        checkTranscription();
+    }, [reelId]);
+
+    // Click outside handler
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+                setShowMenu(false);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, []);
+
+    const loadVideoInteractions = async () => {
+        try {
+            setIsLoading(true);
+            setError('');
+            
+            const userId = userService.getUserId();
+            const interactions = await apiService.getUserVideoInteractions(userId);
+            
+            // Find interaction for this specific reel (using reelId as videoId)
+            const reelInteraction = interactions.find(
+                interaction => interaction.video_id === reelId && interaction.platform === 'instagram'
+            );
+
+            if (reelInteraction) {
+                setStarRating(reelInteraction.star_rating || 0);
+                setComment(reelInteraction.comment || '');
+                setIsFavorite(reelInteraction.is_favorite || false);
+                setHasComment(!!reelInteraction.comment);
+            } else {
+                // No interaction found, set defaults
+                setStarRating(0);
+                setComment('');
+                setIsFavorite(false);
+                setHasComment(false);
+            }
+
+        } catch (error) {
+            console.error('Error loading reel interactions:', error);
+            setError('Failed to load reel data. Please try again.');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const checkTranscription = async () => {
+        try {
+            const transcription = await transcriptionService.getVideoTranscription(reelId, 'instagram');
+            setHasTranscription(!!transcription && transcription.status === 'completed');
+        } catch (error) {
+            console.error('Error checking transcription:', error);
+            setHasTranscription(false);
+        } finally {
+            // Required by architecture rules
+        }
+    };
+
+    const handleHeartClick = async () => {
+        try {
+            setError('');
+            const userId = userService.getUserId();
+            const newFavoriteState = !isFavorite;
+
+            await apiService.updateVideoInteraction(userId, reelId, 'instagram', {
+                isFavorite: newFavoriteState
+            });
+
+            setIsFavorite(newFavoriteState);
+        } catch (error) {
+            console.error('Error updating favorite status:', error);
+            setError('Failed to update favorite. Please try again.');
+        } finally {
+            // Required by architecture rules
+        }
+    };
+
+    const handleStarClick = async (rating: number) => {
+        try {
+            setError('');
+            const userId = userService.getUserId();
+            const newRating = rating === starRating ? 0 : rating;
+
+            await apiService.updateVideoInteraction(userId, reelId, 'instagram', {
+                starRating: newRating
+            });
+
+            setStarRating(newRating);
+            setShowMenu(false);
+        } catch (error) {
+            console.error('Error updating star rating:', error);
+            setError('Failed to update rating. Please try again.');
+        } finally {
+            // Required by architecture rules
+        }
+    };
+
+    const handleCommentSubmit = async () => {
+        try {
+            setError('');
+            const userId = userService.getUserId();
+            const trimmedComment = comment.trim();
+
+            await apiService.updateVideoInteraction(userId, reelId, 'instagram', {
+                comment: trimmedComment || undefined
+            });
+
+            setComment(trimmedComment);
+            setHasComment(!!trimmedComment);
+            setShowCommentSidebar(false);
+            setShowTranscriptionSidebar(false);
+        } catch (error) {
+            console.error('Error updating comment:', error);
+            setError('Failed to save comment. Please try again.');
+        } finally {
+            // Required by architecture rules
+        }
+    };
+
+    const handleEmbedClick = () => {
+        if (embedLink) {
+            setShowEmbedModal(true);
+        }
+    };
+
+    const handleSidebarCommentClick = () => {
+        setShowCommentSidebar(true);
+    };
+
+    const handleSidebarTranscriptionClick = () => {
+        setShowTranscriptionSidebar(true);
+    };
+
+    const handleToggleComment = () => {
+        setShowCommentSidebar(!showCommentSidebar);
+    };
+
+    const handleToggleTranscription = () => {
+        setShowTranscriptionSidebar(!showTranscriptionSidebar);
+    };
+
+    const handleCloseSidebar = () => {
+        setShowCommentSidebar(false);
+        setShowTranscriptionSidebar(false);
+    };
+
+    // Show loading state
+    if (isLoading) {
+        return (
+            <div className="absolute top-2 right-2 flex space-x-2">
+                <div className="p-2 rounded-full bg-black bg-opacity-50">
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <>
+            {/* Error message */}
+            {error && (
+                <div className="absolute top-0 left-0 right-0 bg-red-500 text-white text-xs p-2 rounded">
+                    {error}
+                </div>
+            )}
+
+            {/* Instagram Embed Modal */}
+            {embedLink && postLink && (
+                <InstagramEmbedModal
+                    isOpen={showEmbedModal}
+                    onClose={() => setShowEmbedModal(false)}
+                    embedLink={embedLink}
+                    postLink={postLink}
+                    reelTitle={reelTitle}
+                    creatorName={creatorName}
+                />
+            )}
+
+            {/* Dual Sidebar for Comments and Transcriptions */}
+            <VideoDualSidebar
+                isCommentOpen={showCommentSidebar}
+                isTranscriptionOpen={showTranscriptionSidebar}
+                onToggleComment={handleToggleComment}
+                onToggleTranscription={handleToggleTranscription}
+                onClose={handleCloseSidebar}
+                videoId={reelId}
+                videoTitle={reelTitle}
+                comment={comment}
+                setComment={setComment}
+                onSubmit={handleCommentSubmit}
+                hasComment={hasComment}
+                platform="instagram"
+            />
+
+            {/* Icons: Embed, Comment, Transcription, Heart, Menu */}
+            <div className="absolute top-2 right-2 flex space-x-2">
+                {/* Embed Icon - only show if embed link exists */}
+                {embedLink && (
+                    <button
+                        onClick={handleEmbedClick}
+                        className="p-2 rounded-full bg-purple-600 bg-opacity-90 hover:bg-opacity-100 transition-all duration-200"
+                        title="Open Instagram Embed"
+                    >
+                        <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                        </svg>
+                    </button>
+                )}
+
+                {/* Comment Icon */}
+                <button
+                    onClick={handleSidebarCommentClick}
+                    className={`p-2 rounded-full transition-all duration-200 ${
+                        showCommentSidebar
+                            ? 'bg-blue-500 bg-opacity-90 hover:bg-opacity-100'
+                            : hasComment 
+                                ? 'bg-yellow-500 bg-opacity-90 hover:bg-opacity-100' 
+                                : 'bg-black bg-opacity-50 hover:bg-opacity-70'
+                    }`}
+                    title={hasComment ? "View/Edit Comment" : "Add Comment"}
+                >
+                    <svg className="w-5 h-5 text-white" fill={hasComment ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+                    </svg>
+                </button>
+
+                {/* Transcription Icon */}
+                <button
+                    onClick={handleSidebarTranscriptionClick}
+                    className={`p-2 rounded-full transition-all duration-200 ${
+                        hasTranscription
+                            ? 'bg-green-500 bg-opacity-90 hover:bg-opacity-100'
+                            : 'bg-black bg-opacity-50 hover:bg-opacity-70'
+                    }`}
+                    title={hasTranscription ? "View Transcription" : "Generate Transcription"}
+                >
+                    <svg className="w-5 h-5 text-white" fill={hasTranscription ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                    </svg>
+                </button>
+
+                {/* Heart Icon */}
+                <button
+                    onClick={handleHeartClick}
+                    className="p-2 rounded-full bg-black bg-opacity-50 hover:bg-opacity-70 transition-all duration-200"
+                    title={isFavorite ? "Remove from Favorites" : "Add to Favorites"}
+                >
+                    <svg 
+                        className={`w-5 h-5 ${isFavorite ? 'text-red-500 fill-current' : 'text-white'}`} 
+                        fill={isFavorite ? 'currentColor' : 'none'} 
+                        stroke="currentColor" 
+                        viewBox="0 0 24 24"
+                    >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                    </svg>
+                </button>
+
+                {/* Menu Icon */}
+                <div className="relative" ref={menuRef}>
+                    <button
+                        onClick={() => setShowMenu(!showMenu)}
+                        className="p-2 rounded-full bg-black bg-opacity-50 hover:bg-opacity-70 transition-all duration-200"
+                        title="Options"
+                    >
+                        <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01" />
+                        </svg>
+                    </button>
+
+                    {/* Menu Dropdown */}
+                    {showMenu && (
+                        <VideoActionMenu
+                            videoId={reelId}
+                            starRating={starRating}
+                            onStarClick={handleStarClick}
+                            onAddCommentClick={handleSidebarCommentClick}
+                        />
+                    )}
+                </div>
+            </div>
+        </>
+    );
+}

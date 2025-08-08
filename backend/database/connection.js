@@ -38,16 +38,16 @@ async function initializeDatabaseDirectory() {
         // Check if database file exists
         try {
             await fs.access(DB_CONFIG.filename);
-            console.log('Database file exists');
+            // Database file exists
         } catch {
-            console.log('Database file will be created');
+            // Database file will be created
         }
 
     } catch (error) {
         console.error('Database directory initialization error:', error);
         throw new Error(`Failed to initialize database directory: ${error.message}`);
     } finally {
-        console.log(`Database directory prepared: ${DB_CONFIG.directory}`);
+        // Database directory prepared
     }
 }
 
@@ -80,14 +80,14 @@ async function getDatabase() {
         // Initialize all tables
         await initializeTables(databaseConnection);
 
-        console.log('Database connection established successfully');
+        // Database connection established
         return databaseConnection;
 
     } catch (error) {
         console.error('Database connection error:', error);
         throw new Error(`Failed to get database connection: ${error.message}`);
     } finally {
-        console.log('Database connection process completed');
+        // Database connection process completed
     }
 }
 
@@ -100,13 +100,13 @@ async function closeDatabase() {
         if (databaseConnection) {
             await databaseConnection.close();
             databaseConnection = null;
-            console.log('Database connection closed');
+            // Database connection closed
         }
     } catch (error) {
         console.error('Database close error:', error);
         throw new Error(`Failed to close database: ${error.message}`);
     } finally {
-        console.log('Database close process completed');
+        // Database close process completed
     }
 }
 
@@ -122,7 +122,7 @@ async function testDatabaseConnection() {
         const testResult = await db.get('SELECT 1 as test');
         
         if (testResult && testResult.test === 1) {
-            console.log('Database connection test passed');
+            // Database connection test passed
             return true;
         } else {
             throw new Error('Database connection test failed');
@@ -132,7 +132,7 @@ async function testDatabaseConnection() {
         console.error('Database connection test error:', error);
         return false;
     } finally {
-        console.log('Database connection test completed');
+        // Database connection test completed
     }
 }
 
@@ -179,7 +179,7 @@ async function databaseHealthCheck() {
             databaseFile: DB_CONFIG.filename
         };
     } finally {
-        console.log('Database health check completed');
+        // Database health check completed
     }
 }
 
