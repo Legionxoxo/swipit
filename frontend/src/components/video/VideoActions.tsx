@@ -12,6 +12,7 @@ interface VideoActionsProps {
     thumbnailUrl: string;
     videoUrl: string;
     platform?: string;
+    layout?: 'overlay' | 'inline';
 }
 
 export default function VideoActions({ 
@@ -20,7 +21,8 @@ export default function VideoActions({
     channelName: _channelName, 
     thumbnailUrl: _thumbnailUrl, 
     videoUrl: _videoUrl,
-    platform = 'youtube'
+    platform = 'youtube',
+    layout = 'overlay'
 }: VideoActionsProps) {
     const [isFavorite, setIsFavorite] = useState<boolean>(false);
     const [starRating, setStarRating] = useState<number>(0);
@@ -223,20 +225,29 @@ export default function VideoActions({
             />
 
             {/* Icons: Comment, Transcription, Heart, Menu */}
-            <div className="absolute top-2 right-2 flex space-x-2">
+            <div className={layout === 'inline' 
+                ? "flex space-x-2" 
+                : "absolute top-2 right-2 flex space-x-2"
+            }>
                 {/* Comment Icon */}
                 <button
                     onClick={handleSidebarCommentClick}
                     className={`p-2 rounded-full transition-all duration-200 ${
-                        showCommentSidebar
-                            ? 'bg-blue-500 bg-opacity-90 hover:bg-opacity-100'
-                            : hasComment 
-                                ? 'bg-yellow-500 bg-opacity-90 hover:bg-opacity-100' 
-                                : 'bg-black bg-opacity-50 hover:bg-opacity-70'
+                        layout === 'inline' 
+                            ? (showCommentSidebar
+                                ? 'bg-blue-500 hover:bg-blue-600'
+                                : hasComment 
+                                    ? 'bg-yellow-500 hover:bg-yellow-600' 
+                                    : 'bg-gray-200 hover:bg-gray-300')
+                            : (showCommentSidebar
+                                ? 'bg-blue-500 bg-opacity-90 hover:bg-opacity-100'
+                                : hasComment 
+                                    ? 'bg-yellow-500 bg-opacity-90 hover:bg-opacity-100' 
+                                    : 'bg-black bg-opacity-50 hover:bg-opacity-70')
                     }`}
                     title={hasComment ? "View/Edit Comment" : "Add Comment"}
                 >
-                    <svg className="w-5 h-5 text-white" fill={hasComment ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className={`w-5 h-5 ${layout === 'inline' ? 'text-gray-700' : 'text-white'}`} fill={hasComment ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
                     </svg>
                 </button>
@@ -245,13 +256,17 @@ export default function VideoActions({
                 <button
                     onClick={handleSidebarTranscriptionClick}
                     className={`p-2 rounded-full transition-all duration-200 ${
-                        hasTranscription
-                            ? 'bg-green-500 bg-opacity-90 hover:bg-opacity-100'
-                            : 'bg-black bg-opacity-50 hover:bg-opacity-70'
+                        layout === 'inline' 
+                            ? (hasTranscription
+                                ? 'bg-green-500 hover:bg-green-600'
+                                : 'bg-gray-200 hover:bg-gray-300')
+                            : (hasTranscription
+                                ? 'bg-green-500 bg-opacity-90 hover:bg-opacity-100'
+                                : 'bg-black bg-opacity-50 hover:bg-opacity-70')
                     }`}
                     title={hasTranscription ? "View Transcription" : "Generate Transcription"}
                 >
-                    <svg className="w-5 h-5 text-white" fill={hasTranscription ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className={`w-5 h-5 ${layout === 'inline' ? 'text-gray-700' : 'text-white'}`} fill={hasTranscription ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
                     </svg>
                 </button>
@@ -259,11 +274,15 @@ export default function VideoActions({
                 {/* Heart Icon */}
                 <button
                     onClick={handleHeartClick}
-                    className="p-2 rounded-full bg-black bg-opacity-50 hover:bg-opacity-70 transition-all duration-200"
+                    className={`p-2 rounded-full transition-all duration-200 ${
+                        layout === 'inline' 
+                            ? 'bg-gray-200 hover:bg-gray-300'
+                            : 'bg-black bg-opacity-50 hover:bg-opacity-70'
+                    }`}
                     title={isFavorite ? "Remove from Favorites" : "Add to Favorites"}
                 >
                     <svg 
-                        className={`w-5 h-5 ${isFavorite ? 'text-red-500 fill-current' : 'text-white'}`} 
+                        className={`w-5 h-5 ${isFavorite ? 'text-red-500 fill-current' : (layout === 'inline' ? 'text-gray-700' : 'text-white')}`} 
                         fill={isFavorite ? 'currentColor' : 'none'} 
                         stroke="currentColor" 
                         viewBox="0 0 24 24"
@@ -276,10 +295,14 @@ export default function VideoActions({
                 <div className="relative" ref={menuRef}>
                     <button
                         onClick={() => setShowMenu(!showMenu)}
-                        className="p-2 rounded-full bg-black bg-opacity-50 hover:bg-opacity-70 transition-all duration-200"
+                        className={`p-2 rounded-full transition-all duration-200 ${
+                            layout === 'inline' 
+                                ? 'bg-gray-200 hover:bg-gray-300'
+                                : 'bg-black bg-opacity-50 hover:bg-opacity-70'
+                        }`}
                         title="Options"
                     >
-                        <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className={`w-5 h-5 ${layout === 'inline' ? 'text-gray-700' : 'text-white'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01" />
                         </svg>
                     </button>

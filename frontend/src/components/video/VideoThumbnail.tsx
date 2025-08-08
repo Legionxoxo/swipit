@@ -57,7 +57,7 @@ export default function VideoThumbnail({ video, subscriberCount }: VideoThumbnai
             <img
                 src={video.thumbnailUrl}
                 alt={video.title}
-                className="w-full h-48 object-cover"
+                className="w-full h-full object-cover"
                 onError={(e) => {
                     const target = e.target as HTMLImageElement;
                     target.src = 'https://via.placeholder.com/480x270?text=Video';

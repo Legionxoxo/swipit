@@ -49,9 +49,10 @@ interface InstagramReelsListProps {
     reelSegments: ReelSegments | null;
     analysisId: string;
     onBack: () => void;
+    viewMode: 'grid' | 'list';
 }
 
-export default function InstagramReelsList({ profileInfo, reels, reelSegments, analysisId, onBack }: InstagramReelsListProps) {
+export default function InstagramReelsList({ profileInfo, reels, reelSegments, analysisId, onBack, viewMode }: InstagramReelsListProps) {
     const [selectedSegment, setSelectedSegment] = useState<string>('all');
     const [isExporting, setIsExporting] = useState(false);
 
@@ -218,13 +219,17 @@ export default function InstagramReelsList({ profileInfo, reels, reelSegments, a
                         <p className="text-gray-500">This segment doesn't contain any reels.</p>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    <div className={viewMode === 'grid' 
+                        ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+                        : "space-y-4"
+                    }>
                         {reelsToShow.map((reel) => (
                             <ReelCard
                                 key={reel.reel_id}
                                 reel={reel}
                                 creatorName={profileInfo.username}
                                 followerCount={profileInfo.follower_count}
+                                viewMode={viewMode}
                             />
                         ))}
                     </div>

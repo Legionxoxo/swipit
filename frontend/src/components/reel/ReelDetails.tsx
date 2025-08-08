@@ -18,9 +18,10 @@ interface InstagramReel {
 
 interface ReelDetailsProps {
     reel: InstagramReel;
+    compact?: boolean;
 }
 
-export default function ReelDetails({ reel }: ReelDetailsProps) {
+export default function ReelDetails({ reel, compact = false }: ReelDetailsProps) {
     const formatNumber = (num: number | undefined): string => {
         if (num === undefined || num === null) {
             return '0';
@@ -52,6 +53,28 @@ export default function ReelDetails({ reel }: ReelDetailsProps) {
 
     // Use hashtags from either field, prioritizing reel_hashtags
     const hashtags = reel.reel_hashtags?.length > 0 ? reel.reel_hashtags : (reel.hashtags || []);
+
+    if (compact) {
+        return (
+            <div className="flex flex-col justify-between h-24">
+                <div>
+                    <p className="text-sm font-semibold text-gray-900 mb-1 line-clamp-2">
+                        {reel.reel_caption || 'Instagram Reel'}
+                    </p>
+                    <div className="flex items-center space-x-3 text-xs text-gray-600">
+                        <span>❤️ {formatNumber(reel.reel_likes)}</span>
+                        <span>💬 {formatNumber(reel.reel_comments)}</span>
+                        {reel.reel_views > 0 && (
+                            <span>👁️ {formatNumber(reel.reel_views)}</span>
+                        )}
+                    </div>
+                </div>
+                <div className="text-xs text-gray-500">
+                    {formatDate(reel.reel_date_posted)}
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="p-4 flex-1 flex flex-col">

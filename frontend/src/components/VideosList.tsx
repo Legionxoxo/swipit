@@ -9,6 +9,7 @@ interface VideosListProps {
     videoSegments: VideoSegments;
     analysisId: string;
     onBack: () => void;
+    viewMode: 'grid' | 'list';
 }
 
 export default function VideosList({ 
@@ -16,7 +17,8 @@ export default function VideosList({
     videos, 
     videoSegments, 
     analysisId, 
-    onBack 
+    onBack,
+    viewMode 
 }: VideosListProps) {
     const [activeTab, setActiveTab] = useState<'views' | 'outlier'>('views');
     const [selectedCategory, setSelectedCategory] = useState<'all' | 'viral' | 'veryHigh' | 'high' | 'medium' | 'low'>('all');
@@ -237,13 +239,17 @@ export default function VideosList({
                 </div>
 
                 {videosToShow.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    <div className={viewMode === 'grid' 
+                        ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+                        : "space-y-4"
+                    }>
                         {videosToShow.map((video, index) => (
                             <VideoCard 
                                 key={video.videoId || `video-${index}`} 
                                 video={video} 
                                 channelName={channelInfo.channelName} 
                                 subscriberCount={channelInfo.subscriberCount}
+                                viewMode={viewMode}
                             />
                         ))}
                     </div>

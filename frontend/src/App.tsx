@@ -48,6 +48,7 @@ function App() {
     const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
     const [hubs, setHubs] = useState<CreatorHub[]>([]);
+    const [videoViewMode, setVideoViewMode] = useState<'grid' | 'list'>('grid');
 
     const { analyses, loadingAnalyses, handleAnalysisStarted } = useAnalysisTracking();
     const { instagramAnalyses, loadingInstagramAnalyses, handleInstagramAnalysisStarted, handleInstagramPostTracked } = useInstagramAnalysisTracking();
@@ -145,6 +146,7 @@ function App() {
                 videoSegments={selectedAnalysis.data.videoSegments}
                 analysisId={selectedAnalysis.analysisId}
                 onBack={handleBackToChannels}
+                viewMode={videoViewMode}
             />
         );
     }
@@ -158,6 +160,7 @@ function App() {
                 reelSegments={selectedInstagramAnalysis.reelSegments}
                 analysisId={selectedInstagramAnalysis.analysisId}
                 onBack={handleBackToChannels}
+                viewMode={videoViewMode}
             />
         );
     }
@@ -210,7 +213,11 @@ function App() {
 
             {/* Main Content */}
             <div className="flex-1 flex flex-col">
-                <Header onTrackChannelClick={handleTrackChannelClick} />
+                <Header 
+                    onTrackChannelClick={handleTrackChannelClick} 
+                    videoViewMode={videoViewMode}
+                    onVideoViewModeChange={setVideoViewMode}
+                />
                 
                 <main className="flex-1 p-8">
                     {renderContent()}

@@ -52,7 +52,7 @@ export default function ReelThumbnail({ reel, followerCount }: ReelThumbnailProp
     const engagementRate = getEngagementRate();
 
     return (
-        <div className="relative aspect-[9/16] bg-gray-100">
+        <div className="relative">
             {reel.reel_thumbnail_url && !imageError ? (
                 <img
                     src={reel.reel_thumbnail_url}
