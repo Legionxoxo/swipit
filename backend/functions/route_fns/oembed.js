@@ -158,10 +158,10 @@ async function saveOembedData(oembedData) {
             INSERT INTO instagram_data (
                 analysis_id, instagram_user_id, profile_username, 
                 reel_shortcode, reel_url, reel_caption, reel_hashtags, 
-                reel_thumbnail_url, reel_embed_link, profile_link,
+                reel_thumbnail_url,
                 analysis_status, created_at, updated_at
             ) VALUES (
-                ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'completed', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+                ?, ?, ?, ?, ?, ?, ?, ?, 'completed', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
             )
         `;
         
@@ -173,22 +173,19 @@ async function saveOembedData(oembedData) {
             oembedData.post_link || '',
             oembedData.caption || '',
             JSON.stringify(oembedData.hashtags || []),
-            oembedData.thumbnail_url || '',
-            oembedData.embed_link || '',
-            oembedData.profile_link || ''
+            oembedData.thumbnail_url || ''
         ]);
         
         // If username changed, update all existing records for this creator
         if (shouldUpdateUsername) {
             const updateSQL = `
                 UPDATE instagram_data 
-                SET profile_username = ?, profile_link = ?, updated_at = CURRENT_TIMESTAMP 
+                SET profile_username = ?, updated_at = CURRENT_TIMESTAMP 
                 WHERE instagram_user_id = ?
             `;
             
             await db.run(updateSQL, [
                 oembedData.username,
-                oembedData.profile_link,
                 creatorUserId
             ]);
             
