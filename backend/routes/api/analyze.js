@@ -97,14 +97,15 @@ router.post('/', async (req, res) => {
 });
 
 /**
- * Get analysis status and results
- * GET /api/analysis/:id
+ * Get analysis status and results with pagination
+ * GET /api/analysis/:id?page=1&limit=50
  * @param {express.Request} req - Express request
  * @param {express.Response} res - Express response
  */
 router.get('/:id', async (req, res) => {
     try {
         const { id } = req.params;
+        const { page = 1, limit = 50 } = req.query;
 
         // Input validation
         if (!id) {
@@ -115,8 +116,28 @@ router.get('/:id', async (req, res) => {
             });
         }
 
-        // Get analysis status
-        const analysisData = await getAnalysisStatus(id);
+        // Validate pagination parameters
+        const pageNum = parseInt(page, 10);
+        const limitNum = parseInt(limit, 10);
+        
+        if (isNaN(pageNum) || pageNum < 1) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid page number',
+                error: 'Page must be a positive integer'
+            });
+        }
+        
+        if (isNaN(limitNum) || limitNum < 1 || limitNum > 100) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid limit',
+                error: 'Limit must be between 1 and 100'
+            });
+        }
+
+        // Get analysis status with pagination
+        const analysisData = await getAnalysisStatus(id, pageNum, limitNum);
 
         if (!analysisData) {
             return res.status(404).json({
@@ -135,7 +156,7 @@ router.get('/:id', async (req, res) => {
             data: analysisData.data,
             channelInfo: analysisData.channelInfo,
             videoSegments: analysisData.videoSegments,
-            totalVideos: analysisData.totalVideos,
+            pagination: analysisData.pagination,
             processingTime: analysisData.processingTime
         });
 

@@ -109,18 +109,20 @@ async function startAnalysis(channelUrl) {
 }
 
 /**
- * Get analysis status and results
+ * Get analysis status and results with pagination
  * @param {string} analysisId - Analysis ID
+ * @param {number} [page=1] - Page number for pagination
+ * @param {number} [limit=50] - Items per page
  * @returns {Promise<AnalysisJobResponse|null>} Analysis job data
  */
-async function getAnalysisStatus(analysisId) {
+async function getAnalysisStatus(analysisId, page = 1, limit = 50) {
     try {
         if (!analysisId) {
             throw new Error('Analysis ID is required');
         }
 
-        // Try to get from database first
-        const dbResult = await youtubeService.getAnalysis(analysisId);
+        // Try to get from database first with pagination
+        const dbResult = await youtubeService.getAnalysis(analysisId, page, limit);
         
         if (dbResult.success && dbResult.data) {
             return dbResult.data;

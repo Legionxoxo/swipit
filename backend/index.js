@@ -274,7 +274,7 @@ if (require.main === module) {
                 maxMemoryMB: 750,       // 750MB limit for 1GB system
                 maxRestarts: 3,         // Max 3 restarts in window
                 restartWindow: 600000,  // 10 minute window
-                enableAutoRestart: process.env.NODE_ENV === 'production',
+                enableAutoRestart: true, // Always enable for heap protection
                 monitorInterval: 30000  // 30 seconds
             });
             

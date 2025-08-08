@@ -6,11 +6,13 @@
 const { getDatabase } = require('../connection');
 
 /**
- * Get complete analysis results including profile and reels
+ * Get complete analysis results including profile and reels with pagination
  * @param {string} analysisId - Analysis ID
+ * @param {number} [page=1] - Page number (1-based)
+ * @param {number} [limit=50] - Items per page
  * @returns {Promise<Object|null>} Complete analysis data
  */
-async function getAnalysisResults(analysisId) {
+async function getAnalysisResults(analysisId, page = 1, limit = 50) {
     try {
         if (!analysisId) {
             throw new Error('Analysis ID is required');
@@ -34,15 +36,30 @@ async function getAnalysisResults(analysisId) {
             return null;
         }
 
-        // Get all reels for this analysis
+        // Get total reel count first (lightweight query)
+        const reelCountResult = await db.get(
+            `SELECT COUNT(*) as total_reels
+             FROM instagram_data 
+             WHERE analysis_id = ? AND reel_id IS NOT NULL`,
+            [analysisId]
+        );
+
+        const totalReels = reelCountResult?.total_reels || 0;
+        
+        // Calculate pagination  
+        const pageSize = Math.min(limit, 100); // Max 100 items per page
+        const offset = (page - 1) * pageSize;
+        const totalPages = Math.ceil(totalReels / pageSize);
+        
         const reels = await db.all(
             `SELECT reel_id, reel_shortcode, reel_url, reel_thumbnail_url, reel_caption,
                     reel_likes, reel_comments, reel_views, reel_date_posted, reel_duration,
                     reel_is_video, reel_hashtags, reel_mentions
              FROM instagram_data 
              WHERE analysis_id = ? AND reel_id IS NOT NULL
-             ORDER BY reel_date_posted DESC`,
-            [analysisId]
+             ORDER BY reel_date_posted DESC
+             LIMIT ? OFFSET ?`,
+            [analysisId, pageSize, offset]
         );
 
         // Parse JSON fields and format reels
@@ -77,7 +94,14 @@ async function getAnalysisResults(analysisId) {
                 profilePicUrl: profile.profile_pic_url
             },
             reels: formattedReels,
-            totalReels: formattedReels.length,
+            pagination: {
+                page: page,
+                pageSize: pageSize,
+                totalReels: totalReels,
+                totalPages: totalPages,
+                hasNextPage: page < totalPages,
+                hasPreviousPage: page > 1
+            },
             createdAt: new Date(profile.created_at),
             updatedAt: new Date(profile.updated_at)
         };

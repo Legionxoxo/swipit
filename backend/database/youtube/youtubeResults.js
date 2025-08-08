@@ -18,11 +18,13 @@ const { getDatabase } = require('../connection');
  */
 
 /**
- * Get complete YouTube analysis results
+ * Get complete YouTube analysis results with pagination
  * @param {string} analysisId - Analysis ID
+ * @param {number} [page=1] - Page number (1-based)
+ * @param {number} [limit=50] - Items per page
  * @returns {Promise<Object|null>} Complete analysis results or null if not found
  */
-async function getAnalysisResults(analysisId) {
+async function getAnalysisResults(analysisId, page = 1, limit = 50) {
     try {
         if (!analysisId) {
             throw new Error('Analysis ID is required');
@@ -44,14 +46,30 @@ async function getAnalysisResults(analysisId) {
             return null;
         }
 
+        // Get total video count first (lightweight query)
+        const videoCountResult = await db.get(
+            `SELECT COUNT(*) as total_videos
+             FROM youtube_data 
+             WHERE analysis_id = ? AND video_id IS NOT NULL`,
+            [analysisId]
+        );
+
+        const totalVideos = videoCountResult?.total_videos || 0;
+        
+        // Calculate pagination
+        const pageSize = Math.min(limit, 100); // Max 100 items per page
+        const offset = (page - 1) * pageSize;
+        const totalPages = Math.ceil(totalVideos / pageSize);
+        
         const videos = await db.all(
             `SELECT video_id, video_title, video_description, video_thumbnail_url, video_url,
                     video_upload_date, video_duration, video_view_count, video_like_count,
                     video_comment_count, video_category_id
              FROM youtube_data 
              WHERE analysis_id = ? AND video_id IS NOT NULL
-             ORDER BY video_view_count DESC`,
-            [analysisId]
+             ORDER BY video_view_count DESC
+             LIMIT ? OFFSET ?`,
+            [analysisId, pageSize, offset]
         );
 
         const channelInfo = {
@@ -59,7 +77,7 @@ async function getAnalysisResults(analysisId) {
             channelName: job.channel_name,
             channelUrl: job.channel_url,
             subscriberCount: job.channel_subscriber_count || 0,
-            videoCount: job.channel_video_count || 0,
+            videoCount: totalVideos, // Use actual total, not limited count
             creationDate: job.channel_creation_date,
             description: job.channel_description,
             thumbnailUrl: job.channel_thumbnail_url,
@@ -80,7 +98,8 @@ async function getAnalysisResults(analysisId) {
             categoryId: video.video_category_id
         }));
 
-        const videoSegments = segmentVideosByPerformance(videoData, channelInfo.subscriberCount);
+        // For first page, also calculate video segments for overview
+        const videoSegments = page === 1 ? segmentVideosByPerformance(videoData, channelInfo.subscriberCount) : null;
 
         return {
             analysisId: job.analysis_id,
@@ -88,8 +107,15 @@ async function getAnalysisResults(analysisId) {
             progress: job.analysis_progress,
             channelInfo: channelInfo,
             data: videoData,
-            videoSegments: videoSegments,
-            totalVideos: videos.length,
+            videoSegments: videoSegments, // Only for first page
+            pagination: {
+                page: page,
+                pageSize: pageSize,
+                totalVideos: totalVideos,
+                totalPages: totalPages,
+                hasNextPage: page < totalPages,
+                hasPreviousPage: page > 1
+            },
             error: job.analysis_error,
             createdAt: new Date(job.created_at),
             updatedAt: new Date(job.updated_at)

@@ -167,17 +167,19 @@ async function getAnalysisJob(analysisId) {
 }
 
 /**
- * Get YouTube analysis by ID
+ * Get YouTube analysis by ID with pagination
  * @param {string} analysisId - Analysis ID
+ * @param {number} [page=1] - Page number for pagination
+ * @param {number} [limit=50] - Items per page
  * @returns {Promise<YouTubeServiceResponse>} Service response with analysis data
  */
-async function getAnalysis(analysisId) {
+async function getAnalysis(analysisId, page = 1, limit = 50) {
     try {
         if (!analysisId) {
             throw new Error('Analysis ID is required');
         }
 
-        const results = await youtubeDb.getAnalysisResults(analysisId);
+        const results = await youtubeDb.getAnalysisResults(analysisId, page, limit);
 
         if (!results) {
             return {
