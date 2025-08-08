@@ -25,6 +25,7 @@ const DB_CONFIG = {
 };
 
 let databaseConnection = null;
+let connectionPool = null;
 
 /**
  * Initialize database directory and file
@@ -61,26 +62,57 @@ async function initializeTables(db) {
 }
 
 /**
- * Get database connection (singleton pattern)
+ * Get database connection (singleton pattern with optimization)
  * @returns {Promise<DatabaseConnection>} Database connection
  */
 async function getDatabase() {
     try {
-        // Return existing connection if available
+        // Return existing connection if available and healthy
         if (databaseConnection) {
-            return databaseConnection;
+            try {
+                // Test connection health with lightweight query
+                await databaseConnection.get('SELECT 1');
+                return databaseConnection;
+            } catch (healthError) {
+                console.warn('Database connection unhealthy, reconnecting...', healthError.message);
+                databaseConnection = null; // Force reconnection
+            }
         }
 
         // Initialize database directory
         await initializeDatabaseDirectory();
 
-        // Create database wrapper
+        // Create database wrapper with optimized settings
+        const sqlite3 = require('sqlite3').verbose();
+        const db = new sqlite3.Database(DB_CONFIG.filename);
+        
+        // Optimize SQLite settings for performance and memory
+        await new Promise((resolve, reject) => {
+            db.serialize(() => {
+                // Enable WAL mode for better concurrency
+                db.run('PRAGMA journal_mode = WAL;');
+                
+                // Set reasonable cache size (negative value = KB)
+                db.run('PRAGMA cache_size = -32000;'); // 32MB cache
+                
+                // Optimize for memory usage
+                db.run('PRAGMA temp_store = MEMORY;');
+                db.run('PRAGMA synchronous = NORMAL;');
+                db.run('PRAGMA mmap_size = 67108864;'); // 64MB mmap
+                
+                // Connection pooling simulation
+                db.run('PRAGMA busy_timeout = 30000;'); // 30 second timeout
+                
+                resolve();
+            });
+        });
+
         databaseConnection = await createDatabaseWrapper(DB_CONFIG.filename);
 
-        // Initialize all tables
+        // Initialize all tables (only if needed)
         await initializeTables(databaseConnection);
 
-        // Database connection established
+        console.log('Database connection established with optimizations ✓');
         return databaseConnection;
 
     } catch (error) {

@@ -1,10 +1,9 @@
 /**
- * @fileoverview Python child process management utility
+ * @fileoverview Python persistent server management utility (updated to prevent memory leaks)
  * @author Backend Team
  */
 
-const { spawn } = require('child_process');
-const path = require('path');
+const { getPythonServer } = require('./pythonServer');
 
 /**
  * @typedef {Object} PythonResult
@@ -15,166 +14,64 @@ const path = require('path');
  */
 
 /**
- * Execute Python script with arguments
- * @param {string} scriptName - Python script filename
+ * Execute Python script with arguments (now uses persistent server)
+ * @param {string} scriptName - Python script filename (for compatibility)
  * @param {Array<string>} args - Script arguments
  * @param {Function} [progressCallback] - Progress callback function
  * @returns {Promise<PythonResult>} Execution result
  */
 async function executePythonScript(scriptName, args = [], progressCallback = null) {
-    return new Promise((resolve, reject) => {
-        try {
-            if (!scriptName) {
-                throw new Error('Script name is required');
-            }
-
-            const scriptPath = path.join(__dirname, '../../functions/scripts', scriptName);
-            const progressLogs = [];
-            let finalResult = null;
-            let dataBuffer = '';
-            let errorBuffer = '';
-
-            // Spawn Python process
-            const pythonProcess = spawn('python3', [scriptPath, ...args]);
-
-            // Handle stdout data
-            pythonProcess.stdout.on('data', (data) => {
-                try {
-                    const dataString = data.toString();
-                    dataBuffer += dataString;
-
-                    // Try to parse each line as JSON (for progress messages)
-                    const lines = dataString.split('\n').filter(line => line.trim());
-                    
-                    for (const line of lines) {
-                        try {
-                            const parsed = JSON.parse(line);
-                            
-                            if (parsed.type === 'progress') {
-                                progressLogs.push({
-                                    message: parsed.message,
-                                    progress: parsed.progress,
-                                    timestamp: parsed.timestamp
-                                });
-                                
-                                // Call progress callback if provided
-                                if (progressCallback && typeof progressCallback === 'function') {
-                                    progressCallback({
-                                        message: parsed.message,
-                                        progress: parsed.progress
-                                    });
-                                }
-                            } else if (parsed.type === 'error') {
-                                progressLogs.push({
-                                    type: 'error',
-                                    message: parsed.message,
-                                    details: parsed.details,
-                                    timestamp: parsed.timestamp
-                                });
-                            } else if (!parsed.type && parsed.success !== undefined) {
-                                // This is the final result (has success property but no type)
-                                finalResult = parsed;
-                            }
-                        } catch (parseError) {
-                            // Not JSON, might be final result or other output
-                            continue;
-                        }
-                    }
-
-                } catch (error) {
-                    console.error('Python stdout processing error:', error);
-                } finally {
-                    console.log('Python stdout data received');
-                }
-            });
-
-            // Handle stderr data
-            pythonProcess.stderr.on('data', (data) => {
-                try {
-                    errorBuffer += data.toString();
-                } catch (error) {
-                    console.error('Python stderr processing error:', error);
-                } finally {
-                    console.log('Python stderr data received');
-                }
-            });
-
-            // Handle process close
-            pythonProcess.on('close', (code) => {
-                try {
-                    if (code === 0) {
-                        // Success - try to parse final result
-                        if (finalResult) {
-                            resolve({
-                                success: finalResult.success || true,
-                                data: finalResult,
-                                progressLogs: progressLogs
-                            });
-                        } else {
-                            // Try to parse last line of buffer as result
-                            const lines = dataBuffer.split('\n').filter(line => line.trim());
-                            const lastLine = lines[lines.length - 1];
-                            
-                            try {
-                                const result = JSON.parse(lastLine);
-                                resolve({
-                                    success: result.success || true,
-                                    data: result,
-                                    progressLogs: progressLogs
-                                });
-                            } catch (parseError) {
-                                reject(new Error(`Failed to parse Python result: ${parseError.message}`));
-                            }
-                        }
-                    } else {
-                        // Process failed
-                        reject(new Error(`Python script failed with exit code ${code}: ${errorBuffer || 'Unknown error'}`));
-                    }
-
-                } catch (error) {
-                    console.error('Python process close handling error:', error);
-                    reject(new Error(`Process close handling failed: ${error.message}`));
-                } finally {
-                    console.log(`Python process closed with code: ${code}`);
-                }
-            });
-
-            // Handle process error
-            pythonProcess.on('error', (error) => {
-                try {
-                    reject(new Error(`Failed to start Python process: ${error.message}`));
-                } catch (handlingError) {
-                    console.error('Python process error handling failed:', handlingError);
-                    reject(new Error('Python process error handling failed'));
-                } finally {
-                    console.log('Python process error occurred');
-                }
-            });
-
-            // Set process timeout (10 minutes max)
-            const timeout = setTimeout(() => {
-                try {
-                    pythonProcess.kill('SIGTERM');
-                    reject(new Error('Python script execution timeout (10 minutes)'));
-                } catch (error) {
-                    console.error('Python process timeout handling error:', error);
-                } finally {
-                    console.log('Python process timeout occurred');
-                }
-            }, 10 * 60 * 1000);
-
-            // Clear timeout on process close
-            pythonProcess.on('close', () => {
-                clearTimeout(timeout);
-            });
-
-        } catch (error) {
-            console.error('Python executor error:', error);
-            reject(new Error(`Failed to execute Python script: ${error.message}`));
-        } finally {
-            console.log(`Python script execution started: ${scriptName}`);
+    try {
+        if (!scriptName) {
+            throw new Error('Script name is required');
         }
-    });
+
+        const pythonServer = await getPythonServer();
+        
+        // Map script names to actions
+        let action = 'unknown';
+        let params = {};
+        
+        if (scriptName === 'instagram_scraper.py') {
+            action = 'instagram_scraper';
+            // Parse args for Instagram scraper
+            for (let i = 0; i < args.length; i += 2) {
+                const key = args[i];
+                const value = args[i + 1];
+                
+                if (key === '--username') {
+                    params.username = value;
+                } else if (key === '--analysis-id') {
+                    params.analysisId = value;
+                } else if (key === '--extension-cookies') {
+                    try {
+                        params.extensionCookies = JSON.parse(value);
+                    } catch (e) {
+                        params.extensionCookies = value;
+                    }
+                }
+            }
+        } else if (scriptName === 'instagram_oembed.py') {
+            action = 'instagram_oembed';
+            params.postUrl = args[0]; // First argument is the URL
+        } else if (scriptName === 'test_environment.py') {
+            action = 'test_environment';
+        }
+        
+        const response = await pythonServer.sendRequest(action, params, progressCallback);
+        
+        return {
+            success: response.success,
+            data: response.data,
+            progressLogs: response.progressLogs || []
+        };
+        
+    } catch (error) {
+        console.error('Python executor error:', error);
+        throw new Error(`Failed to execute Python script: ${error.message}`);
+    } finally {
+        console.log(`Python script execution completed: ${scriptName}`);
+    }
 }
 
 /**
@@ -187,29 +84,8 @@ async function executePythonScript(scriptName, args = [], progressCallback = nul
  */
 async function executeInstagramScraper(username, analysisId, progressCallback = null, extensionCookies = null) {
     try {
-        if (!username) {
-            throw new Error('Username is required');
-        }
-
-        if (!analysisId) {
-            throw new Error('Analysis ID is required');
-        }
-
-        // Clean username (remove @ if present)
-        const cleanUsername = username.replace('@', '').trim();
-
-        const args = [
-            '--username', cleanUsername,
-            '--analysis-id', analysisId
-        ];
-
-        // Add extension cookies if provided
-        if (extensionCookies && Array.isArray(extensionCookies)) {
-            args.push('--extension-cookies', JSON.stringify(extensionCookies));
-        }
-
-        return await executePythonScript('instagram_scraper.py', args, progressCallback);
-
+        const pythonServer = await getPythonServer();
+        return await pythonServer.executeInstagramScraper(username, analysisId, progressCallback, extensionCookies);
     } catch (error) {
         console.error('Instagram scraper execution error:', error);
         throw new Error(`Failed to execute Instagram scraper: ${error.message}`);
@@ -224,8 +100,8 @@ async function executeInstagramScraper(username, analysisId, progressCallback = 
  */
 async function testPythonEnvironment() {
     try {
-        const testResult = await executePythonScript('test_environment.py', ['--test'], null);
-        return testResult.success;
+        const pythonServer = await getPythonServer();
+        return await pythonServer.testEnvironment();
     } catch (error) {
         console.error('Python environment test error:', error);
         return false;

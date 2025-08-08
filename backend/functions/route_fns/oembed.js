@@ -3,8 +3,7 @@
  * @author Backend Team
  */
 
-const { spawn } = require('child_process');
-const path = require('path');
+const { getPythonServer } = require('../../utils/python/pythonServer');
 
 /**
  * @typedef {Object} OembedData
@@ -99,72 +98,30 @@ function determineMediaType(oembedResponse) {
 }
 
 /**
- * Execute Python script to extract Instagram oEmbed data
+ * Execute Python script to extract Instagram oEmbed data (now uses persistent server)
  * @param {string} postUrl - Instagram post URL
  * @returns {Promise<Object>} oEmbed response data
  */
 async function fetchInstagramOembed(postUrl) {
-    return new Promise((resolve, reject) => {
-        try {
-            const scriptPath = path.join(__dirname, '../scripts/instagram_oembed.py');
-            
-            console.log(`Executing Python script: ${scriptPath}`);
-            console.log(`Instagram URL: ${postUrl}`);
-            
-            const pythonProcess = spawn('python3', [scriptPath, postUrl]);
-            
-            let stdout = '';
-            let stderr = '';
-            
-            pythonProcess.stdout.on('data', (data) => {
-                stdout += data.toString();
-            });
-            
-            pythonProcess.stderr.on('data', (data) => {
-                stderr += data.toString();
-            });
-            
-            pythonProcess.on('close', (code) => {
-                try {
-                    console.log(`Python script stderr: ${stderr}`);
-                    console.log(`Python script exit code: ${code}`);
-                    console.log(`Python script stdout: ${stdout}`);
-                    
-                    if (code !== 0) {
-                        reject(new Error(`Python script failed with exit code ${code}: ${stderr}`));
-                        return;
-                    }
-                    
-                    if (!stdout.trim()) {
-                        reject(new Error('Python script returned empty output'));
-                        return;
-                    }
-                    
-                    const result = JSON.parse(stdout.trim());
-                    
-                    if (result.success) {
-                        resolve(result.data);
-                    } else {
-                        reject(new Error(result.error || 'Python script returned error'));
-                    }
-                    
-                } catch (parseError) {
-                    console.error('Failed to parse Python script output:', parseError);
-                    console.error('Raw stdout:', stdout);
-                    reject(new Error(`Failed to parse Python script output: ${parseError.message}`));
-                }
-            });
-            
-            pythonProcess.on('error', (error) => {
-                console.error('Python process error:', error);
-                reject(new Error(`Failed to execute Python script: ${error.message}`));
-            });
-            
-        } catch (error) {
-            console.error('Python script execution setup error:', error);
-            reject(error);
+    try {
+        const pythonServer = await getPythonServer();
+        
+        console.log(`Fetching Instagram oEmbed for: ${postUrl}`);
+        
+        const response = await pythonServer.fetchInstagramOembed(postUrl);
+        
+        if (response.success) {
+            return response.data;
+        } else {
+            throw new Error(response.error || 'Python script returned error');
         }
-    });
+        
+    } catch (error) {
+        console.error('Instagram oEmbed fetch error:', error);
+        throw new Error(`Failed to fetch Instagram oEmbed: ${error.message}`);
+    } finally {
+        console.log(`oEmbed fetch completed for: ${postUrl}`);
+    }
 }
 
 /**

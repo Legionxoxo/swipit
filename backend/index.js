@@ -14,6 +14,12 @@ const apiRoutes = require('./routes/api/index');
 // Database imports
 const { getDatabase, testDatabaseConnection, databaseHealthCheck } = require('./database/connection');
 
+// Memory monitoring
+const { getMemoryMonitor } = require('./utils/monitoring/memoryMonitor');
+
+// Process monitoring
+const { getProcessMonitor } = require('./utils/monitoring/processMonitor');
+
 /**
  * @typedef {Object} ServerConfig
  * @property {number} port - Server port number
@@ -52,17 +58,23 @@ function createApp() {
         app.use(express.json({ limit: '10mb' }));
         app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-        // Health check endpoint with database status
+        // Health check endpoint with database status and memory monitoring
         app.get('/health', async (req, res) => {
             try {
                 const dbHealth = await databaseHealthCheck();
+                const memoryMonitor = getMemoryMonitor();
+                const processMonitor = getProcessMonitor();
+                const memoryStats = memoryMonitor.getMemorySummary();
+                const processStats = processMonitor.getHealthSummary();
                 
                 res.status(200).json({
                     success: true,
                     message: 'BuzzHunt Backend is running',
                     timestamp: new Date().toISOString(),
                     environment: process.env.NODE_ENV || 'development',
-                    database: dbHealth
+                    database: dbHealth,
+                    memory: memoryStats,
+                    process: processStats
                 });
             } catch (error) {
                 console.error('Health check error:', error);
@@ -245,19 +257,66 @@ if (require.main === module) {
             // Step 1: Validate environment
             const config = validateEnvironment();
             
-            // Step 2: Initialize database
-            // Initializing database connection
+            // Step 2: Initialize monitoring systems
+            console.log('Initializing monitoring systems...');
+            
+            // Memory monitoring
+            const memoryMonitor = getMemoryMonitor({
+                heapWarning: 150,   // 150MB for 1GB system
+                heapCritical: 300,  // 300MB 
+                rssWarning: 500,    // 500MB
+                rssCritical: 700,   // 700MB
+                monitorInterval: 15000 // 15 seconds
+            });
+            
+            // Process monitoring with auto-restart
+            const processMonitor = getProcessMonitor({
+                maxMemoryMB: 750,       // 750MB limit for 1GB system
+                maxRestarts: 3,         // Max 3 restarts in window
+                restartWindow: 600000,  // 10 minute window
+                enableAutoRestart: process.env.NODE_ENV === 'production',
+                monitorInterval: 30000  // 30 seconds
+            });
+            
+            // Handle memory pressure events
+            process.on('memoryPressure', (data) => {
+                console.error(`🚨 MEMORY PRESSURE: ${data.type} - Heap: ${data.stats.heapUsed}MB, RSS: ${data.stats.rss}MB`);
+                
+                if (data.type === 'heapCritical') {
+                    // Force cleanup of Python server if needed
+                    try {
+                        const { getPythonServer } = require('./utils/python/pythonServer');
+                        getPythonServer().then(server => server.shutdown()).catch(() => {});
+                    } catch (e) {}
+                }
+            });
+            
+            // Handle process restart events
+            processMonitor.on('restart', (reason) => {
+                console.log(`🔄 Process restart triggered: ${reason.reason}`);
+                
+                // Cleanup before restart
+                try {
+                    const { getPythonServer } = require('./utils/python/pythonServer');
+                    getPythonServer().then(server => server.shutdown()).catch(() => {});
+                } catch (e) {}
+            });
+            
+            console.log('Monitoring systems initialized ✓');
+            
+            // Step 3: Initialize database
+            console.log('Initializing database connection...');
             const databaseConnected = await testDatabaseConnection();
             
             if (!databaseConnected) {
                 throw new Error('Database connection failed - cannot start server');
             }
-            // Database connected successfully
+            console.log('Database connected successfully ✓');
             
-            // Step 3: Create Express app
+            // Step 4: Create Express app
             const app = createApp();
             
-            // Step 4: Start server
+            // Step 5: Start server
             await startServer(app, config);
 
         } catch (error) {
