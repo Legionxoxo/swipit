@@ -27,7 +27,7 @@ interface ReelCardProps {
     followerCount?: number;
 }
 
-export default function ReelCard({ reel, creatorName, followerCount }: ReelCardProps) {
+export default function ReelCard({ reel, creatorName: _creatorName, followerCount }: ReelCardProps) {
     return (
         <div className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300 relative flex flex-col h-full">
             <div className="relative">
@@ -35,11 +35,12 @@ export default function ReelCard({ reel, creatorName, followerCount }: ReelCardP
                 <ReelActions
                     reelId={reel.reel_id}
                     reelTitle={reel.reel_caption || 'Instagram Reel'}
-                    creatorName={creatorName}
                     thumbnailUrl={reel.reel_thumbnail_url}
                     reelUrl={reel.reel_url || reel.post_link || ''}
                     embedLink={reel.embed_link}
                     postLink={reel.post_link}
+                    reelCaption={reel.reel_caption}
+                    reelHashtags={reel.reel_hashtags?.length > 0 ? reel.reel_hashtags : (reel.hashtags || [])}
                 />
             </div>
             <ReelDetails reel={reel} />

@@ -18,17 +18,56 @@ export default function VideosList({
     analysisId, 
     onBack 
 }: VideosListProps) {
+    const [activeTab, setActiveTab] = useState<'views' | 'outlier'>('views');
     const [selectedCategory, setSelectedCategory] = useState<'all' | 'viral' | 'veryHigh' | 'high' | 'medium' | 'low'>('all');
+    const [selectedOutlierCategory, setSelectedOutlierCategory] = useState<'all' | 'viral' | 'veryHigh' | 'high' | 'medium' | 'low'>('all');
     const [isExporting, setIsExporting] = useState<'csv' | 'json' | null>(null);
 
+    // Outlier calculation using same logic as VideoThumbnail component
+    const getOutlierSegments = () => {
+        const categorized = {
+            viral: [] as VideoData[],
+            veryHigh: [] as VideoData[],
+            high: [] as VideoData[],
+            medium: [] as VideoData[],
+            low: [] as VideoData[]
+        };
+
+        videos.forEach(video => {
+            const effectiveSubscriberCount = channelInfo.subscriberCount === 0 ? 1 : channelInfo.subscriberCount;
+            const ratio = video.viewCount / effectiveSubscriberCount;
+            
+            if (ratio >= 100) categorized.viral.push(video);
+            else if (ratio >= 75) categorized.veryHigh.push(video);
+            else if (ratio >= 50) categorized.high.push(video);
+            else if (ratio >= 25) categorized.medium.push(video);
+            else categorized.low.push(video);
+        });
+
+        return categorized;
+    };
+
+    const outlierSegments = getOutlierSegments();
+
     const getVideosToShow = (): VideoData[] => {
-        switch (selectedCategory) {
-            case 'viral': return videoSegments.viral;
-            case 'veryHigh': return videoSegments.veryHigh;
-            case 'high': return videoSegments.high;
-            case 'medium': return videoSegments.medium;
-            case 'low': return videoSegments.low;
-            default: return videos;
+        if (activeTab === 'outlier') {
+            switch (selectedOutlierCategory) {
+                case 'viral': return outlierSegments.viral;
+                case 'veryHigh': return outlierSegments.veryHigh;
+                case 'high': return outlierSegments.high;
+                case 'medium': return outlierSegments.medium;
+                case 'low': return outlierSegments.low;
+                default: return videos;
+            }
+        } else {
+            switch (selectedCategory) {
+                case 'viral': return videoSegments.viral;
+                case 'veryHigh': return videoSegments.veryHigh;
+                case 'high': return videoSegments.high;
+                case 'medium': return videoSegments.medium;
+                case 'low': return videoSegments.low;
+                default: return videos;
+            }
         }
     };
 
@@ -49,13 +88,22 @@ export default function VideosList({
         }
     };
 
-    const categories = [
+    const viewsCategories = [
         { key: 'all' as const, label: 'All Videos', count: videos.length },
         { key: 'viral' as const, label: 'Viral (1M+)', count: videoSegments.viral.length },
         { key: 'veryHigh' as const, label: 'Very High (100K-1M)', count: videoSegments.veryHigh.length },
         { key: 'high' as const, label: 'High (10K-100K)', count: videoSegments.high.length },
         { key: 'medium' as const, label: 'Medium (1K-10K)', count: videoSegments.medium.length },
         { key: 'low' as const, label: 'Low (<1K)', count: videoSegments.low.length },
+    ];
+
+    const outlierCategories = [
+        { key: 'all' as const, label: 'All Videos', count: videos.length },
+        { key: 'viral' as const, label: 'Viral (≥100x)', count: outlierSegments.viral.length },
+        { key: 'veryHigh' as const, label: 'Very High (≥75x)', count: outlierSegments.veryHigh.length },
+        { key: 'high' as const, label: 'High (≥50x)', count: outlierSegments.high.length },
+        { key: 'medium' as const, label: 'Medium (≥25x)', count: outlierSegments.medium.length },
+        { key: 'low' as const, label: 'Low (<25x)', count: outlierSegments.low.length },
     ];
 
     const videosToShow = getVideosToShow();
@@ -108,21 +156,84 @@ export default function VideosList({
                         </div>
                     </div>
 
-                    <div className="flex flex-wrap gap-2">
-                        {categories.map(category => (
+                    {/* Tab Navigation */}
+                    <div className="border-b border-gray-200 mb-4">
+                        <nav className="flex space-x-8">
                             <button
-                                key={category.key}
-                                onClick={() => setSelectedCategory(category.key)}
-                                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                                    selectedCategory === category.key
-                                        ? 'bg-blue-600 text-white'
-                                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                                onClick={() => {
+                                    setActiveTab('views');
+                                    setSelectedCategory('all');
+                                }}
+                                className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
+                                    activeTab === 'views'
+                                        ? 'border-blue-500 text-blue-600'
+                                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                                 }`}
                             >
-                                {category.label} ({category.count})
+                                Views
                             </button>
-                        ))}
+                            <button
+                                onClick={() => {
+                                    setActiveTab('outlier');
+                                    setSelectedOutlierCategory('all');
+                                }}
+                                className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
+                                    activeTab === 'outlier'
+                                        ? 'border-blue-500 text-blue-600'
+                                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                }`}
+                            >
+                                Outlier Performance
+                            </button>
+                        </nav>
                     </div>
+
+                    {/* Tab Content */}
+                    {activeTab === 'views' && (
+                        <div>
+                            <p className="text-sm text-gray-600 mb-4">
+                                Filter videos by absolute view count ranges.
+                            </p>
+                            <div className="flex flex-wrap gap-2">
+                                {viewsCategories.map(category => (
+                                    <button
+                                        key={category.key}
+                                        onClick={() => setSelectedCategory(category.key)}
+                                        className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                                            selectedCategory === category.key
+                                                ? 'bg-blue-600 text-white'
+                                                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                                        }`}
+                                    >
+                                        {category.label} ({category.count})
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {activeTab === 'outlier' && (
+                        <div>
+                            <p className="text-sm text-gray-600 mb-4">
+                                Filter videos by performance ratio (views ÷ subscribers). Higher ratios indicate outlier performance.
+                            </p>
+                            <div className="flex flex-wrap gap-2">
+                                {outlierCategories.map(category => (
+                                    <button
+                                        key={category.key}
+                                        onClick={() => setSelectedOutlierCategory(category.key)}
+                                        className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                                            selectedOutlierCategory === category.key
+                                                ? 'bg-purple-600 text-white'
+                                                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                                        }`}
+                                    >
+                                        {category.label} ({category.count})
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 {videosToShow.length > 0 ? (
