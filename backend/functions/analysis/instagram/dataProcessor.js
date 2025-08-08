@@ -4,6 +4,91 @@
  */
 
 const { getAnalysisJob, getAnalysisResults } = require('../../../database/instagram/index');
+const { getDatabase } = require('../../../database/connection');
+
+/**
+ * Get creator-based analysis status from database posts
+ * @param {string} username - Instagram username
+ * @returns {Promise<Object|null>} Creator analysis data
+ */
+async function getCreatorAnalysisStatus(username) {
+    try {
+        const db = await getDatabase();
+        
+        // Get all posts for this creator
+        const posts = await db.all(
+            `SELECT analysis_id, instagram_user_id, profile_username, 
+                    reel_id, reel_shortcode, reel_url, reel_thumbnail_url, 
+                    reel_caption, reel_likes, reel_comments, reel_views, 
+                    reel_date_posted, reel_duration, reel_hashtags, reel_mentions,
+                    reel_embed_link, profile_link, created_at, updated_at
+             FROM instagram_data 
+             WHERE profile_username = ? AND analysis_status = 'completed'
+             ORDER BY created_at DESC`,
+            [username]
+        );
+
+        if (posts.length === 0) {
+            return null;
+        }
+
+        const firstPost = posts[0];
+        
+        // Transform posts to reels format
+        const reels = posts.map(post => ({
+            reel_id: post.reel_id || post.analysis_id,
+            reel_shortcode: post.reel_shortcode || post.analysis_id,
+            reel_url: post.reel_url || post.profile_link,
+            reel_thumbnail_url: post.reel_thumbnail_url,
+            reel_caption: post.reel_caption,
+            reel_likes: post.reel_likes || 0,
+            reel_comments: post.reel_comments || 0,
+            reel_views: post.reel_views || 0,
+            reel_date_posted: post.reel_date_posted || post.created_at,
+            reel_duration: post.reel_duration || 0,
+            reel_hashtags: post.reel_hashtags ? JSON.parse(post.reel_hashtags) : [],
+            reel_mentions: post.reel_mentions ? JSON.parse(post.reel_mentions) : [],
+            // Include embed data for Instagram posts
+            embed_link: post.reel_embed_link,
+            post_link: post.reel_url,
+            hashtags: post.reel_hashtags ? JSON.parse(post.reel_hashtags) : []
+        }));
+
+        return {
+            analysisId: `creator_${username}`,
+            status: 'completed',
+            progress: 100,
+            profile: {
+                instagram_user_id: firstPost.instagram_user_id,
+                username: firstPost.profile_username,
+                full_name: firstPost.profile_username,
+                biography: '',
+                follower_count: 0,
+                following_count: 0,
+                media_count: posts.length,
+                is_private: false,
+                is_verified: false,
+                profile_pic_url: firstPost.reel_thumbnail_url || ''
+            },
+            reels: reels,
+            totalReels: reels.length,
+            reelSegments: {
+                viral: [],
+                veryHigh: [],
+                high: [],
+                medium: [],
+                low: []
+            },
+            processingTime: 0,
+            createdAt: new Date(posts[posts.length - 1].created_at),
+            updatedAt: new Date(firstPost.updated_at)
+        };
+        
+    } catch (error) {
+        console.error('Get creator analysis status error:', error);
+        throw new Error(`Failed to get creator analysis status: ${error.message}`);
+    }
+}
 
 /**
  * Get Instagram analysis status and results
@@ -16,7 +101,13 @@ async function getInstagramAnalysisStatus(analysisId) {
             throw new Error('Analysis ID is required');
         }
 
-        // Get job status
+        // Handle creator-based analysis IDs
+        if (analysisId.startsWith('creator_')) {
+            const username = analysisId.replace('creator_', '');
+            return await getCreatorAnalysisStatus(username);
+        }
+
+        // Get job status for regular analysis IDs
         const job = await getAnalysisJob(analysisId);
         
         if (!job) {
@@ -133,6 +224,7 @@ function calculateProcessingTime(startTime, endTime) {
 
 module.exports = {
     getInstagramAnalysisStatus,
+    getCreatorAnalysisStatus,
     segmentReelsByEngagement,
     calculateProcessingTime
 };

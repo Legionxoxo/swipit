@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import VideoCard from '../video/VideoCard';
+import ReelCard from '../reel/ReelCard';
 import { apiService } from '../../services/api';
 import { userService } from '../../services/userService';
 import type { VideoData } from '../../types/api';
@@ -70,31 +71,62 @@ export default function FavoriteVideosView() {
 
     return (
         <div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">Favorite Videos</h2>
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">Favorite Videos & Reels</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {favoriteVideos.map(interaction => {
-                    // Convert interaction with full video details to VideoData format
-                    const videoData: VideoData = {
-                        videoId: interaction.video_id,
-                        title: interaction.title || `Video ${interaction.video_id.slice(0, 8)}...`,
-                        description: interaction.description || interaction.comment || '',
-                        thumbnailUrl: interaction.thumbnail_url || '',
-                        videoUrl: interaction.video_url || `https://youtube.com/watch?v=${interaction.video_id}`,
-                        uploadDate: interaction.upload_date || interaction.created_at,
-                        duration: interaction.duration || 'PT0S',
-                        viewCount: interaction.view_count || 0,
-                        likeCount: interaction.like_count || 0,
-                        commentCount: interaction.comment_count || 0,
-                        categoryId: interaction.category_id || '28'
-                    };
-                    return (
-                        <VideoCard 
-                            key={interaction.video_id} 
-                            video={videoData} 
-                            channelName={interaction.channel_name || 'Unknown Channel'}
-                            subscriberCount={interaction.subscriber_count || 0}
-                        />
-                    );
+                    if (interaction.platform === 'instagram') {
+                        // Convert interaction to Instagram reel format
+                        const reelData = {
+                            reel_id: interaction.video_id,
+                            reel_shortcode: interaction.video_id,
+                            reel_url: interaction.video_url || '',
+                            reel_thumbnail_url: interaction.thumbnail_url || '',
+                            reel_caption: interaction.title || interaction.comment || 'Instagram Reel',
+                            reel_likes: interaction.like_count || 0,
+                            reel_comments: interaction.comment_count || 0,
+                            reel_views: interaction.view_count || 0,
+                            reel_date_posted: interaction.upload_date || interaction.created_at,
+                            reel_duration: 0,
+                            reel_hashtags: [],
+                            reel_mentions: [],
+                            embed_link: interaction.embed_link,
+                            post_link: interaction.video_url,
+                            hashtags: []
+                        };
+                        
+                        return (
+                            <ReelCard
+                                key={interaction.video_id}
+                                reel={reelData}
+                                creatorName={interaction.channel_name || 'Unknown Creator'}
+                                followerCount={interaction.subscriber_count || 0}
+                            />
+                        );
+                    } else {
+                        // Convert interaction to YouTube video format
+                        const videoData: VideoData = {
+                            videoId: interaction.video_id,
+                            title: interaction.title || `Video ${interaction.video_id.slice(0, 8)}...`,
+                            description: interaction.description || interaction.comment || '',
+                            thumbnailUrl: interaction.thumbnail_url || '',
+                            videoUrl: interaction.video_url || `https://youtube.com/watch?v=${interaction.video_id}`,
+                            uploadDate: interaction.upload_date || interaction.created_at,
+                            duration: interaction.duration || 'PT0S',
+                            viewCount: interaction.view_count || 0,
+                            likeCount: interaction.like_count || 0,
+                            commentCount: interaction.comment_count || 0,
+                            categoryId: interaction.category_id || '28'
+                        };
+                        
+                        return (
+                            <VideoCard 
+                                key={interaction.video_id} 
+                                video={videoData} 
+                                channelName={interaction.channel_name || 'Unknown Channel'}
+                                subscriberCount={interaction.subscriber_count || 0}
+                            />
+                        );
+                    }
                 })}
             </div>
         </div>

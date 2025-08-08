@@ -4,7 +4,7 @@
  */
 
 // Import all Instagram database modules
-const { createAnalysisJob, updateAnalysisStatus, getAnalysisJob, deleteAnalysisJob } = require('./instagramJobs');
+const { createAnalysisJob, updateAnalysisStatus, getAnalysisJob, deleteAnalysisJob, getAllCompletedAnalyses } = require('./instagramJobs');
 const { storeProfileData, getProfileData } = require('./instagramProfile');
 const { storeReelData, getReelsByAnalysis, getReelCount } = require('./instagramReels');
 const { getAnalysisResults, getAnalysisSummary } = require('./instagramResults');
@@ -16,6 +16,7 @@ module.exports = {
     updateAnalysisStatus,
     getAnalysisJob,
     deleteAnalysisJob,
+    getAllCompletedAnalyses,
     
     // Profile management
     storeProfileData,

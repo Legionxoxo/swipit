@@ -193,24 +193,31 @@ async function getAllCompletedAnalyses(options = {}) {
 
         const db = await getDatabase();
 
-        const analyses = await db.all(
-            `SELECT DISTINCT analysis_id, instagram_user_id, profile_username, 
-                    analysis_status, analysis_progress, created_at, updated_at
+        // Get creators with completed posts, grouped by username
+        const creators = await db.all(
+            `SELECT 
+                profile_username,
+                instagram_user_id,
+                COUNT(*) as post_count,
+                MAX(created_at) as latest_created_at,
+                MAX(updated_at) as latest_updated_at
              FROM instagram_data 
-             WHERE analysis_status = 'completed' AND reel_id IS NULL
-             ORDER BY updated_at DESC
+             WHERE analysis_status = 'completed' AND profile_username IS NOT NULL AND profile_username != ''
+             GROUP BY profile_username, instagram_user_id
+             ORDER BY latest_updated_at DESC
              LIMIT ? OFFSET ?`,
             [limit, offset]
         );
 
-        return analyses.map((analysis) => ({
-            analysisId: analysis.analysis_id,
-            instagramUserId: analysis.instagram_user_id,
-            username: analysis.profile_username,
-            status: analysis.analysis_status,
-            progress: analysis.analysis_progress,
-            createdAt: new Date(analysis.created_at),
-            updatedAt: new Date(analysis.updated_at)
+        return creators.map((creator) => ({
+            analysisId: `creator_${creator.profile_username}`,
+            instagramUserId: creator.instagram_user_id,
+            username: creator.profile_username,
+            status: 'completed',
+            progress: 100,
+            postCount: creator.post_count,
+            createdAt: new Date(creator.latest_created_at),
+            updatedAt: new Date(creator.latest_updated_at)
         }));
 
     } catch (error) {

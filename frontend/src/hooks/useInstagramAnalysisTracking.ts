@@ -44,9 +44,8 @@ export function useInstagramAnalysisTracking() {
                     try {
                         const analysisId = analysis.analysisId || analysis.analysis_id;
                         
-                        // Only load full profile analyses, not individual posts
-                        // Individual posts will be handled by handleInstagramPostTracked
-                        if (analysisId.startsWith('post_') || analysisId.startsWith('creator_')) {
+                        // Skip individual post analyses (but allow creator analyses)
+                        if (analysisId.startsWith('post_') || analysisId.startsWith('oembed_')) {
                             return null;
                         }
                         
