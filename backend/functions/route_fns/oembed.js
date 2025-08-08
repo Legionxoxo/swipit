@@ -3,7 +3,7 @@
  * @author Backend Team
  */
 
-const { getPythonServer } = require('../../utils/python/pythonServer');
+const { extractInstagramOembed } = require('../../utils/instagram/instagramOembed');
 
 /**
  * @typedef {Object} OembedData
@@ -98,23 +98,17 @@ function determineMediaType(oembedResponse) {
 }
 
 /**
- * Execute Python script to extract Instagram oEmbed data (now uses persistent server)
+ * Extract Instagram oEmbed data using Node.js implementation
  * @param {string} postUrl - Instagram post URL
  * @returns {Promise<Object>} oEmbed response data
  */
 async function fetchInstagramOembed(postUrl) {
     try {
-        const pythonServer = await getPythonServer();
-        
         console.log(`Fetching Instagram oEmbed for: ${postUrl}`);
         
-        const response = await pythonServer.fetchInstagramOembed(postUrl);
+        const oembedData = await extractInstagramOembed(postUrl);
         
-        if (response.success) {
-            return response.data;
-        } else {
-            throw new Error(response.error || 'Python script returned error');
-        }
+        return oembedData;
         
     } catch (error) {
         console.error('Instagram oEmbed fetch error:', error);

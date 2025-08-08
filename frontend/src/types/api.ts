@@ -31,6 +31,16 @@ export interface VideoSegments {
     low: VideoData[];
 }
 
+export interface PaginationInfo {
+    page: number;
+    pageSize: number;
+    totalVideos?: number;
+    totalReels?: number;
+    totalPages: number;
+    hasNextPage: boolean;
+    hasPreviousPage: boolean;
+}
+
 export interface AnalysisResponse {
     analysisId: string;
     status: 'processing' | 'completed' | 'error';
@@ -39,6 +49,7 @@ export interface AnalysisResponse {
     channelInfo: ChannelInfo;
     videoData: VideoData[];
     videoSegments: VideoSegments;
+    pagination?: PaginationInfo;
     processingTime?: string;
     error?: string;
 }

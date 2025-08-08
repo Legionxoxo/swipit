@@ -2,10 +2,11 @@ import { useState } from 'react';
 import type { VideoData, ChannelInfo, VideoSegments } from '../types/api';
 import VideoCard from './video/VideoCard';
 import { apiService } from '../services/api';
+import { useInfiniteScroll } from '../hooks/useInfiniteScroll';
 
 interface VideosListProps {
     channelInfo: ChannelInfo;
-    videos: VideoData[];
+    videos?: VideoData[]; // Now optional, will use infinite scroll
     videoSegments: VideoSegments;
     analysisId: string;
     onBack: () => void;
@@ -14,7 +15,7 @@ interface VideosListProps {
 
 export default function VideosList({ 
     channelInfo, 
-    videos, 
+    videos: _initialVideos, // Unused, now using infinite scroll 
     videoSegments, 
     analysisId, 
     onBack,
@@ -24,6 +25,20 @@ export default function VideosList({
     const [selectedCategory, setSelectedCategory] = useState<'all' | 'viral' | 'veryHigh' | 'high' | 'medium' | 'low'>('all');
     const [selectedOutlierCategory, setSelectedOutlierCategory] = useState<'all' | 'viral' | 'veryHigh' | 'high' | 'medium' | 'low'>('all');
     const [isExporting, setIsExporting] = useState<'csv' | 'json' | null>(null);
+    
+    // Use infinite scroll for loading videos
+    const { 
+        data: videos, 
+        loading: videosLoading, 
+        hasMore, 
+        error: videosError,
+        totalCount,
+        loadMore 
+    } = useInfiniteScroll({ 
+        analysisId, 
+        pageSize: 50,
+        autoLoad: true 
+    });
 
     // Outlier calculation using same logic as VideoThumbnail component
     const getOutlierSegments = () => {
@@ -238,28 +253,71 @@ export default function VideosList({
                     )}
                 </div>
 
-                {videosToShow.length > 0 ? (
-                    <div className={viewMode === 'grid' 
-                        ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
-                        : "space-y-4"
-                    }>
-                        {videosToShow.map((video, index) => (
-                            <VideoCard 
-                                key={video.videoId || `video-${index}`} 
-                                video={video} 
-                                channelName={channelInfo.channelName} 
-                                subscriberCount={channelInfo.subscriberCount}
-                                viewMode={viewMode}
-                            />
-                        ))}
+                {videosError && (
+                    <div className="text-center py-12">
+                        <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+                            <p className="text-red-600 text-lg font-medium">Error loading videos</p>
+                            <p className="text-red-500 mt-2">{videosError}</p>
+                        </div>
                     </div>
-                ) : (
+                )}
+
+                {videosToShow.length > 0 ? (
+                    <>
+                        <div className={viewMode === 'grid' 
+                            ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+                            : "space-y-4"
+                        }>
+                            {videosToShow.map((video, index) => (
+                                <VideoCard 
+                                    key={video.videoId || `video-${index}`} 
+                                    video={video} 
+                                    channelName={channelInfo.channelName} 
+                                    subscriberCount={channelInfo.subscriberCount}
+                                    viewMode={viewMode}
+                                />
+                            ))}
+                        </div>
+                        
+                        {/* Infinite Scroll Loading States */}
+                        {videosLoading && (
+                            <div className="text-center py-8">
+                                <div className="inline-flex items-center space-x-2">
+                                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                                    <span className="text-gray-600">Loading more videos...</span>
+                                </div>
+                            </div>
+                        )}
+                        
+                        {hasMore && !videosLoading && (
+                            <div className="text-center py-8">
+                                <button
+                                    onClick={loadMore}
+                                    className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 font-medium transition-colors"
+                                >
+                                    Load More Videos
+                                </button>
+                                <p className="text-sm text-gray-500 mt-2">
+                                    Showing {videosToShow.length} of {totalCount} videos
+                                </p>
+                            </div>
+                        )}
+                        
+                        {!hasMore && videos.length > 50 && (
+                            <div className="text-center py-8">
+                                <p className="text-gray-500">
+                                    Showing all {videosToShow.length} videos
+                                </p>
+                            </div>
+                        )}
+                    </>
+                ) : !videosLoading ? (
                     <div className="text-center py-12">
                         <p className="text-gray-600 text-lg">
                             No videos found in this category.
                         </p>
                     </div>
-                )}
+                ) : null}
             </div>
         </div>
     );

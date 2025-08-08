@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { apiService } from '../services/api';
 import ReelCard from './reel/ReelCard';
+// import { useInfiniteScrollInstagram } from '../hooks/useInfiniteScrollInstagram'; // TODO: Implement for Instagram
 
 interface InstagramProfile {
     instagram_user_id: string;

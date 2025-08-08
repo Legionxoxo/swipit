@@ -71,10 +71,10 @@ class ApiService {
         }
     }
 
-    async getAnalysisStatus(analysisId: string): Promise<AnalysisResponse> {
+    async getAnalysisStatus(analysisId: string, page: number = 1, limit: number = 50): Promise<AnalysisResponse> {
         try {
-            // Try YouTube database first
-            const youtubeResponse = await fetch(`${API_BASE_URL}/youtube/analysis/${analysisId}`);
+            // Try YouTube database first with pagination
+            const youtubeResponse = await fetch(`${API_BASE_URL}/youtube/analysis/${analysisId}?page=${page}&limit=${limit}`);
             
             if (youtubeResponse.ok) {
                 const backendResponse = await youtubeResponse.json();
@@ -100,14 +100,15 @@ class ApiService {
                             medium: [],
                             low: []
                         },
+                        pagination: backendResponse.data.pagination,
                         processingTime: backendResponse.data.processingTime,
                         error: backendResponse.data.error
                     };
                 }
             }
 
-            // Fallback to original endpoint for in-memory data
-            const response = await fetch(`${API_BASE_URL}/analysis/${analysisId}`);
+            // Fallback to original endpoint for in-memory data with pagination
+            const response = await fetch(`${API_BASE_URL}/analysis/${analysisId}?page=${page}&limit=${limit}`);
 
             if (!response.ok) {
                 const error: ApiError = await response.json();
@@ -137,6 +138,7 @@ class ApiService {
                     medium: [],
                     low: []
                 },
+                pagination: backendResponse.pagination,
                 processingTime: backendResponse.processingTime,
                 error: backendResponse.error
             };
@@ -209,9 +211,9 @@ class ApiService {
         }
     }
 
-    async getInstagramAnalysisStatus(analysisId: string): Promise<any> {
+    async getInstagramAnalysisStatus(analysisId: string, page: number = 1, limit: number = 50): Promise<any> {
         try {
-            const response = await fetch(`${API_BASE_URL}/instagram/analysis/${analysisId}`);
+            const response = await fetch(`${API_BASE_URL}/instagram/analysis/${analysisId}?page=${page}&limit=${limit}`);
 
             if (!response.ok) {
                 const error: ApiError = await response.json();
@@ -227,6 +229,7 @@ class ApiService {
                 totalReels: backendResponse.totalReels || 0,
                 profile: backendResponse.profile,
                 reels: backendResponse.reels || [],
+                pagination: backendResponse.pagination,
                 reelSegments: backendResponse.reelSegments || null,
                 error: backendResponse.error
             };

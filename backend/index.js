@@ -283,11 +283,10 @@ if (require.main === module) {
                 console.error(`🚨 MEMORY PRESSURE: ${data.type} - Heap: ${data.stats.heapUsed}MB, RSS: ${data.stats.rss}MB`);
                 
                 if (data.type === 'heapCritical') {
-                    // Force cleanup of Python server if needed
-                    try {
-                        const { getPythonServer } = require('./utils/python/pythonServer');
-                        getPythonServer().then(server => server.shutdown()).catch(() => {});
-                    } catch (e) {}
+                    // Force garbage collection if needed
+                    if (global.gc) {
+                        global.gc();
+                    }
                 }
             });
             
@@ -296,10 +295,7 @@ if (require.main === module) {
                 console.log(`🔄 Process restart triggered: ${reason.reason}`);
                 
                 // Cleanup before restart
-                try {
-                    const { getPythonServer } = require('./utils/python/pythonServer');
-                    getPythonServer().then(server => server.shutdown()).catch(() => {});
-                } catch (e) {}
+                console.log('Preparing for process restart...');
             });
             
             console.log('Monitoring systems initialized ✓');
