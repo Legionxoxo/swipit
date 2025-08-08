@@ -15,7 +15,7 @@ const {
     getAnalysisResults 
 } = require('../../../database/instagram/index');
 
-const { executeInstagramScraper } = require('../../../utils/python/pythonExecutor');
+// const { executeInstagramScraper } = require('../../../utils/python/pythonExecutor'); // Disabled - converted to Node.js
 const { generateAnalysisId } = require('../../../utils/helpers');
 
 /**
@@ -129,14 +129,8 @@ async function processInstagramAnalysis(analysisId, username, sessionId = null) 
             }
         };
 
-        const scraperResult = await executeInstagramScraper(username, analysisId, progressCallback, extensionCookies);
-
-        if (!scraperResult.success || !scraperResult.data.success) {
-            const errorMessage = scraperResult.data?.error || scraperResult.error || 'Instagram scraping failed';
-            throw new Error(errorMessage);
-        }
-
-        const instagramData = scraperResult.data;
+        // Instagram scraper functionality disabled - Python server removed
+        throw new Error('Instagram profile scraping is temporarily disabled. Please use the oEmbed functionality instead.');
         
         // Update progress - data processing
         await updateAnalysisStatus(analysisId, 'processing', 85);
