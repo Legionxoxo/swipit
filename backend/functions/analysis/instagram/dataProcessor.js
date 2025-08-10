@@ -21,7 +21,7 @@ async function getCreatorAnalysisStatus(username) {
                     reel_id, reel_shortcode, reel_url, reel_thumbnail_url, 
                     reel_caption, reel_likes, reel_comments, reel_views, 
                     reel_date_posted, reel_duration, reel_hashtags, reel_mentions,
-                    reel_embed_link, profile_link, created_at, updated_at
+                    profile_link, created_at, updated_at
              FROM instagram_data 
              WHERE profile_username = ? AND analysis_status = 'completed'
              ORDER BY created_at DESC`,
@@ -48,8 +48,7 @@ async function getCreatorAnalysisStatus(username) {
             reel_duration: post.reel_duration || 0,
             reel_hashtags: post.reel_hashtags ? JSON.parse(post.reel_hashtags) : [],
             reel_mentions: post.reel_mentions ? JSON.parse(post.reel_mentions) : [],
-            // Include embed data for Instagram posts
-            embed_link: post.reel_embed_link,
+            // Include post link for Instagram posts
             post_link: post.reel_url,
             hashtags: post.reel_hashtags ? JSON.parse(post.reel_hashtags) : []
         }));
