@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { apiService } from '../services/api';
 import type { AnalysisResponse } from '../types/api';
 
@@ -11,6 +11,11 @@ interface AnalysisData {
 export function useAnalysisTracking() {
     const [analyses, setAnalyses] = useState<AnalysisData[]>([]);
     const [loadingAnalyses, setLoadingAnalyses] = useState<Set<string>>(new Set());
+    const [totalCount, setTotalCount] = useState<number>(0);
+    const [hasMore, setHasMore] = useState<boolean>(true);
+    const [isLoadingMore, setIsLoadingMore] = useState<boolean>(false);
+    const [currentPage, setCurrentPage] = useState<number>(0);
+    const ITEMS_PER_PAGE = 20;
 
     // Load completed analyses from backend on mount
     useEffect(() => {
@@ -19,11 +24,16 @@ export function useAnalysisTracking() {
 
     const loadCompletedAnalyses = async () => {
         try {
-            const completedAnalyses = await apiService.getAllCompletedAnalyses();
+            const result = await apiService.getAllCompletedAnalyses(ITEMS_PER_PAGE, 0);
+            
+            // Handle both old format (array) and new format (with pagination)
+            const analysesData = Array.isArray(result) ? result : result.data;
+            const total = Array.isArray(result) ? result.length : result.total;
+            const more = Array.isArray(result) ? false : result.hasMore;
             
             // Transform backend data to frontend format
             const analysesWithData = await Promise.all(
-                completedAnalyses.map(async (analysis: any) => {
+                analysesData.map(async (analysis: any) => {
                     try {
                         const fullAnalysisData = await apiService.getAnalysisStatus(analysis.analysisId);
                         return {
@@ -39,10 +49,52 @@ export function useAnalysisTracking() {
 
             const validAnalyses = analysesWithData.filter(Boolean) as AnalysisData[];
             setAnalyses(validAnalyses);
+            setTotalCount(total);
+            setHasMore(more);
+            setCurrentPage(1);
         } catch (error) {
             console.error('Error loading completed analyses:', error);
         }
     };
+    
+    const loadMore = useCallback(async () => {
+        if (isLoadingMore || !hasMore) return;
+        
+        try {
+            setIsLoadingMore(true);
+            const offset = currentPage * ITEMS_PER_PAGE;
+            const result = await apiService.getAllCompletedAnalyses(ITEMS_PER_PAGE, offset);
+            
+            // Handle both old format (array) and new format (with pagination)
+            const analysesData = Array.isArray(result) ? result : result.data;
+            const more = Array.isArray(result) ? false : result.hasMore;
+            
+            // Transform backend data to frontend format
+            const analysesWithData = await Promise.all(
+                analysesData.map(async (analysis: any) => {
+                    try {
+                        const fullAnalysisData = await apiService.getAnalysisStatus(analysis.analysisId);
+                        return {
+                            analysisId: analysis.analysisId,
+                            data: fullAnalysisData
+                        };
+                    } catch (error) {
+                        console.error(`Error loading analysis ${analysis.analysisId}:`, error);
+                        return null;
+                    }
+                })
+            );
+
+            const validAnalyses = analysesWithData.filter(Boolean) as AnalysisData[];
+            setAnalyses(prev => [...prev, ...validAnalyses]);
+            setHasMore(more);
+            setCurrentPage(prev => prev + 1);
+        } catch (error) {
+            console.error('Error loading more analyses:', error);
+        } finally {
+            setIsLoadingMore(false);
+        }
+    }, [currentPage, hasMore, isLoadingMore]);
 
     const handleAnalysisStarted = async (analysisId: string) => {
         try {
@@ -114,6 +166,10 @@ export function useAnalysisTracking() {
     return {
         analyses,
         loadingAnalyses,
-        handleAnalysisStarted
+        handleAnalysisStarted,
+        totalCount,
+        hasMore,
+        isLoadingMore,
+        loadMore
     };
 }

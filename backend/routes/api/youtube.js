@@ -25,13 +25,15 @@ const router = express.Router();
 router.get('/analyses', async (req, res) => {
     try {
         const { 
-            limit = 100, 
-            offset = 0 
+            limit = 20, 
+            offset = 0,
+            includeTotal = 'true' 
         } = req.query;
 
         const options = {
-            limit: parseInt(String(limit), 10) || 100,
-            offset: parseInt(String(offset), 10) || 0
+            limit: parseInt(String(limit), 10) || 20,
+            offset: parseInt(String(offset), 10) || 0,
+            includeTotal: includeTotal === 'true'
         };
 
         const result = await youtubeService.getAllCompletedAnalyses(options);

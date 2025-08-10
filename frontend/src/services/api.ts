@@ -47,9 +47,9 @@ class ApiService {
         }
     }
 
-    async getAllCompletedAnalyses(): Promise<any[]> {
+    async getAllCompletedAnalyses(limit: number = 20, offset: number = 0): Promise<{ data: any[], total: number, hasMore: boolean }> {
         try {
-            const response = await fetch(`${API_BASE_URL}/youtube/analyses`);
+            const response = await fetch(`${API_BASE_URL}/youtube/analyses?limit=${limit}&offset=${offset}&includeTotal=true`);
 
             if (!response.ok) {
                 const error: ApiError = await response.json();
@@ -62,7 +62,20 @@ class ApiService {
                 throw new Error(result.message || 'Invalid response from server');
             }
 
-            return result.data;
+            // Handle both old format (array) and new format (with pagination)
+            if (Array.isArray(result.data)) {
+                return {
+                    data: result.data,
+                    total: result.data.length,
+                    hasMore: false
+                };
+            }
+
+            return {
+                data: result.data.data || result.data,
+                total: result.data.total || 0,
+                hasMore: result.data.hasMore || false
+            };
         } catch (error) {
             console.error('Error getting completed analyses:', error);
             throw error;
@@ -692,9 +705,9 @@ class ApiService {
         }
     }
 
-    async getAllCompletedInstagramAnalyses(): Promise<any[]> {
+    async getAllCompletedInstagramAnalyses(limit: number = 20, offset: number = 0): Promise<{ data: any[], total: number, hasMore: boolean }> {
         try {
-            const response = await fetch(`${API_BASE_URL}/instagram/analyses`);
+            const response = await fetch(`${API_BASE_URL}/instagram/analyses?limit=${limit}&offset=${offset}&includeTotal=true`);
 
             if (!response.ok) {
                 const error: ApiError = await response.json();
@@ -707,7 +720,11 @@ class ApiService {
                 throw new Error(backendResponse.message || 'Failed to retrieve Instagram analyses');
             }
 
-            return backendResponse.data || [];
+            return {
+                data: backendResponse.data || [],
+                total: backendResponse.total || 0,
+                hasMore: backendResponse.hasMore || false
+            };
         } catch (error) {
             throw error;
         } finally {

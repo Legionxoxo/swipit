@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import ChannelCard from '../channel/ChannelCard';
 import UnifiedCreatorCard from '../channel/UnifiedCreatorCard';
 import ErrorBoundary from '../common/ErrorBoundary';
@@ -26,6 +26,9 @@ interface CreatorsViewProps {
     onHubsChange: (hubs: CreatorHub[]) => void;
     onHubsRefresh?: () => Promise<void>;
     totalAnalyses: number;
+    hasMore?: boolean;
+    isLoadingMore?: boolean;
+    onLoadMore?: () => void;
 }
 
 export default function CreatorsView({
@@ -40,10 +43,15 @@ export default function CreatorsView({
     onTrackChannel,
     onHubsChange,
     onHubsRefresh,
-    totalAnalyses
+    totalAnalyses,
+    hasMore = false,
+    isLoadingMore = false,
+    onLoadMore
 }: CreatorsViewProps) {
     const [filteredUnifiedCreators, setFilteredUnifiedCreators] = useState<UnifiedCreator[]>(unifiedCreators);
     const [isFiltering, setIsFiltering] = useState(false);
+    const observerRef = useRef<IntersectionObserver | null>(null);
+    const loadMoreRef = useRef<HTMLDivElement>(null);
 
     // Filter unified creators based on current view
     useEffect(() => {
@@ -57,6 +65,30 @@ export default function CreatorsView({
             setFilteredUnifiedCreators(unifiedCreators);
         }
     }, [currentView, unifiedCreators, hubs]);
+    
+    // Setup infinite scroll observer
+    useEffect(() => {
+        if (observerRef.current) observerRef.current.disconnect();
+        
+        observerRef.current = new IntersectionObserver(
+            entries => {
+                if (entries[0].isIntersecting && hasMore && !isLoadingMore && onLoadMore) {
+                    onLoadMore();
+                }
+            },
+            { threshold: 0.1 }
+        );
+        
+        if (loadMoreRef.current) {
+            observerRef.current.observe(loadMoreRef.current);
+        }
+        
+        return () => {
+            if (observerRef.current) {
+                observerRef.current.disconnect();
+            }
+        };
+    }, [hasMore, isLoadingMore, onLoadMore]);
 
     const filterFavoriteCreators = async () => {
         try {
@@ -133,7 +165,11 @@ export default function CreatorsView({
                     <p className="text-gray-600 mt-1">
                         {currentView === 'home' || currentView === 'favorite-creators' || currentView.startsWith('hub-') ? (
                             <>
-                                {isFiltering ? 'Loading...' : `${filteredUnifiedCreators.length} creator${filteredUnifiedCreators.length !== 1 ? 's' : ''}`}
+                                {isFiltering ? 'Loading...' : (
+                                    totalAnalyses > 0 ? 
+                                    `${totalAnalyses} total creator${totalAnalyses !== 1 ? 's' : ''}` :
+                                    `${filteredUnifiedCreators.length} creator${filteredUnifiedCreators.length !== 1 ? 's' : ''}`
+                                )}
                                 {loadingAnalyses.size > 0 && ` • ${loadingAnalyses.size} analysis in progress`}
                             </>
                         ) : (
@@ -148,97 +184,133 @@ export default function CreatorsView({
 
             {currentView === 'home' || currentView === 'favorite-creators' || currentView.startsWith('hub-') ? (
                 // Show unified creators for home view and favorite-creators view
-                filteredUnifiedCreators.length === 0 ? (
-                    <div className="text-center py-12">
-                        {currentView === 'home' && totalAnalyses === 0 ? (
-                            <EmptyState onTrackChannel={onTrackChannel} />
-                        ) : isFiltering ? (
-                            <div className="flex justify-center py-12">
-                                <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-                            </div>
-                        ) : (
-                            <p className="text-gray-600">
-                                {currentView === 'favorite-creators' ? 'No favorite creators yet.' : 
-                                 currentView.startsWith('hub-') ? 'No creators in this hub yet.' :
-                                 'No unorganized creators. All creators have been assigned to hubs.'}
-                            </p>
-                        )}
-                    </div>
-                ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 overflow-visible">
-                        {filteredUnifiedCreators.map(creator => (
-                            <ErrorBoundary key={creator.analysisId}>
-                                <UnifiedCreatorCard
-                                    creator={creator}
-                                    isLoading={loadingAnalyses.has(creator.analysisId)}
-                                    onClick={onCreatorClick}
-                                    onRightClick={onChannelRightClick}
-                                    hubs={hubs}
-                                    onHubAssign={async () => {
-                                        // Refresh hub data from database
-                                        if (onHubsRefresh) {
-                                            await onHubsRefresh();
-                                        }
-                                        
-                                        // Refresh the filtered creators after hub assignment
-                                        if (currentView === 'favorite-creators') {
-                                            await filterFavoriteCreators();
-                                        } else if (currentView === 'home') {
-                                            await filterUnorganizedCreators();
-                                        } else if (currentView.startsWith('hub-')) {
-                                            await filterHubCreators();
-                                        }
-                                    }}
-                                />
-                            </ErrorBoundary>
-                        ))}
-                    </div>
-                )
-            ) : (
-                // Show YouTube-only creators for other views  
-                creatorsToShow.length === 0 ? (
-                    <div className="text-center py-12">
-                        <p className="text-gray-600">No creators in this section.</p>
-                    </div>
-                ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 overflow-visible">
-                        {creatorsToShow.map(analysis => (
-                            <ErrorBoundary key={analysis.analysisId}>
-                                <div onContextMenu={(e) => onChannelRightClick(e, analysis.analysisId)}>
-                                    {analysis.data && analysis.data.channelInfo ? (
-                                        <ChannelCard
-                                            channelInfo={analysis.data.channelInfo}
-                                            totalVideos={analysis.data.totalVideos || 0}
-                                            progress={analysis.data.progress || 0}
-                                            isLoading={loadingAnalyses.has(analysis.analysisId) || analysis.data.status === 'processing'}
-                                            onClick={() => onChannelClick(analysis)}
-                                            analysisId={analysis.analysisId}
+                <>
+                    {filteredUnifiedCreators.length === 0 ? (
+                        <div className="text-center py-12">
+                            {currentView === 'home' && totalAnalyses === 0 ? (
+                                <EmptyState onTrackChannel={onTrackChannel} />
+                            ) : isFiltering ? (
+                                <div className="flex justify-center py-12">
+                                    <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                                </div>
+                            ) : (
+                                <p className="text-gray-600">
+                                    {currentView === 'favorite-creators' ? 'No favorite creators yet.' : 
+                                     currentView.startsWith('hub-') ? 'No creators in this hub yet.' :
+                                     'No unorganized creators. All creators have been assigned to hubs.'}
+                                </p>
+                            )}
+                        </div>
+                    ) : (
+                        <>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 overflow-visible">
+                                {filteredUnifiedCreators.map(creator => (
+                                    <ErrorBoundary key={creator.analysisId}>
+                                        <UnifiedCreatorCard
+                                            creator={creator}
+                                            isLoading={loadingAnalyses.has(creator.analysisId)}
+                                            onClick={onCreatorClick}
+                                            onRightClick={onChannelRightClick}
                                             hubs={hubs}
-                                            onHubsChange={onHubsChange}
+                                            onHubAssign={async () => {
+                                                // Refresh hub data from database
+                                                if (onHubsRefresh) {
+                                                    await onHubsRefresh();
+                                                }
+                                                
+                                                // Refresh the filtered creators after hub assignment
+                                                if (currentView === 'favorite-creators') {
+                                                    await filterFavoriteCreators();
+                                                } else if (currentView === 'home') {
+                                                    await filterUnorganizedCreators();
+                                                } else if (currentView.startsWith('hub-')) {
+                                                    await filterHubCreators();
+                                                }
+                                            }}
                                         />
-                                    ) : (
-                                        <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
-                                            <div className="animate-pulse">
-                                                <div className="flex items-center space-x-4">
-                                                    <div className="w-16 h-16 bg-gray-300 rounded-full"></div>
-                                                    <div className="flex-1">
-                                                        <div className="h-4 bg-gray-300 rounded w-3/4 mb-2"></div>
-                                                        <div className="h-3 bg-gray-300 rounded w-1/2 mb-2"></div>
-                                                        <div className="h-3 bg-gray-300 rounded w-2/3"></div>
-                                                    </div>
-                                                </div>
-                                                <div className="mt-4">
-                                                    <div className="h-2 bg-gray-300 rounded w-full mb-2"></div>
-                                                    <div className="h-2 bg-gray-200 rounded w-3/4"></div>
-                                                </div>
-                                            </div>
+                                    </ErrorBoundary>
+                                ))}
+                            </div>
+                            
+                            {/* Infinite scroll trigger */}
+                            {hasMore && (
+                                <div ref={loadMoreRef} className="flex justify-center py-8">
+                                    {isLoadingMore ? (
+                                        <div className="flex items-center space-x-2">
+                                            <div className="w-6 h-6 border-3 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                                            <span className="text-gray-600">Loading more creators...</span>
                                         </div>
+                                    ) : (
+                                        <div className="h-4" />
                                     )}
                                 </div>
-                            </ErrorBoundary>
-                        ))}
-                    </div>
-                )
+                            )}
+                        </>
+                    )}
+                </>
+            ) : (
+                // Show YouTube-only creators for other views  
+                <>
+                    {creatorsToShow.length === 0 ? (
+                        <div className="text-center py-12">
+                            <p className="text-gray-600">No creators in this section.</p>
+                        </div>
+                    ) : (
+                        <>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 overflow-visible">
+                                {creatorsToShow.map(analysis => (
+                                    <ErrorBoundary key={analysis.analysisId}>
+                                        <div onContextMenu={(e) => onChannelRightClick(e, analysis.analysisId)}>
+                                            {analysis.data && analysis.data.channelInfo ? (
+                                                <ChannelCard
+                                                    channelInfo={analysis.data.channelInfo}
+                                                    totalVideos={analysis.data.totalVideos || 0}
+                                                    progress={analysis.data.progress || 0}
+                                                    isLoading={loadingAnalyses.has(analysis.analysisId) || analysis.data.status === 'processing'}
+                                                    onClick={() => onChannelClick(analysis)}
+                                                    analysisId={analysis.analysisId}
+                                                    hubs={hubs}
+                                                    onHubsChange={onHubsChange}
+                                                />
+                                            ) : (
+                                                <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
+                                                    <div className="animate-pulse">
+                                                        <div className="flex items-center space-x-4">
+                                                            <div className="w-16 h-16 bg-gray-300 rounded-full"></div>
+                                                            <div className="flex-1">
+                                                                <div className="h-4 bg-gray-300 rounded w-3/4 mb-2"></div>
+                                                                <div className="h-3 bg-gray-300 rounded w-1/2 mb-2"></div>
+                                                                <div className="h-3 bg-gray-300 rounded w-2/3"></div>
+                                                            </div>
+                                                        </div>
+                                                        <div className="mt-4">
+                                                            <div className="h-2 bg-gray-300 rounded w-full mb-2"></div>
+                                                            <div className="h-2 bg-gray-200 rounded w-3/4"></div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </ErrorBoundary>
+                                ))}
+                            </div>
+                            
+                            {/* Infinite scroll trigger for non-unified views */}
+                            {hasMore && (
+                                <div ref={loadMoreRef} className="flex justify-center py-8">
+                                    {isLoadingMore ? (
+                                        <div className="flex items-center space-x-2">
+                                            <div className="w-6 h-6 border-3 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                                            <span className="text-gray-600">Loading more creators...</span>
+                                        </div>
+                                    ) : (
+                                        <div className="h-4" />
+                                    )}
+                                </div>
+                            )}
+                        </>
+                    )}
+                </>
             )}
         </div>
     );

@@ -9,24 +9,37 @@ const { getDatabase } = require('../../../database/connection');
 /**
  * Get creator-based analysis status from database posts
  * @param {string} username - Instagram username
+ * @param {number} [limit] - Optional limit for pagination
+ * @param {number} [offset] - Optional offset for pagination
  * @returns {Promise<Object|null>} Creator analysis data
  */
-async function getCreatorAnalysisStatus(username) {
+async function getCreatorAnalysisStatus(username, limit = null, offset = 0) {
     try {
         const db = await getDatabase();
         
-        // Get all posts for this creator
-        const posts = await db.all(
-            `SELECT analysis_id, instagram_user_id, profile_username, 
+        // First get total count
+        const countResult = await db.get(
+            `SELECT COUNT(*) as total
+             FROM instagram_data 
+             WHERE profile_username = ? AND analysis_status = 'completed'`,
+            [username]
+        );
+        
+        const totalCount = countResult.total;
+        
+        // Get posts for this creator with optional pagination
+        const query = `SELECT analysis_id, instagram_user_id, profile_username, 
                     reel_id, reel_shortcode, reel_url, reel_thumbnail_url, 
                     reel_caption, reel_likes, reel_comments, reel_views, 
                     reel_date_posted, reel_duration, reel_hashtags, reel_mentions,
                     profile_link, created_at, updated_at
              FROM instagram_data 
              WHERE profile_username = ? AND analysis_status = 'completed'
-             ORDER BY created_at DESC`,
-            [username]
-        );
+             ORDER BY created_at DESC
+             ${limit ? 'LIMIT ? OFFSET ?' : ''}`;
+        
+        const params = limit ? [username, limit, offset] : [username];
+        const posts = await db.all(query, params);
 
         if (posts.length === 0) {
             return null;
@@ -64,13 +77,13 @@ async function getCreatorAnalysisStatus(username) {
                 biography: '',
                 follower_count: 0,
                 following_count: 0,
-                media_count: posts.length,
+                media_count: totalCount,  // Use total count from DB
                 is_private: false,
                 is_verified: false,
                 profile_pic_url: firstPost.reel_thumbnail_url || ''
             },
             reels: reels,
-            totalReels: reels.length,
+            totalReels: totalCount,  // Use total count from DB, not array length
             reelSegments: {
                 viral: [],
                 veryHigh: [],
@@ -92,18 +105,36 @@ async function getCreatorAnalysisStatus(username) {
 /**
  * Get Instagram analysis status and results
  * @param {string} analysisId - Analysis ID
+ * @param {number} [page=1] - Page number for pagination
+ * @param {number} [limit=50] - Items per page
  * @returns {Promise<Object|null>} Analysis data with results
  */
-async function getInstagramAnalysisStatus(analysisId) {
+async function getInstagramAnalysisStatus(analysisId, page = 1, limit = 50) {
     try {
         if (!analysisId) {
             throw new Error('Analysis ID is required');
         }
 
-        // Handle creator-based analysis IDs
+        // Handle creator-based analysis IDs with pagination
         if (analysisId.startsWith('creator_')) {
             const username = analysisId.replace('creator_', '');
-            return await getCreatorAnalysisStatus(username);
+            const offset = (page - 1) * limit;
+            const fullData = await getCreatorAnalysisStatus(username, limit, offset);
+            
+            if (fullData) {
+                return {
+                    ...fullData,
+                    pagination: {
+                        currentPage: page,
+                        totalPages: Math.ceil(fullData.totalReels / limit),
+                        totalReels: fullData.totalReels,
+                        hasNextPage: page * limit < fullData.totalReels,
+                        hasPrevPage: page > 1,
+                        limit
+                    }
+                };
+            }
+            return null;
         }
 
         // Get job status for regular analysis IDs
@@ -113,18 +144,30 @@ async function getInstagramAnalysisStatus(analysisId) {
             return null;
         }
 
-        // If completed, get full results including reels
+        // If completed, get paginated results including reels
         if (job.status === 'completed') {
             const fullResults = await getAnalysisResults(analysisId);
             
-            if (fullResults) {
+            if (fullResults && fullResults.reels) {
+                const startIndex = (page - 1) * limit;
+                const endIndex = startIndex + limit;
+                const paginatedReels = fullResults.reels.slice(startIndex, endIndex);
+                
                 return {
                     analysisId: fullResults.analysisId,
                     status: fullResults.status,
                     progress: fullResults.progress,
                     profile: fullResults.profile,
-                    reels: fullResults.reels,
+                    reels: paginatedReels,
                     totalReels: fullResults.totalReels,
+                    pagination: {
+                        currentPage: page,
+                        totalPages: Math.ceil(fullResults.totalReels / limit),
+                        totalReels: fullResults.totalReels,
+                        hasNextPage: endIndex < fullResults.totalReels,
+                        hasPrevPage: page > 1,
+                        limit
+                    },
                     processingTime: Math.round((fullResults.updatedAt.getTime() - fullResults.createdAt.getTime()) / 1000),
                     createdAt: fullResults.createdAt,
                     updatedAt: fullResults.updatedAt
@@ -144,6 +187,14 @@ async function getInstagramAnalysisStatus(analysisId) {
             } : null,
             reels: [],
             totalReels: 0,
+            pagination: {
+                currentPage: 1,
+                totalPages: 0,
+                totalReels: 0,
+                hasNextPage: false,
+                hasPrevPage: false,
+                limit
+            },
             processingTime: Math.round((job.updatedAt.getTime() - job.createdAt.getTime()) / 1000),
             createdAt: job.createdAt,
             updatedAt: job.updatedAt
@@ -153,7 +204,7 @@ async function getInstagramAnalysisStatus(analysisId) {
         console.error('Get Instagram analysis status error:', error);
         throw new Error(`Failed to get Instagram analysis status: ${error.message}`);
     } finally {
-        console.log(`Instagram analysis status requested for: ${analysisId}`);
+        console.log(`Instagram analysis status requested for: ${analysisId}, page: ${page}, limit: ${limit}`);
     }
 }
 

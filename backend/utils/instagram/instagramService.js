@@ -56,16 +56,18 @@ async function analyzeInstagramProfile(username, sessionId = null) {
 /**
  * Get Instagram analysis status and results
  * @param {string} analysisId - Analysis ID
+ * @param {number} [page=1] - Page number for pagination
+ * @param {number} [limit=50] - Items per page
  * @returns {Promise<InstagramAnalysisResult|null>} Analysis results
  */
-async function getInstagramAnalysis(analysisId) {
+async function getInstagramAnalysis(analysisId, page = 1, limit = 50) {
     try {
         if (!analysisId) {
             throw new Error('Analysis ID is required');
         }
 
-        // Get analysis status from job manager
-        const analysisData = await getInstagramAnalysisStatus(analysisId);
+        // Get analysis status from job manager with pagination
+        const analysisData = await getInstagramAnalysisStatus(analysisId, page, limit);
         
         if (!analysisData) {
             return null;
@@ -85,6 +87,7 @@ async function getInstagramAnalysis(analysisId) {
             reels: analysisData.reels || [],
             reelSegments: reelSegments,
             totalReels: analysisData.totalReels || 0,
+            pagination: analysisData.pagination,
             error: analysisData.error,
         };
 
@@ -92,7 +95,7 @@ async function getInstagramAnalysis(analysisId) {
         console.error('Get Instagram analysis error:', error);
         throw new Error(`Failed to get Instagram analysis: ${error.message}`);
     } finally {
-        console.log(`Instagram analysis status requested: ${analysisId}`);
+        console.log(`Instagram analysis status requested: ${analysisId}, page: ${page}, limit: ${limit}`);
     }
 }
 

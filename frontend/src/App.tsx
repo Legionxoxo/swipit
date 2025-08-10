@@ -50,8 +50,26 @@ function App() {
     const [hubs, setHubs] = useState<CreatorHub[]>([]);
     const [videoViewMode, setVideoViewMode] = useState<'grid' | 'list'>('grid');
 
-    const { analyses, loadingAnalyses, handleAnalysisStarted } = useAnalysisTracking();
-    const { instagramAnalyses, loadingInstagramAnalyses, handleInstagramAnalysisStarted, handleInstagramPostTracked } = useInstagramAnalysisTracking();
+    const { 
+        analyses, 
+        loadingAnalyses, 
+        handleAnalysisStarted,
+        totalCount: youtubeTotalCount,
+        hasMore: youtubeHasMore,
+        isLoadingMore: youtubeIsLoadingMore,
+        loadMore: loadMoreYoutube
+    } = useAnalysisTracking();
+    
+    const { 
+        instagramAnalyses, 
+        loadingInstagramAnalyses, 
+        handleInstagramAnalysisStarted, 
+        handleInstagramPostTracked,
+        totalCount: instagramTotalCount,
+        hasMore: instagramHasMore,
+        isLoadingMore: instagramIsLoadingMore,
+        loadMoreAnalyses: loadMoreInstagram
+    } = useInstagramAnalysisTracking();
     
     // Create unified creator list
     const unifiedCreators: UnifiedCreator[] = [
@@ -194,7 +212,17 @@ function App() {
                 onTrackChannel={handleTrackChannelClick}
                 onHubsChange={setHubs}
                 onHubsRefresh={loadHubs}
-                totalAnalyses={unifiedCreators.length}
+                totalAnalyses={youtubeTotalCount + instagramTotalCount}
+                hasMore={youtubeHasMore || instagramHasMore}
+                isLoadingMore={youtubeIsLoadingMore || instagramIsLoadingMore}
+                onLoadMore={() => {
+                    if (youtubeHasMore && !youtubeIsLoadingMore) {
+                        loadMoreYoutube();
+                    }
+                    if (instagramHasMore && !instagramIsLoadingMore) {
+                        loadMoreInstagram();
+                    }
+                }}
             />
         );
     };

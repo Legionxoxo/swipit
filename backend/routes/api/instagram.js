@@ -108,6 +108,10 @@ router.post('/analyze', async (req, res) => {
 router.get('/analysis/:id', async (req, res) => {
     try {
         const { id } = req.params;
+        const { 
+            page = '1', 
+            limit = '50' 
+        } = req.query;
 
         // Input validation
         if (!id) {
@@ -126,8 +130,11 @@ router.get('/analysis/:id', async (req, res) => {
             });
         }
 
-        // Get Instagram analysis status
-        const analysisData = await getInstagramAnalysisStatus(id.trim());
+        const pageNum = parseInt(String(page), 10) || 1;
+        const limitNum = Math.min(parseInt(String(limit), 10) || 50, 100); // Max 100 items per page
+
+        // Get Instagram analysis status with pagination
+        const analysisData = await getInstagramAnalysisStatus(id.trim(), pageNum, limitNum);
 
         if (!analysisData) {
             return res.status(404).json({
@@ -147,6 +154,7 @@ router.get('/analysis/:id', async (req, res) => {
             reels: analysisData.reels,
             reelSegments: analysisData.reelSegments,
             totalReels: analysisData.totalReels,
+            pagination: analysisData.pagination,
             error: analysisData.error
         });
 
@@ -199,22 +207,38 @@ router.get('/health', (req, res) => {
 router.get('/analyses', async (req, res) => {
     try {
         const { 
-            limit = 100, 
-            offset = 0 
+            limit = 20, 
+            offset = 0,
+            includeTotal = 'true' 
         } = req.query;
 
         const options = {
-            limit: parseInt(String(limit), 10) || 100,
-            offset: parseInt(String(offset), 10) || 0
+            limit: parseInt(String(limit), 10) || 20,
+            offset: parseInt(String(offset), 10) || 0,
+            includeTotal: includeTotal === 'true'
         };
 
-        const analyses = await getAllCompletedAnalyses(options);
+        const result = await getAllCompletedAnalyses(options);
 
-        res.json({
-            success: true,
-            message: 'Instagram analyses retrieved successfully',
-            data: analyses
-        });
+        // If includeTotal is true, result is an object with data and total
+        // Otherwise it's just the array
+        if (options.includeTotal) {
+            res.json({
+                success: true,
+                message: 'Instagram analyses retrieved successfully',
+                data: result.data,
+                total: result.total,
+                limit: result.limit,
+                offset: result.offset,
+                hasMore: result.hasMore
+            });
+        } else {
+            res.json({
+                success: true,
+                message: 'Instagram analyses retrieved successfully',
+                data: result
+            });
+        }
 
     } catch (error) {
         console.error('Get all Instagram analyses error:', error);

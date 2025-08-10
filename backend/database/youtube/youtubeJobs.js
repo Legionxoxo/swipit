@@ -182,17 +182,29 @@ async function deleteAnalysisJob(analysisId) {
 }
 
 /**
- * Get all completed YouTube analyses
+ * Get all completed YouTube analyses with pagination
  * @param {Object} options - Query options
  * @param {number} [options.limit] - Limit number of results
  * @param {number} [options.offset] - Offset for pagination
- * @returns {Promise<Array>} Array of completed analyses
+ * @param {boolean} [options.includeTotal] - Include total count
+ * @returns {Promise<Object|Array>} Array of completed analyses or object with data and total
  */
 async function getAllCompletedAnalyses(options = {}) {
     try {
-        const { limit = 100, offset = 0 } = options;
+        const { limit = 20, offset = 0, includeTotal = false } = options;
 
         const db = await getDatabase();
+
+        // Get total count if requested
+        let totalCount = 0;
+        if (includeTotal) {
+            const countResult = await db.get(
+                `SELECT COUNT(DISTINCT analysis_id) as total
+                 FROM youtube_data 
+                 WHERE analysis_status = 'completed' AND video_id IS NULL`
+            );
+            totalCount = countResult.total;
+        }
 
         const analyses = await db.all(
             `SELECT DISTINCT analysis_id, youtube_channel_id, channel_name, channel_url, 
@@ -204,7 +216,7 @@ async function getAllCompletedAnalyses(options = {}) {
             [limit, offset]
         );
 
-        return analyses.map((analysis) => ({
+        const mappedAnalyses = analyses.map((analysis) => ({
             analysisId: analysis.analysis_id,
             youtubeChannelId: analysis.youtube_channel_id,
             channelName: analysis.channel_name,
@@ -214,6 +226,18 @@ async function getAllCompletedAnalyses(options = {}) {
             createdAt: new Date(analysis.created_at),
             updatedAt: new Date(analysis.updated_at)
         }));
+
+        if (includeTotal) {
+            return {
+                data: mappedAnalyses,
+                total: totalCount,
+                limit,
+                offset,
+                hasMore: offset + analyses.length < totalCount
+            };
+        }
+
+        return mappedAnalyses;
 
     } catch (error) {
         console.error('Get all completed analyses error:', error);

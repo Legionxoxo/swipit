@@ -27,20 +27,34 @@ interface InstagramAnalysisData {
 export function useInstagramAnalysisTracking() {
     const [instagramAnalyses, setInstagramAnalyses] = useState<InstagramAnalysisData[]>([]);
     const [loadingInstagramAnalyses, setLoadingInstagramAnalyses] = useState<string[]>([]);
+    const [totalCount, setTotalCount] = useState<number>(0);
+    const [hasMore, setHasMore] = useState<boolean>(true);
+    const [isLoadingMore, setIsLoadingMore] = useState<boolean>(false);
+    const [currentOffset, setCurrentOffset] = useState<number>(0);
     const pollIntervals = useRef<{ [key: string]: number }>({});
+    const ITEMS_PER_PAGE = 20;
 
-    // Load completed Instagram analyses from backend on mount
+    // Load initial Instagram analyses from backend on mount
     useEffect(() => {
         loadCompletedInstagramAnalyses();
     }, []);
 
-    const loadCompletedInstagramAnalyses = async () => {
+    const loadCompletedInstagramAnalyses = async (loadMore: boolean = false) => {
         try {
-            const completedAnalyses = await apiService.getAllCompletedInstagramAnalyses();
+            if (isLoadingMore) return;
+            
+            const offset = loadMore ? currentOffset : 0;
+            setIsLoadingMore(true);
+            
+            const result = await apiService.getAllCompletedInstagramAnalyses(ITEMS_PER_PAGE, offset);
+            
+            // Set total count
+            setTotalCount(result.total);
+            setHasMore(result.hasMore);
             
             // Transform backend data to frontend format
             const analysesWithData = await Promise.all(
-                completedAnalyses.map(async (analysis: any) => {
+                result.data.map(async (analysis: any) => {
                     try {
                         const analysisId = analysis.analysisId || analysis.analysis_id;
                         
@@ -68,9 +82,26 @@ export function useInstagramAnalysisTracking() {
             );
 
             const validAnalyses = analysesWithData.filter(Boolean) as InstagramAnalysisData[];
-            setInstagramAnalyses(validAnalyses);
+            
+            if (loadMore) {
+                // Append to existing analyses
+                setInstagramAnalyses(prev => [...prev, ...validAnalyses]);
+                setCurrentOffset(offset + ITEMS_PER_PAGE);
+            } else {
+                // Replace analyses
+                setInstagramAnalyses(validAnalyses);
+                setCurrentOffset(ITEMS_PER_PAGE);
+            }
         } catch (error) {
             console.error('Error loading completed Instagram analyses:', error);
+        } finally {
+            setIsLoadingMore(false);
+        }
+    };
+    
+    const loadMoreAnalyses = () => {
+        if (hasMore && !isLoadingMore) {
+            loadCompletedInstagramAnalyses(true);
         }
     };
 
@@ -248,6 +279,10 @@ export function useInstagramAnalysisTracking() {
         instagramAnalyses,
         loadingInstagramAnalyses,
         handleInstagramAnalysisStarted,
-        handleInstagramPostTracked
+        handleInstagramPostTracked,
+        totalCount,
+        hasMore,
+        isLoadingMore,
+        loadMoreAnalyses
     };
 }

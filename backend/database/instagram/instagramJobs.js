@@ -181,17 +181,29 @@ async function deleteAnalysisJob(analysisId) {
 }
 
 /**
- * Get all completed Instagram analyses
+ * Get all completed Instagram analyses with pagination
  * @param {Object} options - Query options
  * @param {number} [options.limit] - Limit number of results
  * @param {number} [options.offset] - Offset for pagination
- * @returns {Promise<Array>} Array of completed analyses
+ * @param {boolean} [options.includeTotal] - Include total count
+ * @returns {Promise<Object|Array>} Array of completed analyses or object with data and total
  */
 async function getAllCompletedAnalyses(options = {}) {
     try {
-        const { limit = 100, offset = 0 } = options;
+        const { limit = 20, offset = 0, includeTotal = false } = options;
 
         const db = await getDatabase();
+
+        // Get total count if requested
+        let totalCount = 0;
+        if (includeTotal) {
+            const countResult = await db.get(
+                `SELECT COUNT(DISTINCT profile_username) as total
+                 FROM instagram_data 
+                 WHERE analysis_status = 'completed' AND profile_username IS NOT NULL AND profile_username != ''`
+            );
+            totalCount = countResult.total;
+        }
 
         // Get creators with completed posts, grouped by username
         const creators = await db.all(
@@ -209,7 +221,7 @@ async function getAllCompletedAnalyses(options = {}) {
             [limit, offset]
         );
 
-        return creators.map((creator) => ({
+        const mappedCreators = creators.map((creator) => ({
             analysisId: `creator_${creator.profile_username}`,
             instagramUserId: creator.instagram_user_id,
             username: creator.profile_username,
@@ -219,6 +231,18 @@ async function getAllCompletedAnalyses(options = {}) {
             createdAt: new Date(creator.latest_created_at),
             updatedAt: new Date(creator.latest_updated_at)
         }));
+
+        if (includeTotal) {
+            return {
+                data: mappedCreators,
+                total: totalCount,
+                limit,
+                offset,
+                hasMore: offset + creators.length < totalCount
+            };
+        }
+
+        return mappedCreators;
 
     } catch (error) {
         console.error('Get all completed Instagram analyses error:', error);

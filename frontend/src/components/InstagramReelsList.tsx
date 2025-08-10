@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { apiService } from '../services/api';
 import ReelCard from './reel/ReelCard';
-// import { useInfiniteScrollInstagram } from '../hooks/useInfiniteScrollInstagram'; // TODO: Implement for Instagram
+import { useInfiniteScrollInstagram } from '../hooks/useInfiniteScrollInstagram';
 
 interface InstagramProfile {
     instagram_user_id: string;
@@ -46,16 +46,34 @@ interface ReelSegments {
 
 interface InstagramReelsListProps {
     profileInfo: InstagramProfile;
-    reels: InstagramReel[];
-    reelSegments: ReelSegments | null;
+    reels: InstagramReel[];  // Initial reels (now unused with infinite scroll)
+    reelSegments: ReelSegments | null;  // Initial segments (now unused with infinite scroll)
     analysisId: string;
     onBack: () => void;
     viewMode: 'grid' | 'list';
 }
 
-export default function InstagramReelsList({ profileInfo, reels, reelSegments, analysisId, onBack, viewMode }: InstagramReelsListProps) {
+export default function InstagramReelsList({ profileInfo: _initialProfile, reels: _initialReels, reelSegments: _initialSegments, analysisId, onBack, viewMode }: InstagramReelsListProps) {
     const [selectedSegment, setSelectedSegment] = useState<string>('all');
     const [isExporting, setIsExporting] = useState(false);
+    
+    // Use infinite scroll for loading reels
+    const {
+        reels,
+        loading: reelsLoading,
+        hasMore,
+        error: reelsError,
+        totalCount,
+        profile,
+        reelSegments
+    } = useInfiniteScrollInstagram({
+        analysisId,
+        pageSize: 50,
+        autoLoad: true
+    });
+    
+    // Use the profile from infinite scroll if available, otherwise use initial
+    const profileInfo = profile || _initialProfile;
 
     const formatNumber = (num: number | undefined): string => {
         if (num === undefined || num === null) {
@@ -178,7 +196,7 @@ export default function InstagramReelsList({ profileInfo, reels, reelSegments, a
                                 <span><strong>{formatNumber(profileInfo.follower_count)}</strong> followers</span>
                                 <span><strong>{formatNumber(profileInfo.following_count)}</strong> following</span>
                                 <span><strong>{profileInfo.media_count}</strong> posts</span>
-                                <span><strong>{reels.length}</strong> reels analyzed</span>
+                                <span><strong>{totalCount || reels.length}</strong> reels analyzed</span>
                             </div>
                         </div>
                     </div>
@@ -233,6 +251,27 @@ export default function InstagramReelsList({ profileInfo, reels, reelSegments, a
                                 viewMode={viewMode}
                             />
                         ))}
+                    </div>
+                )}
+                
+                {/* Infinite scroll loading indicator */}
+                {hasMore && (
+                    <div className="flex justify-center py-8">
+                        {reelsLoading ? (
+                            <div className="flex items-center space-x-2">
+                                <div className="w-6 h-6 border-3 border-pink-500 border-t-transparent rounded-full animate-spin"></div>
+                                <span className="text-gray-600">Loading more reels...</span>
+                            </div>
+                        ) : (
+                            <div className="h-4" />
+                        )}
+                    </div>
+                )}
+                
+                {/* Error message */}
+                {reelsError && (
+                    <div className="text-center py-4 text-red-600">
+                        Error loading reels: {reelsError}
                     </div>
                 )}
             </div>

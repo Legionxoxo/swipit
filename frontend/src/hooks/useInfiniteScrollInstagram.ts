@@ -1,21 +1,32 @@
 import { useState, useEffect, useCallback } from 'react';
 import { apiService } from '../services/api';
-import type { PaginationInfo } from '../types/api';
 
 interface InstagramReel {
-    id: string;
-    shortcode: string;
-    url: string;
-    thumbnailUrl: string;
-    caption: string;
-    likes: number;
-    comments: number;
-    views: number;
-    datePosted: string;
-    duration: number;
-    isVideo: boolean;
-    hashtags: string[];
-    mentions: string[];
+    reel_id: string;
+    reel_shortcode: string;
+    reel_url: string;
+    reel_thumbnail_url: string;
+    reel_caption: string;
+    reel_likes: number;
+    reel_comments: number;
+    reel_views: number;
+    reel_date_posted: string;
+    reel_duration: number;
+    reel_hashtags: string[];
+    reel_mentions: string[];
+    // Additional fields for Instagram posts tracked via oEmbed
+    embed_link?: string;
+    post_link?: string;
+    hashtags?: string[];
+}
+
+interface PaginationInfo {
+    currentPage: number;
+    totalPages: number;
+    totalReels: number;
+    hasNextPage: boolean;
+    hasPrevPage: boolean;
+    limit: number;
 }
 
 interface InfiniteScrollInstagramState {
@@ -47,6 +58,8 @@ export function useInfiniteScrollInstagram({
     
     const [currentPage, setCurrentPage] = useState(1);
     const [pagination, setPagination] = useState<PaginationInfo | null>(null);
+    const [profile, setProfile] = useState<any>(null);
+    const [reelSegments, setReelSegments] = useState<any>(null);
 
     const loadPage = useCallback(async (page: number, append: boolean = true) => {
         if (state.loading) return;
@@ -67,6 +80,12 @@ export function useInfiniteScrollInstagram({
                 
                 setPagination(response.pagination ?? null);
                 setCurrentPage(page);
+                
+                // Store profile and segments on first load
+                if (page === 1) {
+                    setProfile(response.profile);
+                    setReelSegments(response.reelSegments);
+                }
             } else if (response.status === 'error') {
                 setState(prev => ({
                     ...prev,
@@ -103,6 +122,8 @@ export function useInfiniteScrollInstagram({
         });
         setCurrentPage(1);
         setPagination(null);
+        setProfile(null);
+        setReelSegments(null);
         loadPage(1, false);
     }, [loadPage]);
 
@@ -138,6 +159,8 @@ export function useInfiniteScrollInstagram({
         totalCount: state.totalCount,
         pagination,
         currentPage,
+        profile,
+        reelSegments,
         loadMore,
         refresh
     };
