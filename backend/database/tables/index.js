@@ -9,6 +9,7 @@ const userVideoInteractionsTable = require('./userVideoInteractionsTable');
 const userCreatorInteractionsTable = require('./userCreatorInteractionsTable');
 const userHubsTable = require('./userHubsTable');
 const videoTranscriptionsTable = require('./videoTranscriptionsTable');
+const csvImportTable = require('./csvImportTable');
 
 /**
  * Initialize all database tables
@@ -32,6 +33,9 @@ async function initializeAllTables(db) {
 
         // Initialize video transcriptions table
         await videoTranscriptionsTable.initializeVideoTranscriptionsTable(db);
+
+        // Initialize CSV import tables
+        await csvImportTable.initializeCsvImportTable(db);
 
         // All database tables initialized successfully
 
@@ -60,6 +64,9 @@ async function dropAllTables(db) {
         // Drop video transcriptions table
         await videoTranscriptionsTable.dropVideoTranscriptionsTable(db);
 
+        // Drop CSV import tables
+        await csvImportTable.dropCsvImportTable(db);
+
         // Drop Instagram table
         await instagramTable.dropInstagramTable(db);
 
@@ -83,6 +90,7 @@ module.exports = {
     userCreatorInteractionsTable,
     userHubsTable,
     videoTranscriptionsTable,
+    csvImportTable,
     initializeAllTables,
     dropAllTables,
     tableNames: {
@@ -91,6 +99,8 @@ module.exports = {
         userVideoInteractions: userVideoInteractionsTable.tableName,
         userCreatorInteractions: userCreatorInteractionsTable.tableName,
         userHubs: userHubsTable.tableName,
-        videoTranscriptions: videoTranscriptionsTable.tableName
+        videoTranscriptions: videoTranscriptionsTable.tableName,
+        csvImport: csvImportTable.tableName,
+        csvImportResults: csvImportTable.resultsTableName
     }
 };

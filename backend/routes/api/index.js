@@ -12,6 +12,7 @@ const userInteractionsRoutes = require('./userInteractions');
 const transcriptionRoutes = require('./transcription');
 const oembedRoutes = require('./oembed');
 const { router: extensionRoutes } = require('./extension');
+const csvImportRoutes = require('./csvImport');
 
 const router = express.Router();
 
@@ -42,7 +43,8 @@ router.get('/', (req, res) => {
                 userInteractions: '/api/user-interactions',
                 transcription: '/api/transcription',
                 oembed: '/api/oembed',
-                extension: '/api/extension'
+                extension: '/api/extension',
+                csvImport: '/api/csv'
             }
         });
     } catch (error) {
@@ -68,5 +70,6 @@ router.use('/user-interactions', userInteractionsRoutes);
 router.use('/transcription', transcriptionRoutes);
 router.use('/oembed', oembedRoutes);
 router.use('/extension', extensionRoutes);
+router.use('/csv', csvImportRoutes);
 
 module.exports = router;
