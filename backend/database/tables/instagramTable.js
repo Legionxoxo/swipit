@@ -26,6 +26,7 @@ function getInstagramTableSQL() {
             profile_media_count INTEGER DEFAULT 0,
             profile_is_private BOOLEAN DEFAULT 0,
             profile_pic_url TEXT,
+            profile_link TEXT,
             
             -- Reel Information
             reel_id TEXT,
