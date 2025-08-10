@@ -63,10 +63,10 @@ const CsvUploadModal: React.FC<CsvUploadModalProps> = ({ isOpen, onClose, onProf
         const formData = new FormData();
         formData.append('csv', file);
         formData.append('skipHeader', 'true');
-        formData.append('maxRows', '100');
+        formData.append('maxRows', '1000');
 
         try {
-            const response = await fetch(`${API_BASE_URL}/csv-batch/process`, {
+            const response = await fetch(`${API_BASE_URL}/csv/upload`, {
                 method: 'POST',
                 body: formData
             });
@@ -187,7 +187,7 @@ https://www.instagram.com/reel/DEF456/,travel`;
                                 <>
                                     <Upload className="mx-auto text-gray-400 mb-2" size={48} />
                                     <p className="text-gray-600">Click to select CSV file</p>
-                                    <p className="text-sm text-gray-400 mt-1">Max 100 URLs</p>
+                                    <p className="text-sm text-gray-400 mt-1">Max 1000 URLs</p>
                                 </>
                             )}
                         </div>
