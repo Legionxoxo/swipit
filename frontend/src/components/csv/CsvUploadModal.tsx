@@ -23,7 +23,7 @@ const CsvUploadModal: React.FC<CsvUploadModalProps> = ({ isOpen, onClose }) => {
     const [error, setError] = useState<string | null>(null);
     const [parseErrors, setParseErrors] = useState<string[]>([]);
     const fileInputRef = useRef<HTMLInputElement>(null);
-    const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+    const pollIntervalRef = useRef<number | null>(null);
 
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const selectedFile = e.target.files?.[0];
@@ -82,7 +82,7 @@ const CsvUploadModal: React.FC<CsvUploadModalProps> = ({ isOpen, onClose }) => {
         }
 
         // Poll every 2 seconds
-        pollIntervalRef.current = setInterval(async () => {
+        pollIntervalRef.current = window.setInterval(async () => {
             try {
                 const response = await fetch(`http://localhost:3000/api/csv/job/${jobId}`);
                 const data = await response.json();
@@ -310,7 +310,7 @@ const CsvUploadModal: React.FC<CsvUploadModalProps> = ({ isOpen, onClose }) => {
                         <button
                             onClick={reset}
                             className="px-4 py-2 text-gray-600 hover:text-gray-800"
-                            disabled={uploading || (jobStatus && jobStatus.status === 'processing')}
+                            disabled={uploading || (jobStatus?.status === 'processing')}
                         >
                             Reset
                         </button>
