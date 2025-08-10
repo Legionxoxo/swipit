@@ -69,51 +69,7 @@ class CsvProcessor {
             const analysisId = `csv_${username}_${Date.now()}`;
             
             
-            // Check if this user already has an entry
-            const existingProfile = await this.db.get(
-                `SELECT analysis_id FROM instagram_data 
-                 WHERE profile_username = ? AND reel_id IS NULL
-                 ORDER BY created_at DESC LIMIT 1`,
-                [username]
-            );
-            
-            const profileAnalysisId = existingProfile ? existingProfile.analysis_id : analysisId;
-            
-            
-            // If no existing profile, create profile entry
-            if (!existingProfile) {
-                await this.db.run(
-                    `INSERT INTO instagram_data (
-                        analysis_id,
-                        instagram_user_id,
-                        analysis_status,
-                        analysis_progress,
-                        profile_username,
-                        profile_pic_url,
-                        profile_link,
-                        profile_follower_count,
-                        profile_following_count,
-                        profile_media_count,
-                        profile_is_private
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-                    [
-                        profileAnalysisId,
-                        authorId,
-                        'completed',
-                        100,
-                        username,
-                        oembedData.thumbnail_url || '',
-                        oembedData.profile_link || `https://www.instagram.com/${username}/`,
-                        0,  // We don't have follower count from oEmbed
-                        0,  // We don't have following count from oEmbed
-                        0,  // We don't have media count from oEmbed
-                        0   // Assume public if we can get oEmbed
-                    ]
-                );
-            }
-            
-            
-            // Add reel/post entry
+            // Only create reel/post entry (no placeholder profile entry)
             const reelId = oembedData.instagram_id || oembedData.shortcode || uuidv4();
             const reelShortcode = oembedData.shortcode || reelId;
             
@@ -146,7 +102,7 @@ class CsvProcessor {
                         reel_hashtags
                     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                     [
-                        profileAnalysisId,
+                        analysisId,
                         authorId,
                         'completed',
                         100,
