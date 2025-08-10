@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import CsvUploadModal from '../csv/CsvUploadModal';
 
 interface InstagramProfile {
     instagram_user_id: string;
@@ -42,7 +41,6 @@ export default function InstagramProfilesView({
     onTrackProfile 
 }: InstagramProfilesViewProps) {
     const [searchTerm, setSearchTerm] = useState('');
-    const [showCsvUpload, setShowCsvUpload] = useState(false);
 
     const formatNumber = (num: number): string => {
         if (num >= 1000000) {
@@ -132,23 +130,12 @@ export default function InstagramProfilesView({
                         {loadingAnalyses.length > 0 && `, ${loadingAnalyses.length} analyzing`}
                     </p>
                 </div>
-                <div className="flex gap-3">
-                    <button
-                        onClick={() => setShowCsvUpload(true)}
-                        className="bg-gray-100 text-gray-700 px-6 py-3 rounded-lg font-medium hover:bg-gray-200 transition-all flex items-center gap-2"
-                    >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                        </svg>
-                        Import CSV
-                    </button>
-                    <button
-                        onClick={onTrackProfile}
-                        className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-6 py-3 rounded-lg font-medium hover:from-purple-700 hover:to-pink-700 transition-all"
-                    >
-                        Track New Profile
-                    </button>
-                </div>
+                <button
+                    onClick={onTrackProfile}
+                    className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-6 py-3 rounded-lg font-medium hover:from-purple-700 hover:to-pink-700 transition-all"
+                >
+                    Track New Profile
+                </button>
             </div>
 
             {/* Search */}
@@ -291,12 +278,6 @@ export default function InstagramProfilesView({
                     <p className="text-gray-500">Try adjusting your search terms.</p>
                 </div>
             )}
-
-            {/* CSV Upload Modal */}
-            <CsvUploadModal 
-                isOpen={showCsvUpload} 
-                onClose={() => setShowCsvUpload(false)} 
-            />
         </div>
     );
 }
