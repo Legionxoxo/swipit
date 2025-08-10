@@ -100,7 +100,89 @@ async function getProfileData(analysisId) {
     }
 }
 
+/**
+ * Save Instagram profile to database (for CSV import)
+ * @param {Object} db - Database connection
+ * @param {Object} profile - Profile data
+ * @returns {Promise<void>}
+ */
+async function saveInstagramProfile(db, profile) {
+    try {
+        const { instagram_user_id, username, full_name, profile_pic_url } = profile;
+        
+        // Check if profile exists in instagram_data table
+        const existing = await db.get(
+            `SELECT analysis_id FROM instagram_data 
+             WHERE instagram_user_id = ? AND reel_id IS NULL LIMIT 1`,
+            [instagram_user_id]
+        );
+        
+        if (!existing) {
+            // Create new profile entry
+            const analysisId = `csv_${instagram_user_id}_${Date.now()}`;
+            await db.run(
+                `INSERT INTO instagram_data (
+                    analysis_id, instagram_user_id, profile_username, 
+                    profile_pic_url, status
+                ) VALUES (?, ?, ?, ?, 'completed')`,
+                [analysisId, instagram_user_id, username, profile_pic_url]
+            );
+        }
+        
+    } catch (error) {
+        console.error('Error saving Instagram profile:', error);
+    }
+}
+
+/**
+ * Save Instagram reel to database (for CSV import)
+ * @param {Object} db - Database connection
+ * @param {Object} reel - Reel data
+ * @returns {Promise<void>}
+ */
+async function saveInstagramReel(db, reel) {
+    try {
+        const {
+            reel_id,
+            instagram_user_id,
+            username,
+            code,
+            caption,
+            thumbnail_url,
+            media_url
+        } = reel;
+        
+        // Check if reel exists
+        const existing = await db.get(
+            `SELECT analysis_id FROM instagram_data WHERE reel_id = ? LIMIT 1`,
+            [reel_id]
+        );
+        
+        if (!existing) {
+            // Create new reel entry
+            const analysisId = `csv_reel_${reel_id}_${Date.now()}`;
+            await db.run(
+                `INSERT INTO instagram_data (
+                    analysis_id, reel_id, instagram_user_id, 
+                    profile_username, reel_code, reel_caption, 
+                    reel_thumbnail_url, reel_media_url, status
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'completed')`,
+                [
+                    analysisId, reel_id, instagram_user_id,
+                    username, code, caption,
+                    thumbnail_url, media_url
+                ]
+            );
+        }
+        
+    } catch (error) {
+        console.error('Error saving Instagram reel:', error);
+    }
+}
+
 module.exports = {
     storeProfileData,
-    getProfileData
+    getProfileData,
+    saveInstagramProfile,
+    saveInstagramReel
 };
