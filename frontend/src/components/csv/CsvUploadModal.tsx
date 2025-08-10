@@ -1,5 +1,5 @@
-import React, { useState, useRef } from 'react';
-import { Upload, FileText, AlertCircle, CheckCircle, User } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Upload, FileText, AlertCircle, CheckCircle, User, Loader2 } from 'lucide-react';
 import Modal from '../Modal';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
@@ -10,30 +10,147 @@ interface CsvUploadModalProps {
     onProfilesTracked?: (profiles: any[]) => void;
 }
 
+interface JobStatus {
+    id: string;
+    status: 'processing' | 'completed' | 'failed' | 'cancelled';
+    totalUrls: number;
+    processedUrls: number;
+    progress: number;
+    errorMessage?: string;
+}
+
+interface ProcessedResult {
+    url: string;
+    status: string;
+    oembed_data?: {
+        username: string;
+        author_name: string;
+        author_id: string;
+        profile_link: string;
+        caption: string;
+        thumbnail_url: string;
+        instagram_id: string;
+        shortcode: string;
+        embed_link: string;
+    };
+    error_message?: string;
+    custom_tag?: string;
+}
+
 interface ProcessedProfile {
     username: string;
+    author_name: string;
+    author_id: string;
     profile_link: string;
-    profile_pic_url: string;
+    profile_pic_url?: string;
     posts: Array<{
         url: string;
         instagram_id: string;
         caption: string;
-        hashtags: string[];
         thumbnail_url: string;
         embed_link: string;
-        tag: string;
+        tag?: string;
     }>;
 }
 
 const CsvUploadModal: React.FC<CsvUploadModalProps> = ({ isOpen, onClose, onProfilesTracked }) => {
     const [file, setFile] = useState<File | null>(null);
     const [processing, setProcessing] = useState(false);
+    const [jobId, setJobId] = useState<string | null>(null);
+    const [jobStatus, setJobStatus] = useState<JobStatus | null>(null);
     const [profiles, setProfiles] = useState<ProcessedProfile[]>([]);
     const [error, setError] = useState<string | null>(null);
     const [parseErrors, setParseErrors] = useState<string[]>([]);
-    const [failures, setFailures] = useState<Array<{url: string, error: string}>>([]);
-    const [stats, setStats] = useState<{total: number, success: number, failed: number} | null>(null);
+    const [pollingInterval, setPollingInterval] = useState<number | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    
+    // Poll job status
+    useEffect(() => {
+        if (jobId && !jobStatus?.status.includes('completed') && !jobStatus?.status.includes('failed')) {
+            const interval = setInterval(async () => {
+                try {
+                    const response = await fetch(`${API_BASE_URL}/csv/job/${jobId}`);
+                    const data = await response.json();
+                    
+                    if (data.success && data.job) {
+                        setJobStatus(data.job);
+                        
+                        // If job is complete, fetch results
+                        if (data.job.status === 'completed') {
+                            await fetchJobResults(jobId);
+                            clearInterval(interval);
+                            setPollingInterval(null);
+                        } else if (data.job.status === 'failed' || data.job.status === 'cancelled') {
+                            setError(data.job.errorMessage || 'Job failed');
+                            clearInterval(interval);
+                            setPollingInterval(null);
+                        }
+                    }
+                } catch (err) {
+                    console.error('Error polling job status:', err);
+                }
+            }, 2000); // Poll every 2 seconds
+            
+            setPollingInterval(interval);
+            
+            return () => clearInterval(interval);
+        }
+    }, [jobId, jobStatus?.status]);
+
+    
+    // Fetch job results and transform to profiles
+    const fetchJobResults = async (jobId: string) => {
+        try {
+            const response = await fetch(`${API_BASE_URL}/csv/results/${jobId}?limit=500`);
+            const data = await response.json();
+            
+            if (data.success && data.results) {
+                // Group results by username/profile
+                const profileMap = new Map<string, ProcessedProfile>();
+                
+                data.results.forEach((result: ProcessedResult) => {
+                    if (result.status === 'success' && result.oembed_data) {
+                        const username = result.oembed_data.username;
+                        
+                        if (!profileMap.has(username)) {
+                            profileMap.set(username, {
+                                username: username,
+                                author_name: result.oembed_data.author_name,
+                                author_id: result.oembed_data.author_id,
+                                profile_link: result.oembed_data.profile_link,
+                                profile_pic_url: result.oembed_data.thumbnail_url, // Use first thumbnail as profile pic
+                                posts: []
+                            });
+                        }
+                        
+                        const profile = profileMap.get(username)!;
+                        profile.posts.push({
+                            url: result.url,
+                            instagram_id: result.oembed_data.instagram_id || result.oembed_data.shortcode,
+                            caption: result.oembed_data.caption || '',
+                            thumbnail_url: result.oembed_data.thumbnail_url || '',
+                            embed_link: result.oembed_data.embed_link || '',
+                            tag: result.custom_tag || undefined
+                        });
+                    }
+                });
+                
+                const profilesArray = Array.from(profileMap.values());
+                setProfiles(profilesArray);
+                
+                // Notify parent component
+                if (onProfilesTracked && profilesArray.length > 0) {
+                    onProfilesTracked(profilesArray);
+                }
+            }
+        } catch (err) {
+            console.error('Error fetching job results:', err);
+            setError('Failed to fetch results');
+        } finally {
+            setProcessing(false);
+        }
+    };
 
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const selectedFile = e.target.files?.[0];
@@ -46,8 +163,8 @@ const CsvUploadModal: React.FC<CsvUploadModalProps> = ({ isOpen, onClose, onProf
             setError(null);
             // Reset previous results
             setProfiles([]);
-            setFailures([]);
-            setStats(null);
+            setJobId(null);
+            setJobStatus(null);
         }
     };
 
@@ -58,7 +175,6 @@ const CsvUploadModal: React.FC<CsvUploadModalProps> = ({ isOpen, onClose, onProf
         setError(null);
         setParseErrors([]);
         setProfiles([]);
-        setFailures([]);
 
         const formData = new FormData();
         formData.append('csv', file);
@@ -77,42 +193,41 @@ const CsvUploadModal: React.FC<CsvUploadModalProps> = ({ isOpen, onClose, onProf
                 throw new Error(data.error || 'Processing failed');
             }
 
-            setProfiles(data.profiles || []);
-            setFailures(data.failures || []);
+            // Store job ID and initial status
+            setJobId(data.jobId);
             setParseErrors(data.parseErrors || []);
-            setStats({
-                total: data.totalProcessed,
-                success: data.successCount,
-                failed: data.failedCount
+            setJobStatus({
+                id: data.jobId,
+                status: 'processing',
+                totalUrls: data.totalUrls,
+                processedUrls: 0,
+                progress: 0
             });
-
-            // Notify parent component about tracked profiles
-            if (onProfilesTracked && data.profiles.length > 0) {
-                onProfilesTracked(data.profiles);
-            }
             
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Processing failed');
-        } finally {
             setProcessing(false);
         }
     };
 
-    const handleTrackProfile = (profile: ProcessedProfile) => {
-        // Start tracking this profile
-        fetch(`${API_BASE_URL}/instagram/analyze`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username: profile.username })
-        }).then(response => response.json())
-          .then(data => {
-              if (data.success) {
-                  alert(`Started tracking @${profile.username}`);
-              }
-          });
+    const handleTrackProfile = async (profile: ProcessedProfile) => {
+        try {
+            const response = await fetch(`${API_BASE_URL}/instagram/analyze`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: profile.username })
+            });
+            
+            const data = await response.json();
+            if (data.success) {
+                alert(`Started tracking @${profile.username}`);
+            }
+        } catch (err) {
+            console.error('Error tracking profile:', err);
+        }
     };
 
-    const downloadSample = async () => {
+    const downloadSample = () => {
         const sampleCsv = `url,tag
 https://www.instagram.com/p/ABC123/,fashion
 https://www.instagram.com/reel/DEF456/,travel`;
@@ -133,10 +248,14 @@ https://www.instagram.com/reel/DEF456/,travel`;
         setProfiles([]);
         setError(null);
         setParseErrors([]);
-        setFailures([]);
-        setStats(null);
+        setJobId(null);
+        setJobStatus(null);
         if (fileInputRef.current) {
             fileInputRef.current.value = '';
+        }
+        if (pollingInterval) {
+            clearInterval(pollingInterval);
+            setPollingInterval(null);
         }
     };
 
@@ -165,7 +284,7 @@ https://www.instagram.com/reel/DEF456/,travel`;
                 </div>
 
                 {/* File Upload */}
-                {!stats && (
+                {!jobId && (
                     <div>
                         <input
                             ref={fileInputRef}
@@ -202,28 +321,47 @@ https://www.instagram.com/reel/DEF456/,travel`;
                     </div>
                 )}
 
-                {/* Statistics */}
-                {stats && (
-                    <div className="grid grid-cols-3 gap-4">
-                        <div className="bg-gray-50 p-4 rounded-lg text-center">
-                            <div className="text-2xl font-bold text-gray-900">{stats.total}</div>
-                            <div className="text-sm text-gray-600">Total URLs</div>
+                {/* Job Status */}
+                {jobStatus && (
+                    <div>
+                        <div className="mb-4">
+                            <div className="flex justify-between mb-2">
+                                <span className="text-sm font-medium">
+                                    {jobStatus.status === 'processing' ? 'Processing URLs...' : 
+                                     jobStatus.status === 'completed' ? 'Processing Complete!' : 
+                                     `Status: ${jobStatus.status}`}
+                                </span>
+                                <span className="text-sm text-gray-600">
+                                    {jobStatus.processedUrls} / {jobStatus.totalUrls}
+                                </span>
+                            </div>
+                            <div className="w-full bg-gray-200 rounded-full h-2">
+                                <div 
+                                    className={`h-2 rounded-full transition-all duration-300 ${
+                                        jobStatus.status === 'completed' ? 'bg-green-600' : 
+                                        jobStatus.status === 'failed' ? 'bg-red-600' : 
+                                        'bg-blue-600'
+                                    }`}
+                                    style={{ width: `${jobStatus.progress}%` }}
+                                />
+                            </div>
                         </div>
-                        <div className="bg-green-50 p-4 rounded-lg text-center">
-                            <div className="text-2xl font-bold text-green-600">{stats.success}</div>
-                            <div className="text-sm text-gray-600">Successful</div>
-                        </div>
-                        <div className="bg-red-50 p-4 rounded-lg text-center">
-                            <div className="text-2xl font-bold text-red-600">{stats.failed}</div>
-                            <div className="text-sm text-gray-600">Failed</div>
-                        </div>
+                        
+                        {jobStatus.status === 'processing' && (
+                            <div className="flex items-center justify-center py-4">
+                                <Loader2 className="animate-spin mr-2" size={20} />
+                                <span className="text-gray-600">Processing your CSV file...</span>
+                            </div>
+                        )}
                     </div>
                 )}
 
                 {/* Profiles Found */}
                 {profiles.length > 0 && (
                     <div>
-                        <h3 className="font-semibold mb-3">Instagram Profiles Found</h3>
+                        <h3 className="font-semibold mb-3">
+                            Instagram Profiles Found ({profiles.length})
+                        </h3>
                         <div className="space-y-3 max-h-64 overflow-y-auto">
                             {profiles.map((profile, index) => (
                                 <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
@@ -232,7 +370,7 @@ https://www.instagram.com/reel/DEF456/,travel`;
                                             <img 
                                                 src={profile.profile_pic_url} 
                                                 alt={profile.username}
-                                                className="w-10 h-10 rounded-full mr-3"
+                                                className="w-10 h-10 rounded-full mr-3 object-cover"
                                             />
                                         ) : (
                                             <div className="w-10 h-10 bg-gray-300 rounded-full mr-3 flex items-center justify-center">
@@ -242,7 +380,7 @@ https://www.instagram.com/reel/DEF456/,travel`;
                                         <div>
                                             <div className="font-medium">@{profile.username}</div>
                                             <div className="text-sm text-gray-600">
-                                                {profile.posts.length} post{profile.posts.length !== 1 ? 's' : ''} found
+                                                {profile.posts.length} post{profile.posts.length !== 1 ? 's' : ''} processed
                                             </div>
                                         </div>
                                     </div>
@@ -252,20 +390,6 @@ https://www.instagram.com/reel/DEF456/,travel`;
                                     >
                                         Track Profile
                                     </button>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                )}
-
-                {/* Failures */}
-                {failures.length > 0 && (
-                    <div>
-                        <h3 className="font-semibold mb-2 text-red-600">Failed URLs</h3>
-                        <div className="max-h-32 overflow-y-auto bg-red-50 p-3 rounded text-sm">
-                            {failures.map((failure, index) => (
-                                <div key={index} className="text-red-800 mb-1">
-                                    {failure.url}: {failure.error}
                                 </div>
                             ))}
                         </div>
@@ -303,7 +427,7 @@ https://www.instagram.com/reel/DEF456/,travel`;
                                 Done
                             </button>
                         )}
-                        {!stats && file && (
+                        {!jobId && file && (
                             <button
                                 onClick={handleProcess}
                                 disabled={processing}

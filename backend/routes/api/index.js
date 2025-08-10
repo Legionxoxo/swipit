@@ -13,7 +13,6 @@ const transcriptionRoutes = require('./transcription');
 const oembedRoutes = require('./oembed');
 const { router: extensionRoutes } = require('./extension');
 const csvImportRoutes = require('./csvImport');
-const csvBatchRoutes = require('./csvBatch');
 
 const router = express.Router();
 
@@ -72,6 +71,5 @@ router.use('/transcription', transcriptionRoutes);
 router.use('/oembed', oembedRoutes);
 router.use('/extension', extensionRoutes);
 router.use('/csv', csvImportRoutes);
-router.use('/csv-batch', csvBatchRoutes);
 
 module.exports = router;

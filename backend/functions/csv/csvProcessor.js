@@ -52,6 +52,139 @@ class CsvProcessor {
     }
     
     /**
+     * Save Instagram data to instagram_data table
+     * @param {Object} oembedData - oEmbed response data
+     * @param {string} customTag - Optional custom tag
+     * @returns {Promise<void>}
+     */
+    async saveToInstagramTable(oembedData, customTag = null) {
+        try {
+            if (!oembedData || !oembedData.username) {
+                console.error('Invalid oEmbed data - missing username');
+                return;
+            }
+            
+            const username = oembedData.username;
+            const authorId = oembedData.author_id || username;
+            const analysisId = `csv_${username}_${Date.now()}`;
+            
+            
+            // Check if this user already has an entry
+            const existingProfile = await this.db.get(
+                `SELECT analysis_id FROM instagram_data 
+                 WHERE profile_username = ? AND reel_id IS NULL
+                 ORDER BY created_at DESC LIMIT 1`,
+                [username]
+            );
+            
+            const profileAnalysisId = existingProfile ? existingProfile.analysis_id : analysisId;
+            
+            
+            // If no existing profile, create profile entry
+            if (!existingProfile) {
+                await this.db.run(
+                    `INSERT INTO instagram_data (
+                        analysis_id,
+                        instagram_user_id,
+                        analysis_status,
+                        analysis_progress,
+                        profile_username,
+                        profile_pic_url,
+                        profile_link,
+                        profile_follower_count,
+                        profile_following_count,
+                        profile_media_count,
+                        profile_is_private
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                    [
+                        profileAnalysisId,
+                        authorId,
+                        'completed',
+                        100,
+                        username,
+                        oembedData.thumbnail_url || '',
+                        oembedData.profile_link || `https://www.instagram.com/${username}/`,
+                        0,  // We don't have follower count from oEmbed
+                        0,  // We don't have following count from oEmbed
+                        0,  // We don't have media count from oEmbed
+                        0   // Assume public if we can get oEmbed
+                    ]
+                );
+            }
+            
+            
+            // Add reel/post entry
+            const reelId = oembedData.instagram_id || oembedData.shortcode || uuidv4();
+            const reelShortcode = oembedData.shortcode || reelId;
+            
+            
+            // Check if this reel already exists
+            const existingReel = await this.db.get(
+                `SELECT id FROM instagram_data 
+                 WHERE reel_id = ? OR reel_shortcode = ?
+                 LIMIT 1`,
+                [reelId, reelShortcode]
+            );
+            
+            if (!existingReel) {
+                await this.db.run(
+                    `INSERT INTO instagram_data (
+                        analysis_id,
+                        instagram_user_id,
+                        analysis_status,
+                        analysis_progress,
+                        profile_username,
+                        profile_pic_url,
+                        profile_link,
+                        reel_id,
+                        reel_shortcode,
+                        reel_url,
+                        reel_thumbnail_url,
+                        reel_caption,
+                        reel_date_posted,
+                        reel_is_video,
+                        reel_hashtags
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                    [
+                        profileAnalysisId,
+                        authorId,
+                        'completed',
+                        100,
+                        username,
+                        oembedData.thumbnail_url || '',
+                        oembedData.profile_link || `https://www.instagram.com/${username}/`,
+                        reelId,
+                        reelShortcode,
+                        oembedData.post_link || '',
+                        oembedData.thumbnail_url || '',
+                        oembedData.caption || '',
+                        new Date().toISOString(),
+                        1,  // Assume video/reel
+                        JSON.stringify(this.extractHashtags(oembedData.caption || ''))
+                    ]
+                );
+            }
+            
+            console.log(`Saved Instagram data for @${username} - Post: ${reelShortcode}`);
+            
+        } catch (error) {
+            console.error('Error saving to Instagram table:', error);
+            throw error;
+        }
+    }
+    
+    /**
+     * Extract hashtags from caption
+     * @param {string} caption - Post caption
+     * @returns {Array<string>} Array of hashtags
+     */
+    extractHashtags(caption) {
+        const hashtagRegex = /#[a-zA-Z0-9_]+/g;
+        const matches = caption.match(hashtagRegex);
+        return matches ? matches.map(tag => tag.substring(1)) : [];
+    }
+    
+    /**
      * Process CSV import job
      * @param {string} jobId - Job ID
      * @param {Array<{url: string, tag: string}>} urls - URLs to process
@@ -189,7 +322,12 @@ class CsvProcessor {
                     // Fetch oEmbed data
                     const oembedData = await extractInstagramOembed(urlData.url);
                     
-                    // Update result in database
+                    
+                    // Save to Instagram table (primary storage)
+                    await this.saveToInstagramTable(oembedData, urlData.custom_tag);
+                    
+                    
+                    // Also update CSV import result for tracking
                     await csvImportTable.updateCsvImportResult(
                         this.db,
                         urlData.id,
