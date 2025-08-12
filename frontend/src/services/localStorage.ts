@@ -1,137 +1,105 @@
 /**
- * @fileoverview Local storage service for managing app data
+ * @fileoverview Local storage service for session management only
  * @author Frontend Team
+ * 
+ * Note: This service now only handles essential session data.
+ * All persistent data (hubs, favorites, stars, comments) is stored in the database.
  */
 
-import type { AppData } from '../types/api';
-import { hubsStorage } from './storage/hubsStorage';
-import { favoritesStorage } from './storage/favoritesStorage';
-import { starsAndCommentsStorage } from './storage/starsAndCommentsStorage';
+const USER_ID_KEY = 'user_id';
+const APP_SETTINGS_KEY = 'app_settings';
 
-const APP_DATA_KEY = 'buzzhunt_data';
+interface AppSettings {
+    theme?: 'light' | 'dark';
+    sidebarCollapsed?: boolean;
+    language?: string;
+}
 
 /**
- * Service for managing localStorage operations
+ * Simplified localStorage service for session management only
+ * All persistent data should use database services instead
  */
 class LocalStorageService {
     /**
-     * Get all app data from localStorage
-     * @returns {AppData} App data
+     * Get user ID from localStorage
      */
-    getAppData(): AppData {
+    getUserId(): string | null {
         try {
-            const data = localStorage.getItem(APP_DATA_KEY);
-            if (!data) {
-                return {
-                    hubs: [],
-                    favoriteCreators: [],
-                    favoriteVideos: [],
-                    starredVideos: [],
-                    videoComments: [],
-                    videoTranscriptions: []
-                };
-            }
-            return JSON.parse(data);
+            return localStorage.getItem(USER_ID_KEY);
         } catch (error) {
-            console.error('Error getting app data:', error);
-            return {
-                hubs: [],
-                favoriteCreators: [],
-                favoriteVideos: [],
-                starredVideos: [],
-                videoComments: [],
-                videoTranscriptions: []
-            };
+            console.error('Error getting user ID from localStorage:', error);
+            return null;
         } finally {
             // Required by architecture rules
         }
     }
 
     /**
-     * Set all app data to localStorage
-     * @param {AppData} data - App data to save
+     * Set user ID in localStorage
      */
-    setAppData(data: AppData): void {
+    setUserId(userId: string): void {
         try {
-            localStorage.setItem(APP_DATA_KEY, JSON.stringify(data));
+            localStorage.setItem(USER_ID_KEY, userId);
         } catch (error) {
-            console.error('Error setting app data:', error);
+            console.error('Error setting user ID in localStorage:', error);
         } finally {
             // Required by architecture rules
         }
     }
-
-    // Creator Hubs Management - delegated to hubsStorage
-    getHubs = hubsStorage.getHubs.bind(hubsStorage);
-    setHubs = hubsStorage.setHubs.bind(hubsStorage);
-    addHub = hubsStorage.addHub.bind(hubsStorage);
-    removeHub = hubsStorage.removeHub.bind(hubsStorage);
-    updateHub = hubsStorage.updateHub.bind(hubsStorage);
-    addCreatorToHub = hubsStorage.addCreatorToHub.bind(hubsStorage);
-    removeCreatorFromHub = hubsStorage.removeCreatorFromHub.bind(hubsStorage);
-    getCreatorsInHub = hubsStorage.getCreatorsInHub.bind(hubsStorage);
-
-    // For backward compatibility, add createHub method
-    createHub(name: string) {
-        const newHub = {
-            id: `hub-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-            name,
-            createdAt: new Date().toISOString(),
-            creatorIds: []
-        };
-        this.addHub(newHub);
-        return newHub;
-    }
-
-    deleteHub = this.removeHub;
 
     /**
-     * Get unorganized creators (not in any hub)
-     * @param {string[]} allCreatorIds - All creator IDs
-     * @returns {string[]} Array of unorganized creator IDs
+     * Remove user ID from localStorage (logout)
      */
-    getUnorganizedCreators(allCreatorIds: string[]): string[] {
+    removeUserId(): void {
         try {
-            const hubs = this.getHubs();
-            const organizedIds = new Set<string>();
-            
-            hubs.forEach(hub => {
-                hub.creatorIds.forEach(id => organizedIds.add(id));
-            });
-            
-            return allCreatorIds.filter(id => !organizedIds.has(id));
+            localStorage.removeItem(USER_ID_KEY);
         } catch (error) {
-            console.error('Error getting unorganized creators:', error);
-            return allCreatorIds;
+            console.error('Error removing user ID from localStorage:', error);
         } finally {
             // Required by architecture rules
         }
     }
 
-    // Favorites Management - delegated to favoritesStorage
-    getFavoriteCreators = favoritesStorage.getFavoriteCreators.bind(favoritesStorage);
-    setFavoriteCreators = favoritesStorage.setFavoriteCreators.bind(favoritesStorage);
-    addFavoriteCreator = favoritesStorage.addFavoriteCreator.bind(favoritesStorage);
-    removeFavoriteCreator = favoritesStorage.removeFavoriteCreator.bind(favoritesStorage);
-    isCreatorFavorite = favoritesStorage.isCreatorFavorite.bind(favoritesStorage);
-    getFavoriteVideos = favoritesStorage.getFavoriteVideos.bind(favoritesStorage);
-    setFavoriteVideos = favoritesStorage.setFavoriteVideos.bind(favoritesStorage);
-    addFavoriteVideo = favoritesStorage.addFavoriteVideo.bind(favoritesStorage);
-    removeFavoriteVideo = favoritesStorage.removeFavoriteVideo.bind(favoritesStorage);
-    isVideoFavorite = favoritesStorage.isVideoFavorite.bind(favoritesStorage);
+    /**
+     * Get app settings from localStorage
+     */
+    getAppSettings(): AppSettings {
+        try {
+            const settings = localStorage.getItem(APP_SETTINGS_KEY);
+            return settings ? JSON.parse(settings) : {};
+        } catch (error) {
+            console.error('Error getting app settings:', error);
+            return {};
+        } finally {
+            // Required by architecture rules
+        }
+    }
 
-    // Stars and Comments Management - delegated to starsAndCommentsStorage
-    getStarredVideos = starsAndCommentsStorage.getStarredVideos.bind(starsAndCommentsStorage);
-    setStarredVideos = starsAndCommentsStorage.setStarredVideos.bind(starsAndCommentsStorage);
-    addStarredVideo = starsAndCommentsStorage.addStarredVideo.bind(starsAndCommentsStorage);
-    removeStarredVideo = starsAndCommentsStorage.removeStarredVideo.bind(starsAndCommentsStorage);
-    getVideoStarRating = starsAndCommentsStorage.getVideoStarRating.bind(starsAndCommentsStorage);
-    getVideoComments = starsAndCommentsStorage.getVideoComments.bind(starsAndCommentsStorage);
-    setVideoComments = starsAndCommentsStorage.setVideoComments.bind(starsAndCommentsStorage);
-    addOrUpdateVideoComment = starsAndCommentsStorage.addOrUpdateVideoComment.bind(starsAndCommentsStorage);
-    removeVideoComment = starsAndCommentsStorage.removeVideoComment.bind(starsAndCommentsStorage);
-    getVideoComment = starsAndCommentsStorage.getVideoComment.bind(starsAndCommentsStorage);
-    hasVideoComment = starsAndCommentsStorage.hasVideoComment.bind(starsAndCommentsStorage);
+    /**
+     * Set app settings in localStorage
+     */
+    setAppSettings(settings: AppSettings): void {
+        try {
+            localStorage.setItem(APP_SETTINGS_KEY, JSON.stringify(settings));
+        } catch (error) {
+            console.error('Error setting app settings:', error);
+        } finally {
+            // Required by architecture rules
+        }
+    }
+
+    /**
+     * Clear all localStorage data (for logout/reset)
+     */
+    clearAll(): void {
+        try {
+            localStorage.clear();
+        } catch (error) {
+            console.error('Error clearing localStorage:', error);
+        } finally {
+            // Required by architecture rules
+        }
+    }
 }
 
 export const localStorageService = new LocalStorageService();

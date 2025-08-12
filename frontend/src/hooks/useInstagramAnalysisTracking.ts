@@ -10,7 +10,7 @@ export function useInstagramAnalysisTracking() {
     const [hasMore, setHasMore] = useState<boolean>(true);
     const [isLoadingMore, setIsLoadingMore] = useState<boolean>(false);
     const [currentOffset, setCurrentOffset] = useState<number>(0);
-    const pollIntervals = useRef<{ [key: string]: number }>({});
+    const pollIntervals = useRef<{ [key: string]: NodeJS.Timeout }>({});
     const ITEMS_PER_PAGE = 20;
 
     // Load initial Instagram analyses from backend on mount
@@ -31,36 +31,32 @@ export function useInstagramAnalysisTracking() {
             setTotalCount(result.total);
             setHasMore(result.hasMore);
             
-            // Transform backend data to frontend format
-            const analysesWithData = await Promise.all(
-                result.data.map(async (analysis: InstagramAnalysisData) => {
-                    try {
-                        const analysisId = analysis.analysisId;
-                        
-                        // Skip individual post analyses (but allow creator analyses)
-                        if (analysisId.startsWith('post_') || analysisId.startsWith('oembed_')) {
-                            return null;
-                        }
-                        
-                        const fullAnalysisData = await apiService.getInstagramAnalysisStatus(analysisId);
-                        return {
-                            analysisId: analysisId,
-                            status: fullAnalysisData.status,
-                            progress: fullAnalysisData.progress || 0,
-                            profile: fullAnalysisData.profile,
-                            reels: fullAnalysisData.reels || [],
-                            reelSegments: fullAnalysisData.reelSegments,
-                            totalReels: fullAnalysisData.totalReels || 0,
-                            error: fullAnalysisData.error
-                        };
-                    } catch (error) {
-                        console.error(`Error loading Instagram analysis ${analysis.analysisId}:`, error);
-                        return null;
-                    }
+            // Transform backend data - use basic data from list to avoid N+1 queries
+            const analysesWithData = result.data
+                .filter((analysis: any) => {
+                    const analysisId = analysis.analysisId;
+                    // Skip individual post analyses (but allow creator analyses)
+                    return !analysisId.startsWith('post_') && !analysisId.startsWith('oembed_');
                 })
-            );
+                .map((analysis: any) => ({
+                    analysisId: analysis.analysisId,
+                    status: analysis.status || 'completed',
+                    progress: analysis.progress || 100,
+                    profile: {
+                        username: analysis.username || 'Unknown',
+                        full_name: analysis.username || 'Unknown',
+                        follower_count: 0,
+                        media_count: analysis.postCount || 0,
+                        profile_pic_url: null,
+                        instagram_user_id: analysis.instagramUserId || ''
+                    },
+                    reels: [],
+                    reelSegments: null,
+                    totalReels: analysis.postCount || 0,
+                    error: null
+                }));
 
-            const validAnalyses = analysesWithData.filter(Boolean) as InstagramAnalysisData[];
+            const validAnalyses = analysesWithData.filter(Boolean) as any[];
             
             if (loadMore) {
                 // Append to existing analyses
@@ -73,6 +69,14 @@ export function useInstagramAnalysisTracking() {
             }
         } catch (error) {
             console.error('Error loading completed Instagram analyses:', error);
+            // Don't reset hasMore on error - allow retry
+            if (!loadMore) {
+                // Only reset on initial load error
+                setInstagramAnalyses([]);
+                setTotalCount(0);
+                setHasMore(false);
+            }
+            // For loadMore errors, keep existing state and let user retry
         } finally {
             setIsLoadingMore(false);
         }
@@ -98,6 +102,7 @@ export function useInstagramAnalysisTracking() {
                     const newAnalysis = { ...analysis };
                     
                     if (existingIndex >= 0) {
+                        // Update existing analysis
                         const updated = [...prev];
                         updated[existingIndex] = newAnalysis;
                         return updated;

@@ -63,41 +63,35 @@ export default function CreatorsView({
 
     const getViewTitle = () => {
         if (currentView === 'home') return 'Home - Unorganized Creators';
-        if (currentView === 'favorite-creators') return 'Favorite Creators';
+        if (currentView === 'favorite-creators') {
+            // Don't show title for favorite-creators view - let FavoriteCreatorsPage handle it
+            return null;
+        }
         if (currentView.startsWith('hub-')) {
-            const hubId = currentView.replace('hub-', '');
-            const hub = hubs.find(h => h.id === hubId);
-            return hub ? `${hub.name} Hub` : 'Creator Hub';
+            // Don't show title for hub view - let HubDetailPage handle it
+            return null;
         }
         return 'Creators';
     };
 
+    const viewTitle = getViewTitle();
+    
     return (
         <div>
-            <div className="flex items-center justify-between mb-8">
-                <div>
-                    <h2 className="text-2xl font-bold text-gray-900">
-                        {getViewTitle()}
-                    </h2>
-                    <p className="text-gray-600 mt-1">
-                        {currentView === 'home' || currentView === 'favorite-creators' || currentView.startsWith('hub-') ? (
-                            <>
-                                {isFiltering ? 'Loading...' : (
-                                    totalAnalyses > 0 ? 
-                                    `${totalAnalyses} total creator${totalAnalyses !== 1 ? 's' : ''}` :
-                                    `${filteredUnifiedCreators.length} creator${filteredUnifiedCreators.length !== 1 ? 's' : ''}`
-                                )}
-                                {loadingAnalyses.size > 0 && ` • ${loadingAnalyses.size} analysis in progress`}
-                            </>
-                        ) : (
-                            <>
-                                {creatorsToShow.length} creator{creatorsToShow.length !== 1 ? 's' : ''}
-                                {loadingAnalyses.size > 0 && ` • ${loadingAnalyses.size} analysis in progress`}
-                            </>
+            {viewTitle && (
+                <div className="flex items-center justify-between mb-8">
+                    <div>
+                        <h2 className="text-2xl font-bold text-gray-900">
+                            {viewTitle}
+                        </h2>
+                        {loadingAnalyses.size > 0 && (
+                            <p className="text-gray-600 mt-1">
+                                {loadingAnalyses.size} analysis in progress
+                            </p>
                         )}
-                    </p>
+                    </div>
                 </div>
-            </div>
+            )}
 
             {currentView === 'home' || currentView === 'favorite-creators' || currentView.startsWith('hub-') ? (
                 // Show unified creators for home view and favorite-creators view

@@ -1,4 +1,4 @@
-import { localStorageService } from '../../services/localStorage';
+// localStorage removed - use database services instead
 import VideoStarRating from './VideoStarRating';
 
 interface VideoActionMenuProps {
@@ -9,11 +9,12 @@ interface VideoActionMenuProps {
 }
 
 export default function VideoActionMenu({
-    videoId,
+    videoId: _videoId,
     starRating,
     onStarClick,
     onAddCommentClick
 }: VideoActionMenuProps) {
+    // _videoId kept for interface compatibility but not used locally
     return (
         <div className="absolute top-full right-0 mt-2 w-48 bg-white rounded-lg shadow-xl border z-10">
             {/* Star Rating Section */}
@@ -31,7 +32,7 @@ export default function VideoActionMenu({
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
                 </svg>
                 <span className="text-sm text-gray-700">
-                    {localStorageService.hasVideoComment(videoId) ? 'Edit Comment' : 'Add Comment'}
+                    Add Comment
                 </span>
             </button>
         </div>

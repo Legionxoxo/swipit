@@ -40,14 +40,30 @@ export function useAnalysisTracking() {
                     data: analysis
                 })) as AnalysisData[];
 
-            setAnalyses(validAnalyses);
+            // Prevent resetting existing analyses to avoid flicker on refresh
+            setAnalyses(prev => {
+                // If we already have data and the new data is the same length, keep existing
+                // This prevents unnecessary re-renders during navigation
+                if (prev.length > 0 && validAnalyses.length === prev.length) {
+                    const existingIds = new Set(prev.map(a => a.analysisId));
+                    const newIds = new Set(validAnalyses.map(a => a.analysisId));
+                    
+                    // If the sets are identical, keep existing state
+                    if (existingIds.size === newIds.size && [...existingIds].every(id => newIds.has(id))) {
+                        return prev;
+                    }
+                }
+                return validAnalyses;
+            });
+            
             setTotalCount(total);
             setHasMore(more);
             setCurrentPage(1);
         } catch (error) {
             // Error loading completed analyses - handled silently
             console.error('Error loading completed analyses:', error);
-            setAnalyses([]);
+            // Only reset if we don't have existing data to avoid losing state on error
+            setAnalyses(prev => prev.length > 0 ? prev : []);
             setTotalCount(0);
             setHasMore(false);
         } finally {
@@ -91,14 +107,32 @@ export function useAnalysisTracking() {
         try {
             setLoadingAnalyses(prev => new Set([...prev, analysisId]));
 
+            let retryCount = 0;
+            const MAX_RETRIES = 60; // 5 minutes maximum (60 * 5 seconds)
+            const startTime = Date.now();
+            const MAX_POLLING_TIME = 10 * 60 * 1000; // 10 minutes maximum
+
             const checkStatus = async () => {
                 try {
+                    // Check if we've exceeded maximum polling time or retry count
+                    if (Date.now() - startTime > MAX_POLLING_TIME || retryCount >= MAX_RETRIES) {
+                        console.warn(`Analysis polling timeout for ${analysisId} after ${retryCount} retries`);
+                        setLoadingAnalyses(prev => {
+                            const newSet = new Set(prev);
+                            newSet.delete(analysisId);
+                            return newSet;
+                        });
+                        return;
+                    }
+
+                    retryCount++;
                     const response = await apiService.getAnalysisStatus(analysisId);
 
                     if (response.status === 'completed') {
                         setAnalyses(prev => {
                             const existing = prev.find(a => a.analysisId === analysisId);
                             if (existing) {
+                                // Update existing analysis without losing other state
                                 return prev.map(a =>
                                     a.analysisId === analysisId
                                         ? { ...a, data: response }
@@ -114,7 +148,7 @@ export function useAnalysisTracking() {
                             return newSet;
                         });
                     } else if (response.status === 'error') {
-                        alert(`Analysis failed: ${response.error || 'Unknown error'}`);
+                        console.error(`Analysis failed: ${response.error || 'Unknown error'}`);
                         setLoadingAnalyses(prev => {
                             const newSet = new Set(prev);
                             newSet.delete(analysisId);
@@ -124,6 +158,7 @@ export function useAnalysisTracking() {
                         setAnalyses(prev => {
                             const existing = prev.find(a => a.analysisId === analysisId);
                             if (existing) {
+                                // Update existing analysis progress
                                 return prev.map(a =>
                                     a.analysisId === analysisId
                                         ? { ...a, data: response }
@@ -133,10 +168,22 @@ export function useAnalysisTracking() {
                                 return [...prev, { analysisId, data: response }];
                             }
                         });
-                        setTimeout(checkStatus, 3000);
+                        setTimeout(checkStatus, 5000); // Increased to 5 seconds to reduce server load
                     }
                 } catch (error) {
                     console.error('Error checking analysis status:', error);
+                    
+                    // Stop polling after too many errors
+                    if (retryCount >= MAX_RETRIES) {
+                        console.error(`Analysis polling failed for ${analysisId} after ${retryCount} retries`);
+                        setLoadingAnalyses(prev => {
+                            const newSet = new Set(prev);
+                            newSet.delete(analysisId);
+                            return newSet;
+                        });
+                        return;
+                    }
+                    
                     setTimeout(checkStatus, 5000);
                 }
             };

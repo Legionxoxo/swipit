@@ -2,7 +2,6 @@ import NavItem from './NavItem';
 
 interface FavoritesSectionProps {
     currentView: string;
-    onViewChange: (view: string) => void;
     isExpanded: boolean;
     onToggle: () => void;
     isCollapsed: boolean;
@@ -10,7 +9,6 @@ interface FavoritesSectionProps {
 
 export default function FavoritesSection({
     currentView,
-    onViewChange,
     isExpanded,
     onToggle,
     isCollapsed
@@ -21,7 +19,7 @@ export default function FavoritesSection({
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
             </svg>}
             label="Favorites"
-            onClick={() => onViewChange('favorite-videos')}
+            to="/favorites"
             hasDropdown={true}
             isExpanded={isExpanded}
             onToggle={onToggle}
@@ -32,14 +30,14 @@ export default function FavoritesSection({
                     icon={<div className="w-2 h-2 rounded-full bg-pink-400"></div>}
                     label="Favorite Creators"
                     isActive={currentView === 'favorite-creators'}
-                    onClick={() => onViewChange('favorite-creators')}
+                    to="/favorites/creators"
                     isCollapsed={isCollapsed}
                 />
                 <NavItem
                     icon={<div className="w-2 h-2 rounded-full bg-pink-400"></div>}
                     label="Favorite Videos"
                     isActive={currentView === 'favorite-videos'}
-                    onClick={() => onViewChange('favorite-videos')}
+                    to="/favorites/videos"
                     isCollapsed={isCollapsed}
                 />
                 <NavItem
@@ -48,7 +46,7 @@ export default function FavoritesSection({
                     </svg>}
                     label="Starred Videos"
                     isActive={currentView === 'starred-videos'}
-                    onClick={() => onViewChange('starred-videos')}
+                    to="/favorites/starred"
                     isCollapsed={isCollapsed}
                 />
             </div>

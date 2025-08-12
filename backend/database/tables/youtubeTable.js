@@ -55,7 +55,7 @@ function getYouTubeTableSQL() {
  */
 function getYouTubeIndexesSQL() {
     return [
-        'CREATE UNIQUE INDEX IF NOT EXISTS idx_youtube_analysis_id_unique ON youtube_data(analysis_id)',
+        'CREATE UNIQUE INDEX IF NOT EXISTS idx_youtube_analysis_video_unique ON youtube_data(analysis_id, video_id)',
         'CREATE INDEX IF NOT EXISTS idx_youtube_channel_id ON youtube_data(youtube_channel_id)',
         'CREATE INDEX IF NOT EXISTS idx_youtube_analysis_status ON youtube_data(analysis_status)',
         'CREATE INDEX IF NOT EXISTS idx_youtube_video_id ON youtube_data(video_id)',

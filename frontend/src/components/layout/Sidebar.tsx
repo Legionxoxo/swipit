@@ -8,7 +8,6 @@ interface SidebarProps {
     isCollapsed: boolean;
     onToggleCollapse: () => void;
     currentView: string;
-    onViewChange: (view: string) => void;
     hubs: CreatorHub[];
     onHubsChange: (hubs: CreatorHub[]) => void;
 }
@@ -16,8 +15,7 @@ interface SidebarProps {
 export default function Sidebar({ 
     isCollapsed, 
     onToggleCollapse, 
-    currentView, 
-    onViewChange,
+    currentView,
     hubs,
     onHubsChange
 }: SidebarProps) {
@@ -65,7 +63,7 @@ export default function Sidebar({
                     </svg>}
                     label="All Creators"
                     isActive={currentView === 'home'}
-                    onClick={() => onViewChange('home')}
+                    to="/"
                     isCollapsed={isCollapsed}
                 />
 
@@ -74,7 +72,6 @@ export default function Sidebar({
                     hubs={hubs}
                     onHubsChange={onHubsChange}
                     currentView={currentView}
-                    onViewChange={onViewChange}
                     isExpanded={expandedSections.has('creator-hub')}
                     onToggle={() => toggleSectionExpansion('creator-hub')}
                     isCollapsed={isCollapsed}
@@ -83,7 +80,6 @@ export default function Sidebar({
                 {/* Favorites Section */}
                 <FavoritesSection
                     currentView={currentView}
-                    onViewChange={onViewChange}
                     isExpanded={expandedSections.has('favorites')}
                     onToggle={() => toggleSectionExpansion('favorites')}
                     isCollapsed={isCollapsed}

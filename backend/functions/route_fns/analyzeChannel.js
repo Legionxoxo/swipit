@@ -46,13 +46,20 @@ async function startAnalysis(channelUrl) {
         if (existingAnalysis) {
             console.log(`Found existing analysis for channel: ${channelId || channelUrl}`);
             
-            // If analysis is completed, return the existing one
+            // Check if analysis is completed AND has videos stored
             if (existingAnalysis.status === 'completed') {
-                return {
-                    analysisId: existingAnalysis.analysisId,
-                    estimatedTime: 'Analysis already completed',
-                    isExisting: true
-                };
+                const { getVideoCount } = require('../../database/youtube/youtubeVideos');
+                const videoCount = await getVideoCount(existingAnalysis.analysisId);
+                
+                if (videoCount > 0) {
+                    return {
+                        analysisId: existingAnalysis.analysisId,
+                        estimatedTime: 'Analysis already completed',
+                        isExisting: true
+                    };
+                }
+                // If no videos stored, continue with new analysis
+                console.log(`Existing analysis has no videos stored, reprocessing...`);
             }
             
             // If analysis is still processing, return the ongoing one

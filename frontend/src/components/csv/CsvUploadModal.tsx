@@ -61,7 +61,7 @@ const CsvUploadModal: React.FC<CsvUploadModalProps> = ({ isOpen, onClose, onProf
     const [profiles, setProfiles] = useState<ProcessedProfile[]>([]);
     const [error, setError] = useState<string | null>(null);
     const [parseErrors, setParseErrors] = useState<string[]>([]);
-    const [pollingInterval, setPollingInterval] = useState<number | null>(null);
+    const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     

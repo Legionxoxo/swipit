@@ -75,11 +75,22 @@ export function useCreatorFiltering({
         try {
             setIsFiltering(true);
             const allCreatorIds = unifiedCreators.map(creator => creator.analysisId);
+            console.debug('Filtering unorganized creators:', {
+                allCreatorIds,
+                totalCreators: unifiedCreators.length
+            });
+            
             const unorganizedCreatorIds = await getUnorganizedCreatorsAsync(allCreatorIds);
+            console.debug('Unorganized creator IDs:', unorganizedCreatorIds);
+            
             const unorganizedCreators = unifiedCreators.filter(
                 creator => unorganizedCreatorIds.includes(creator.analysisId)
             );
-            // Filtered unorganized creators successfully
+            console.debug('Filtered unorganized creators:', {
+                unorganizedCount: unorganizedCreators.length,
+                unorganizedIds: unorganizedCreators.map(c => c.analysisId)
+            });
+            
             setFilteredUnifiedCreators(unorganizedCreators);
         } catch (error) {
             // Error filtering unorganized creators - handled silently
