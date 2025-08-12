@@ -41,37 +41,53 @@ class YoutubeService extends BaseApiService {
      * @param includeFullData - Whether to include full analysis data
      * @returns Promise with paginated analysis data
      */
+
     /**
-     * Validate if analysisId is a proper string (not "[object Object]" or similar)
-     * @param analysisId - Analysis ID to validate
-     * @returns boolean indicating if analysisId is valid
+     * Sanitize malformed analysisIds instead of filtering them out completely
+     * @param analysisId - Analysis ID to sanitize
+     * @returns Sanitized analysisId
      */
-    private isValidAnalysisId(analysisId: any): analysisId is string {
-        return (
-            typeof analysisId === 'string' &&
-            analysisId.trim().length > 0 &&
-            analysisId !== '[object Object]' &&
-            !analysisId.includes('[object') &&
-            !analysisId.includes('undefined') &&
-            !analysisId.includes('null')
-        );
+    private sanitizeAnalysisId(analysisId: any): string {
+        if (!analysisId || typeof analysisId !== 'string') {
+            return `malformed_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        }
+        
+        // If it's the common "[object Object]" case, generate a replacement
+        if (analysisId === '[object Object]' || analysisId.includes('[object')) {
+            return `recovered_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        }
+        
+        // If it contains other malformed patterns, clean them up
+        if (analysisId.includes('undefined') || analysisId.includes('null')) {
+            return `cleaned_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        }
+        
+        return analysisId;
     }
 
     /**
-     * Filter analysis data to remove entries with malformed analysisIds
+     * Process and sanitize analysis data instead of filtering out malformed entries
      * @param data - Array of analysis data
-     * @returns Filtered array with only valid entries
+     * @returns Processed array with sanitized entries
      */
-    private filterValidAnalyses(data: any[]): AnalysisResponse[] {
-        return data.filter(analysis => {
-            if (!this.isValidAnalysisId(analysis.analysisId)) {
-                console.warn('Filtered out malformed analysis entry:', {
-                    analysisId: analysis.analysisId,
+    private processAnalysisData(data: any[]): AnalysisResponse[] {
+        return data.map(analysis => {
+            const originalId = analysis.analysisId;
+            const sanitizedId = this.sanitizeAnalysisId(originalId);
+            
+            // Log if we had to sanitize
+            if (originalId !== sanitizedId) {
+                console.warn('Sanitized malformed analysisId:', {
+                    original: originalId,
+                    sanitized: sanitizedId,
                     channelName: analysis.channelInfo?.channelName || 'Unknown'
                 });
-                return false;
             }
-            return true;
+            
+            return {
+                ...analysis,
+                analysisId: sanitizedId
+            };
         });
     }
 
@@ -106,16 +122,11 @@ class YoutubeService extends BaseApiService {
                 hasMore = result.data.hasMore || false;
             }
 
-            // Filter out malformed entries
-            const filteredData = this.filterValidAnalyses(analysisData);
+            // Process and sanitize any malformed entries
+            const processedData = this.processAnalysisData(analysisData);
             
-            // If we filtered out entries, log the count
-            if (filteredData.length !== analysisData.length) {
-                console.warn(`Filtered out ${analysisData.length - filteredData.length} malformed analysis entries`);
-            }
-
             return {
-                data: filteredData,
+                data: processedData,
                 total: total,
                 hasMore: hasMore
             };

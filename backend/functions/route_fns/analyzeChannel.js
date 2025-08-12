@@ -67,7 +67,7 @@ async function startAnalysis(channelUrl) {
             // If analysis failed, we can create a new one (fall through)
         }
 
-        const analysisId = generateAnalysisId();
+        const analysisId = await generateAnalysisId();
         
         // Create analysis job
         const analysisJob = {

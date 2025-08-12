@@ -33,35 +33,8 @@ export function useAnalysisTracking() {
             const more = Array.isArray(result) ? false : result.hasMore;
             
             // Transform backend data to frontend format - now data is already full
-            // Filter out malformed entries with invalid analysisIds
             const validAnalyses = analysesData
-                .filter((analysis: AnalysisResponse) => {
-                    // Check for basic validity
-                    if (!analysis || !analysis.analysisId || analysis.status !== 'completed') {
-                        return false;
-                    }
-                    
-                    // Check for malformed analysisId
-                    const analysisId = analysis.analysisId;
-                    const isValidId = (
-                        typeof analysisId === 'string' &&
-                        analysisId.trim().length > 0 &&
-                        analysisId !== '[object Object]' &&
-                        !analysisId.includes('[object') &&
-                        !analysisId.includes('undefined') &&
-                        !analysisId.includes('null')
-                    );
-                    
-                    if (!isValidId) {
-                        console.warn('Filtered malformed analysis entry:', {
-                            analysisId,
-                            channelName: analysis.channelInfo?.channelName || 'Unknown'
-                        });
-                        return false;
-                    }
-                    
-                    return true;
-                })
+                .filter((analysis: AnalysisResponse) => analysis && analysis.analysisId && analysis.status === 'completed')
                 .map((analysis: AnalysisResponse) => ({
                     analysisId: analysis.analysisId,
                     data: analysis
@@ -96,35 +69,8 @@ export function useAnalysisTracking() {
             const more = Array.isArray(result) ? false : result.hasMore;
             
             // Transform backend data to frontend format - now data is already full
-            // Filter out malformed entries with invalid analysisIds
             const validAnalyses = analysesData
-                .filter((analysis: AnalysisResponse) => {
-                    // Check for basic validity
-                    if (!analysis || !analysis.analysisId || analysis.status !== 'completed') {
-                        return false;
-                    }
-                    
-                    // Check for malformed analysisId
-                    const analysisId = analysis.analysisId;
-                    const isValidId = (
-                        typeof analysisId === 'string' &&
-                        analysisId.trim().length > 0 &&
-                        analysisId !== '[object Object]' &&
-                        !analysisId.includes('[object') &&
-                        !analysisId.includes('undefined') &&
-                        !analysisId.includes('null')
-                    );
-                    
-                    if (!isValidId) {
-                        console.warn('Filtered malformed analysis entry:', {
-                            analysisId,
-                            channelName: analysis.channelInfo?.channelName || 'Unknown'
-                        });
-                        return false;
-                    }
-                    
-                    return true;
-                })
+                .filter((analysis: AnalysisResponse) => analysis && analysis.analysisId && analysis.status === 'completed')
                 .map((analysis: AnalysisResponse) => ({
                     analysisId: analysis.analysisId,
                     data: analysis
