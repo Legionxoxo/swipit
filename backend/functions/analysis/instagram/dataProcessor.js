@@ -137,6 +137,33 @@ async function getInstagramAnalysisStatus(analysisId, page = 1, limit = 50) {
             return null;
         }
 
+        // Handle CSV-imported analysis IDs
+        if (analysisId.startsWith('csv_')) {
+            // Extract username from CSV analysisId format: csv_username_timestamp_random
+            const parts = analysisId.split('_');
+            if (parts.length >= 2) {
+                const username = parts[1]; // Get username part
+                const offset = (page - 1) * limit;
+                const fullData = await getCreatorAnalysisStatus(username, limit, offset);
+                
+                if (fullData) {
+                    return {
+                        ...fullData,
+                        analysisId: analysisId, // Keep the original CSV analysisId
+                        pagination: {
+                            currentPage: page,
+                            totalPages: Math.ceil(fullData.totalReels / limit),
+                            totalReels: fullData.totalReels,
+                            hasNextPage: page * limit < fullData.totalReels,
+                            hasPrevPage: page > 1,
+                            limit
+                        }
+                    };
+                }
+            }
+            return null;
+        }
+
         // Get job status for regular analysis IDs
         const job = await getAnalysisJob(analysisId);
         
