@@ -41,6 +41,40 @@ class YoutubeService extends BaseApiService {
      * @param includeFullData - Whether to include full analysis data
      * @returns Promise with paginated analysis data
      */
+    /**
+     * Validate if analysisId is a proper string (not "[object Object]" or similar)
+     * @param analysisId - Analysis ID to validate
+     * @returns boolean indicating if analysisId is valid
+     */
+    private isValidAnalysisId(analysisId: any): analysisId is string {
+        return (
+            typeof analysisId === 'string' &&
+            analysisId.trim().length > 0 &&
+            analysisId !== '[object Object]' &&
+            !analysisId.includes('[object') &&
+            !analysisId.includes('undefined') &&
+            !analysisId.includes('null')
+        );
+    }
+
+    /**
+     * Filter analysis data to remove entries with malformed analysisIds
+     * @param data - Array of analysis data
+     * @returns Filtered array with only valid entries
+     */
+    private filterValidAnalyses(data: any[]): AnalysisResponse[] {
+        return data.filter(analysis => {
+            if (!this.isValidAnalysisId(analysis.analysisId)) {
+                console.warn('Filtered out malformed analysis entry:', {
+                    analysisId: analysis.analysisId,
+                    channelName: analysis.channelInfo?.channelName || 'Unknown'
+                });
+                return false;
+            }
+            return true;
+        });
+    }
+
     async getAllCompletedAnalyses(
         limit: number = 20, 
         offset: number = 0, 
@@ -57,19 +91,33 @@ class YoutubeService extends BaseApiService {
                 throw new Error(result.message || 'Invalid response from server');
             }
 
+            let analysisData: any[];
+            let total: number;
+            let hasMore: boolean;
+
             // Handle both old format (array) and new format (with pagination)
             if (Array.isArray(result.data)) {
-                return {
-                    data: result.data,
-                    total: result.data.length,
-                    hasMore: false
-                };
+                analysisData = result.data;
+                total = result.data.length;
+                hasMore = false;
+            } else {
+                analysisData = result.data.data || result.data;
+                total = result.data.total || 0;
+                hasMore = result.data.hasMore || false;
+            }
+
+            // Filter out malformed entries
+            const filteredData = this.filterValidAnalyses(analysisData);
+            
+            // If we filtered out entries, log the count
+            if (filteredData.length !== analysisData.length) {
+                console.warn(`Filtered out ${analysisData.length - filteredData.length} malformed analysis entries`);
             }
 
             return {
-                data: result.data.data || result.data,
-                total: result.data.total || 0,
-                hasMore: result.data.hasMore || false
+                data: filteredData,
+                total: total,
+                hasMore: hasMore
             };
         } catch (error) {
             console.error('Error getting completed analyses:', error);
