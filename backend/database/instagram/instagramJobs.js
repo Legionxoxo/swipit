@@ -206,24 +206,29 @@ async function getAllCompletedAnalyses(options = {}) {
             totalCount = countResult.total;
         }
 
-        // Get creators with completed posts, grouped by username
+        // Get creators with completed posts, grouped by username with their actual analysis_id
         const creators = await db.all(
-            `SELECT 
+            `SELECT DISTINCT
+                analysis_id,
                 profile_username,
                 instagram_user_id,
-                COUNT(*) as post_count,
-                MAX(created_at) as latest_created_at,
-                MAX(updated_at) as latest_updated_at
-             FROM instagram_data 
-             WHERE analysis_status = 'completed' AND profile_username IS NOT NULL AND profile_username != ''
-             GROUP BY profile_username, instagram_user_id
+                (SELECT COUNT(*) FROM instagram_data i2 
+                 WHERE i2.profile_username = i1.profile_username 
+                 AND i2.analysis_status = 'completed') as post_count,
+                created_at as latest_created_at,
+                updated_at as latest_updated_at
+             FROM instagram_data i1
+             WHERE analysis_status = 'completed' 
+             AND profile_username IS NOT NULL 
+             AND profile_username != ''
+             AND reel_id IS NULL
              ORDER BY latest_updated_at DESC
              LIMIT ? OFFSET ?`,
             [limit, offset]
         );
 
-        const mappedCreators = await Promise.all(creators.map(async (creator) => ({
-            analysisId: await generateUniqueInstagramProfileId(creator.profile_username),
+        const mappedCreators = creators.map((creator) => ({
+            analysisId: creator.analysis_id,
             instagramUserId: creator.instagram_user_id,
             username: creator.profile_username,
             status: 'completed',
@@ -231,7 +236,7 @@ async function getAllCompletedAnalyses(options = {}) {
             postCount: creator.post_count,
             createdAt: new Date(creator.latest_created_at),
             updatedAt: new Date(creator.latest_updated_at)
-        })));
+        }));
 
         if (includeTotal) {
             return {
