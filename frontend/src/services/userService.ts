@@ -38,7 +38,7 @@ class UserService {
             localStorage.setItem(USER_ID_KEY, newUserId);
             this.currentUserId = newUserId;
 
-            console.log('New user ID generated:', newUserId);
+            // New user ID generated
             return newUserId;
 
         } catch (error) {
@@ -62,7 +62,7 @@ class UserService {
         try {
             localStorage.removeItem(USER_ID_KEY);
             this.currentUserId = null;
-            console.log('User ID cleared');
+            // User ID cleared
         } catch (error) {
             console.error('Error clearing user ID:', error);
         } finally {

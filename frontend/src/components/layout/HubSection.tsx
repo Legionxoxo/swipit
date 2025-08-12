@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { CreatorHub } from '../../types/api';
-import { apiService } from '../../services/api';
+import { apiService } from '../../services';
 import { userService } from '../../services/userService';
 import NavItem from './NavItem';
 

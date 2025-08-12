@@ -8,39 +8,137 @@ const { getDatabase } = require('../../database/connection');
 /**
  * Get user video interactions with full video details
  * @param {string} userId - User ID
+ * @param {number} [page=1] - Page number for pagination
+ * @param {number} [limit=20] - Number of items per page
+ * @param {string} [filter] - Filter type ('favorites', 'starred', or undefined for all)
  * @returns {Promise<Object>} Service response with video interactions data including full video details
  */
-async function getUserVideoInteractions(userId) {
+async function getUserVideoInteractions(userId, page = 1, limit = 20, filter = null) {
     try {
         const db = await getDatabase();
+        const offset = (page - 1) * limit;
         
-        // Join user interactions with actual video data from youtube_data table
+        // Build WHERE clause based on filter
+        let whereClause = 'WHERE uvi.user_id = ?';
+        let queryParams = [userId];
+        
+        if (filter === 'favorites') {
+            whereClause += ' AND uvi.is_favorite = 1';
+        } else if (filter === 'starred') {
+            whereClause += ' AND uvi.star_rating > 0';
+        }
+        
+        // Get total count for pagination - simplified since we don't need JOINs for count
+        const countQuery = `
+            SELECT COUNT(*) as total 
+            FROM user_video_interactions uvi
+            ${whereClause}
+        `;
+        const totalResult = await db.get(countQuery, queryParams);
+        const totalCount = totalResult.total;
+        
+        // Get paginated results with proper LEFT JOINs for both platforms
         const interactions = await db.all(`
             SELECT 
                 uvi.*,
-                yd.video_title as title,
-                yd.video_description as description,
-                yd.video_thumbnail_url as thumbnail_url,
-                yd.video_url,
-                yd.video_upload_date as upload_date,
-                yd.video_duration as duration,
-                yd.video_view_count as view_count,
-                yd.video_like_count as like_count,
-                yd.video_comment_count as comment_count,
-                yd.video_category_id as category_id,
-                yd.channel_name,
-                yd.channel_thumbnail_url as channel_thumbnail_url,
-                yd.channel_subscriber_count as subscriber_count
+                CASE 
+                    WHEN uvi.platform = 'youtube' THEN yd.video_title 
+                    WHEN uvi.platform = 'instagram' THEN id.reel_caption 
+                    ELSE NULL 
+                END as title,
+                CASE 
+                    WHEN uvi.platform = 'youtube' THEN yd.video_description 
+                    WHEN uvi.platform = 'instagram' THEN id.reel_caption 
+                    ELSE NULL 
+                END as description,
+                CASE 
+                    WHEN uvi.platform = 'youtube' THEN yd.video_thumbnail_url 
+                    WHEN uvi.platform = 'instagram' THEN id.reel_thumbnail_url 
+                    ELSE NULL 
+                END as thumbnail_url,
+                CASE 
+                    WHEN uvi.platform = 'youtube' THEN yd.video_url 
+                    WHEN uvi.platform = 'instagram' THEN id.reel_url 
+                    ELSE NULL 
+                END as video_url,
+                CASE 
+                    WHEN uvi.platform = 'youtube' THEN yd.video_upload_date 
+                    WHEN uvi.platform = 'instagram' THEN id.reel_date_posted 
+                    ELSE NULL 
+                END as upload_date,
+                CASE 
+                    WHEN uvi.platform = 'youtube' THEN yd.video_duration 
+                    WHEN uvi.platform = 'instagram' THEN id.reel_duration 
+                    ELSE NULL 
+                END as duration,
+                CASE 
+                    WHEN uvi.platform = 'youtube' THEN yd.video_view_count 
+                    WHEN uvi.platform = 'instagram' THEN id.reel_views 
+                    ELSE 0 
+                END as view_count,
+                CASE 
+                    WHEN uvi.platform = 'youtube' THEN yd.video_like_count 
+                    WHEN uvi.platform = 'instagram' THEN id.reel_likes 
+                    ELSE 0 
+                END as like_count,
+                CASE 
+                    WHEN uvi.platform = 'youtube' THEN yd.video_comment_count 
+                    WHEN uvi.platform = 'instagram' THEN id.reel_comments 
+                    ELSE 0 
+                END as comment_count,
+                CASE 
+                    WHEN uvi.platform = 'youtube' THEN yd.video_category_id 
+                    ELSE NULL 
+                END as category_id,
+                CASE 
+                    WHEN uvi.platform = 'youtube' THEN yd.channel_name 
+                    WHEN uvi.platform = 'instagram' THEN id.profile_username 
+                    ELSE 'Unknown Channel' 
+                END as channel_name,
+                CASE 
+                    WHEN uvi.platform = 'youtube' THEN yd.channel_thumbnail_url 
+                    WHEN uvi.platform = 'instagram' THEN id.profile_pic_url 
+                    ELSE NULL 
+                END as channel_thumbnail_url,
+                CASE 
+                    WHEN uvi.platform = 'youtube' THEN yd.channel_subscriber_count 
+                    WHEN uvi.platform = 'instagram' THEN id.profile_follower_count 
+                    ELSE 0 
+                END as subscriber_count,
+                -- Additional Instagram fields for compatibility
+                CASE 
+                    WHEN uvi.platform = 'instagram' THEN id.reel_url 
+                    ELSE NULL 
+                END as post_link,
+                CASE 
+                    WHEN uvi.platform = 'instagram' THEN id.reel_url 
+                    ELSE NULL 
+                END as embed_link,
+                uvi.created_at,
+                uvi.updated_at
             FROM user_video_interactions uvi
-            LEFT JOIN youtube_data yd ON uvi.video_id = yd.video_id
-            WHERE uvi.user_id = ? 
+            LEFT JOIN youtube_data yd ON (uvi.video_id = yd.video_id AND uvi.platform = 'youtube')
+            LEFT JOIN instagram_data id ON (
+                (uvi.video_id = id.reel_id OR uvi.video_id = id.reel_shortcode OR uvi.video_id = id.analysis_id) 
+                AND uvi.platform = 'instagram'
+            )
+            ${whereClause}
             ORDER BY uvi.updated_at DESC
-        `, [userId]);
+            LIMIT ? OFFSET ?
+        `, [...queryParams, limit, offset]);
 
         return {
             success: true,
             message: 'User video interactions retrieved successfully',
-            data: interactions
+            data: interactions,
+            pagination: {
+                currentPage: page,
+                totalPages: Math.ceil(totalCount / limit),
+                totalCount,
+                hasNextPage: page < Math.ceil(totalCount / limit),
+                hasPreviousPage: page > 1,
+                limit
+            }
         };
 
     } catch (error) {

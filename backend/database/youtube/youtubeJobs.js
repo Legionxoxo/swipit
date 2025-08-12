@@ -208,6 +208,8 @@ async function getAllCompletedAnalyses(options = {}) {
 
         const analyses = await db.all(
             `SELECT DISTINCT analysis_id, youtube_channel_id, channel_name, channel_url, 
+                    channel_subscriber_count, channel_video_count, channel_creation_date,
+                    channel_description, channel_thumbnail_url, channel_uploads_playlist_id,
                     analysis_status, analysis_progress, created_at, updated_at
              FROM youtube_data 
              WHERE analysis_status = 'completed' AND video_id IS NULL
@@ -216,13 +218,33 @@ async function getAllCompletedAnalyses(options = {}) {
             [limit, offset]
         );
 
-        const mappedAnalyses = analyses.map((analysis) => ({
+        // Get video count for each analysis to populate channelInfo properly
+        const analysisIds = analyses.map(a => a.analysis_id);
+        const videoCountQueries = analysisIds.map(id => 
+            db.get(`SELECT COUNT(*) as video_count FROM youtube_data WHERE analysis_id = ? AND video_id IS NOT NULL`, [id])
+        );
+        const videoCounts = await Promise.all(videoCountQueries);
+
+        const mappedAnalyses = analyses.map((analysis, index) => ({
             analysisId: analysis.analysis_id,
-            youtubeChannelId: analysis.youtube_channel_id,
-            channelName: analysis.channel_name,
-            channelUrl: analysis.channel_url,
             status: analysis.analysis_status,
             progress: analysis.analysis_progress,
+            totalVideos: videoCounts[index]?.video_count || 0,
+            channelInfo: {
+                channelId: analysis.youtube_channel_id,
+                channelName: analysis.channel_name,
+                channelUrl: analysis.channel_url,
+                subscriberCount: analysis.channel_subscriber_count || 0,
+                videoCount: videoCounts[index]?.video_count || 0,
+                creationDate: analysis.channel_creation_date,
+                description: analysis.channel_description,
+                thumbnailUrl: analysis.channel_thumbnail_url,
+                uploadsPlaylistId: analysis.channel_uploads_playlist_id
+            },
+            data: [], // Empty for summary view
+            videoSegments: null, // Not needed for summary
+            pagination: null, // Not needed for summary
+            processingTime: null, // Not needed for summary
             createdAt: new Date(analysis.created_at),
             updatedAt: new Date(analysis.updated_at)
         }));

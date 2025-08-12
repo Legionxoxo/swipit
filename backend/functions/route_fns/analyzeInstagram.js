@@ -17,6 +17,7 @@ const { analyzeInstagramProfile, getInstagramAnalysis } = require('../../utils/i
  * @property {Array} [reels] - Reels data
  * @property {Object} [reelSegments] - Reels segmented by engagement
  * @property {number} [totalReels] - Total number of reels
+ * @property {Object} [pagination] - Pagination information
  * @property {string} [error] - Error message if failed
  */
 
@@ -61,9 +62,11 @@ async function analyzeInstagram(username, sessionId = null) {
 /**
  * Get Instagram analysis status and results
  * @param {string} analysisId - Analysis ID
+ * @param {number} [page=1] - Page number for pagination
+ * @param {number} [limit=50] - Items per page
  * @returns {Promise<InstagramAnalysisJobResponse|null>} Analysis job data
  */
-async function getInstagramAnalysisStatus(analysisId) {
+async function getInstagramAnalysisStatus(analysisId, page = 1, limit = 50) {
     try {
         if (!analysisId) {
             throw new Error('Analysis ID is required');
@@ -79,8 +82,8 @@ async function getInstagramAnalysisStatus(analysisId) {
             throw new Error('Analysis ID cannot be empty');
         }
 
-        // Get Instagram analysis using service layer
-        const analysisData = await getInstagramAnalysis(trimmedAnalysisId);
+        // Get Instagram analysis using service layer with pagination
+        const analysisData = await getInstagramAnalysis(trimmedAnalysisId, page, limit);
         
         if (!analysisData) {
             return null;
@@ -94,6 +97,7 @@ async function getInstagramAnalysisStatus(analysisId) {
             reels: analysisData.reels,
             reelSegments: analysisData.reelSegments,
             totalReels: analysisData.totalReels,
+            pagination: analysisData.pagination,
             error: analysisData.error
         };
 

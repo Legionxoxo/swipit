@@ -1,28 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
-import { apiService } from '../services/api';
+import { apiService } from '../services';
+import type { InstagramAnalysisData, OEmbedPostData } from '../types/api';
 
-interface InstagramAnalysisData {
-    analysisId: string;
-    status: 'processing' | 'completed' | 'failed';
-    progress: number;
-    profile?: {
-        instagram_user_id: string;
-        username: string;
-        full_name: string;
-        biography: string;
-        follower_count: number;
-        following_count: number;
-        media_count: number;
-        is_private: boolean;
-        is_verified: boolean;
-        external_url?: string;
-        profile_pic_url: string;
-    };
-    reels?: any[];
-    reelSegments?: any;
-    totalReels?: number;
-    error?: string;
-}
 
 export function useInstagramAnalysisTracking() {
     const [instagramAnalyses, setInstagramAnalyses] = useState<InstagramAnalysisData[]>([]);
@@ -54,9 +33,9 @@ export function useInstagramAnalysisTracking() {
             
             // Transform backend data to frontend format
             const analysesWithData = await Promise.all(
-                result.data.map(async (analysis: any) => {
+                result.data.map(async (analysis: InstagramAnalysisData) => {
                     try {
-                        const analysisId = analysis.analysisId || analysis.analysis_id;
+                        const analysisId = analysis.analysisId;
                         
                         // Skip individual post analyses (but allow creator analyses)
                         if (analysisId.startsWith('post_') || analysisId.startsWith('oembed_')) {
@@ -75,7 +54,7 @@ export function useInstagramAnalysisTracking() {
                             error: fullAnalysisData.error
                         };
                     } catch (error) {
-                        console.error(`Error loading Instagram analysis ${analysis.analysis_id}:`, error);
+                        console.error(`Error loading Instagram analysis ${analysis.analysisId}:`, error);
                         return null;
                     }
                 })
@@ -186,17 +165,17 @@ export function useInstagramAnalysisTracking() {
         startPolling(analysisId);
     };
 
-    const handleInstagramPostTracked = (postData: any) => {
+    const handleInstagramPostTracked = (postData: OEmbedPostData) => {
         // Use username as the analysis ID to group posts by creator
         const analysisId = `creator_${postData.username}`;
         
         // Create the new post/reel data
         const newReel = {
-            reel_id: postData.instagram_id,
-            reel_shortcode: postData.instagram_id,
+            reel_id: postData.instagram_id || '',
+            reel_shortcode: postData.instagram_id || '',
             reel_url: postData.post_link || '',
-            reel_thumbnail_url: postData.thumbnail_url,
-            reel_caption: postData.caption,
+            reel_thumbnail_url: postData.thumbnail_url || '',
+            reel_caption: postData.caption || '',
             reel_likes: 0, // Not available from oEmbed
             reel_comments: 0, // Not available from oEmbed
             reel_views: 0, // Not available from oEmbed
@@ -221,7 +200,7 @@ export function useInstagramAnalysisTracking() {
                 
                 // Check if this specific post already exists to avoid duplicates
                 const existingReels = existingAnalysis.reels || [];
-                const postExists = existingReels.some(reel => reel.reel_id === postData.instagram_id);
+                const postExists = existingReels.some(reel => reel.reel_id === (postData.instagram_id || ''));
                 
                 if (!postExists) {
                     updated[existingIndex] = {
@@ -242,9 +221,9 @@ export function useInstagramAnalysisTracking() {
                     status: 'completed',
                     progress: 100,
                     profile: {
-                        instagram_user_id: postData.username, // Use username as user ID
-                        username: postData.username,
-                        full_name: postData.username, // Use username as full name for posts
+                        instagram_user_id: postData.username || '', // Use username as user ID
+                        username: postData.username || '',
+                        full_name: postData.username || '', // Use username as full name for posts
                         biography: '', // Not available for individual posts
                         follower_count: 0, // Not available for individual posts
                         following_count: 0, // Not available for individual posts

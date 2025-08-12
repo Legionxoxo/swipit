@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { apiService } from '../services/api';
+import { apiService } from '../services';
 import ReelCard from './reel/ReelCard';
 import { useInfiniteScrollInstagram } from '../hooks/useInfiniteScrollInstagram';
 
@@ -50,10 +50,9 @@ interface InstagramReelsListProps {
     reelSegments: ReelSegments | null;  // Initial segments (now unused with infinite scroll)
     analysisId: string;
     onBack: () => void;
-    viewMode: 'grid' | 'list';
 }
 
-export default function InstagramReelsList({ profileInfo: _initialProfile, reels: _initialReels, reelSegments: _initialSegments, analysisId, onBack, viewMode }: InstagramReelsListProps) {
+export default function InstagramReelsList({ profileInfo: _initialProfile, reels: _initialReels, reelSegments: _initialSegments, analysisId, onBack }: InstagramReelsListProps) {
     const [selectedSegment, setSelectedSegment] = useState<string>('all');
     const [isExporting, setIsExporting] = useState(false);
     
@@ -115,7 +114,6 @@ export default function InstagramReelsList({ profileInfo: _initialProfile, reels
             const filename = `instagram_analysis_${profileInfo.username}_${new Date().toISOString().split('T')[0]}.csv`;
             apiService.downloadFile(csvBlob, filename);
         } catch (error) {
-            console.error('CSV export error:', error);
             alert('Failed to export CSV. Please try again.');
         } finally {
             setIsExporting(false);
@@ -129,7 +127,6 @@ export default function InstagramReelsList({ profileInfo: _initialProfile, reels
             const filename = `instagram_analysis_${profileInfo.username}_${new Date().toISOString().split('T')[0]}.json`;
             apiService.downloadFile(jsonBlob, filename);
         } catch (error) {
-            console.error('JSON export error:', error);
             alert('Failed to export JSON. Please try again.');
         } finally {
             setIsExporting(false);
@@ -238,17 +235,13 @@ export default function InstagramReelsList({ profileInfo: _initialProfile, reels
                         <p className="text-gray-500">This segment doesn't contain any reels.</p>
                     </div>
                 ) : (
-                    <div className={viewMode === 'grid' 
-                        ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
-                        : "space-y-4"
-                    }>
+                    <div className="space-y-4">
                         {reelsToShow.map((reel) => (
                             <ReelCard
                                 key={reel.reel_id}
                                 reel={reel}
                                 creatorName={profileInfo.username}
                                 followerCount={profileInfo.follower_count}
-                                viewMode={viewMode}
                             />
                         ))}
                     </div>

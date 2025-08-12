@@ -3,6 +3,7 @@
  * @author Backend Team
  */
 
+// @ts-ignore - multer types
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');
@@ -51,6 +52,7 @@ router.post('/upload', upload.single('csv'), async (req, res) => {
     let filePath = null;
     
     try {
+        // @ts-ignore - multer adds file property to request
         if (!req.file) {
             return res.status(400).json({
                 success: false,
@@ -58,6 +60,7 @@ router.post('/upload', upload.single('csv'), async (req, res) => {
             });
         }
         
+        // @ts-ignore - multer adds file property to request
         filePath = req.file.path;
         
         // Parse CSV file

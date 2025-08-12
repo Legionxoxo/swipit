@@ -9,8 +9,8 @@ import ContextMenu from './components/common/ContextMenu';
 import CreatorsView from './components/views/CreatorsView';
 import FavoriteVideosView from './components/views/FavoriteVideosView';
 import StarredVideosView from './components/views/StarredVideosView';
-import type { AnalysisResponse, CreatorHub } from './types/api';
-import { apiService } from './services/api';
+import type { AnalysisResponse, CreatorHub, InstagramAnalysisData, UnifiedCreator } from './types/api';
+import { apiService } from './services';
 import { userService } from './services/userService';
 import { useAnalysisTracking } from './hooks/useAnalysisTracking';
 import { useInstagramAnalysisTracking } from './hooks/useInstagramAnalysisTracking';
@@ -22,23 +22,6 @@ interface AnalysisData {
     data: AnalysisResponse;
 }
 
-interface InstagramAnalysisData {
-    analysisId: string;
-    status: 'processing' | 'completed' | 'failed';
-    progress: number;
-    profile?: any;
-    reels?: any[];
-    reelSegments?: any;
-    totalReels?: number;
-    error?: string;
-}
-
-interface UnifiedCreator {
-    analysisId: string;
-    platform: 'youtube' | 'instagram';
-    data?: AnalysisResponse;
-    instagramData?: InstagramAnalysisData;
-}
 
 function App() {
     const [currentView, setCurrentView] = useState<string>('home');
@@ -48,7 +31,6 @@ function App() {
     const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
     const [hubs, setHubs] = useState<CreatorHub[]>([]);
-    const [videoViewMode, setVideoViewMode] = useState<'grid' | 'list'>('grid');
 
     const { 
         analyses, 
@@ -100,6 +82,7 @@ function App() {
             const savedHubs = await apiService.getUserHubs(userId);
             setHubs(savedHubs);
         } catch (error) {
+            // Error loading hubs - handled silently
             console.error('Error loading hubs:', error);
         } finally {
             // Required by architecture rules
@@ -155,35 +138,59 @@ function App() {
         }
     };
 
-    // Handle video view (YouTube)
-    if (selectedAnalysis) {
-        return (
-            <VideosList
-                channelInfo={selectedAnalysis.data.channelInfo}
-                videos={selectedAnalysis.data.videoData}
-                videoSegments={selectedAnalysis.data.videoSegments}
-                analysisId={selectedAnalysis.analysisId}
-                onBack={handleBackToChannels}
-                viewMode={videoViewMode}
-            />
-        );
-    }
-
-    // Handle reels view (Instagram)
-    if (selectedInstagramAnalysis) {
-        return (
-            <InstagramReelsList
-                profileInfo={selectedInstagramAnalysis.profile}
-                reels={selectedInstagramAnalysis.reels || []}
-                reelSegments={selectedInstagramAnalysis.reelSegments}
-                analysisId={selectedInstagramAnalysis.analysisId}
-                onBack={handleBackToChannels}
-                viewMode={videoViewMode}
-            />
-        );
-    }
-
     const renderContent = () => {
+        // Handle video view (YouTube)
+        if (selectedAnalysis) {
+            // Check if we have the required data
+            if (!selectedAnalysis.data?.channelInfo) {
+                return (
+                    <div className="flex flex-col items-center justify-center py-12">
+                        <div className="text-center">
+                            <h2 className="text-xl font-semibold text-gray-900 mb-2">Loading Channel Data...</h2>
+                            <p className="text-gray-600">Please wait while we load the channel information.</p>
+                            <button 
+                                onClick={handleBackToChannels}
+                                className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                            >
+                                Back to Creators
+                            </button>
+                        </div>
+                    </div>
+                );
+            }
+            
+            const defaultVideoSegments = {
+                viral: [],
+                veryHigh: [],
+                high: [],
+                medium: [],
+                low: []
+            };
+            
+            return (
+                <VideosList
+                    channelInfo={selectedAnalysis.data.channelInfo}
+                    videos={selectedAnalysis.data.videoData || []}
+                    videoSegments={selectedAnalysis.data.videoSegments || defaultVideoSegments}
+                    analysisId={selectedAnalysis.analysisId}
+                    onBack={handleBackToChannels}
+                />
+            );
+        }
+
+        // Handle reels view (Instagram)
+        if (selectedInstagramAnalysis) {
+            return (
+                <InstagramReelsList
+                    profileInfo={selectedInstagramAnalysis.profile!}
+                    reels={selectedInstagramAnalysis.reels || []}
+                    reelSegments={selectedInstagramAnalysis.reelSegments || null}
+                    analysisId={selectedInstagramAnalysis.analysisId}
+                    onBack={handleBackToChannels}
+                />
+            );
+        }
+
         if (currentView === 'favorite-videos') {
             return <FavoriteVideosView />;
         }
@@ -228,7 +235,7 @@ function App() {
     };
 
     return (
-        <div className="flex min-h-screen bg-gray-50">
+        <div className="min-h-screen bg-gray-50">
             {/* Sidebar */}
             <Sidebar
                 isCollapsed={isSidebarCollapsed}
@@ -240,11 +247,9 @@ function App() {
             />
 
             {/* Main Content */}
-            <div className="flex-1 flex flex-col">
+            <div className={`flex flex-col min-h-screen transition-all duration-300 ${isSidebarCollapsed ? 'ml-16' : 'ml-64'}`}>
                 <Header 
-                    onTrackChannelClick={handleTrackChannelClick} 
-                    videoViewMode={videoViewMode}
-                    onVideoViewModeChange={setVideoViewMode}
+                    onTrackChannelClick={handleTrackChannelClick}
                 />
                 
                 <main className="flex-1 p-8">

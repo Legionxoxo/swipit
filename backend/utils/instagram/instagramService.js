@@ -16,6 +16,7 @@ const { segmentReelsByEngagement } = require('../../functions/analysis/instagram
  * @property {Array} [reels] - Reels data
  * @property {Object} [reelSegments] - Reels segmented by engagement
  * @property {number} [totalReels] - Total number of reels
+ * @property {Object} [pagination] - Pagination information
  * @property {string} [error] - Error message if failed
  */
 

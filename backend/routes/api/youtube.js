@@ -89,7 +89,12 @@ router.get('/analysis/:id', async (req, res) => {
             });
         }
 
-        const result = await youtubeService.getAnalysis(id);
+        // Extract pagination parameters
+        const { page = 1, limit = 50 } = req.query;
+        const pageNum = parseInt(String(page), 10) || 1;
+        const limitNum = parseInt(String(limit), 10) || 50;
+        
+        const result = await youtubeService.getAnalysis(id, pageNum, limitNum);
 
         if (!result.success) {
             return res.status(404).json({

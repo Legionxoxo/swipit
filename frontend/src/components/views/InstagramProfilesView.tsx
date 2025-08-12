@@ -152,8 +152,8 @@ export default function InstagramProfilesView({
                 />
             </div>
 
-            {/* Profiles Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {/* Profiles List */}
+            <div className="space-y-4">
                 {filteredAnalyses.map((analysis) => {
                     const isClickable = analysis.status === 'completed';
                     const isLoading = loadingAnalyses.includes(analysis.analysisId);
@@ -161,9 +161,9 @@ export default function InstagramProfilesView({
                     return (
                         <div
                             key={analysis.analysisId}
-                            className={`bg-white rounded-xl shadow-md overflow-hidden transition-all duration-200 ${
+                            className={`bg-white rounded-lg shadow-md hover:shadow-lg border border-gray-200 overflow-hidden transition-all duration-200 ${
                                 isClickable 
-                                    ? 'hover:shadow-lg hover:scale-105 cursor-pointer' 
+                                    ? 'cursor-pointer' 
                                     : 'cursor-default'
                             }`}
                             onClick={() => isClickable && onProfileClick(analysis)}
@@ -211,7 +211,7 @@ export default function InstagramProfilesView({
 
                                 {/* Stats */}
                                 {analysis.profile && (
-                                    <div className="grid grid-cols-3 gap-2 text-center text-sm mb-4">
+                                    <div className="flex justify-around text-center text-sm mb-4">
                                         <div>
                                             <p className="font-bold text-gray-900">
                                                 {formatNumber(analysis.profile.follower_count)}

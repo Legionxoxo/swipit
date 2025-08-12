@@ -25,6 +25,7 @@ const youtubeDb = require('../../database/youtube');
  * @property {Object} [channelInfo] - Channel information
  * @property {Object} [videoSegments] - Video segments by view count
  * @property {number} [totalVideos] - Total number of videos
+ * @property {Object} [pagination] - Pagination information
  * @property {number} [processingTime] - Processing time in seconds
  * @property {string} [error] - Error message if failed
  */

@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
 import type { CreatorHub } from '../../types/api';
-import { apiService } from '../../services/api';
+import { apiService } from '../../services';
 import { userService } from '../../services/userService';
+import { Heart, MoreVertical } from 'lucide-react';
 
 interface ChannelActionsProps {
     analysisId: string;
@@ -132,21 +133,26 @@ export default function ChannelActions({
                     {error}
                 </div>
             )}
-            <div className="absolute top-4 right-4 flex space-x-2">
+            <div className="flex space-x-2">
                 {/* Heart Icon */}
                 <button
                     onClick={handleHeartClick}
                     className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 transition-all duration-200"
                     title={isFavorite ? "Remove from Favorites" : "Add to Favorites"}
                 >
-                    <svg 
-                        className={`w-5 h-5 ${isFavorite ? 'text-red-500 fill-current' : 'text-gray-400'}`} 
-                        fill={isFavorite ? 'currentColor' : 'none'} 
-                        stroke="currentColor" 
-                        viewBox="0 0 24 24"
-                    >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                    </svg>
+                    {isFavorite ? (
+                        <Heart 
+                            className="w-5 h-5 text-red-500"
+                            fill="currentColor"
+                            stroke="currentColor"
+                        />
+                    ) : (
+                        <Heart 
+                            className="w-5 h-5 text-gray-600"
+                            fill="none"
+                            stroke="currentColor"
+                        />
+                    )}
                 </button>
 
                 {/* Menu Icon */}
@@ -156,14 +162,12 @@ export default function ChannelActions({
                         className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 transition-all duration-200"
                         title="Options"
                     >
-                        <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01" />
-                        </svg>
+                        <MoreVertical className="w-5 h-5 text-gray-600" />
                     </button>
 
                     {/* Dropdown Menu */}
                     {showMenu && (
-                        <div className="absolute top-full right-0 mt-2 w-48 bg-white rounded-lg shadow-xl border z-10">
+                        <div className="absolute top-full right-0 mt-2 w-48 bg-white rounded-lg shadow-xl border z-50">
                             <div className="py-2">
                                 <div className="px-4 py-2 text-sm font-semibold text-gray-700 border-b">Move to Hub</div>
                                 {hubs.length > 0 ? (

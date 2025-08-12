@@ -16,6 +16,7 @@ const resultsTableName = 'csv_import_results';
  * @property {string} created_at - Job creation timestamp
  * @property {string} [completed_at] - Job completion timestamp
  * @property {string} [error_message] - Error message if job failed
+ * @property {Object} [rateLimiterStats] - Rate limiter statistics when job is active
  */
 
 /**
@@ -137,7 +138,7 @@ async function updateCsvImportJob(db, jobId, status, processedUrls = null, error
 
         if (processedUrls !== null) {
             updates.push('processed_urls = ?');
-            params.push(processedUrls);
+            params.push(String(processedUrls));
         }
 
         if (status === 'completed' || status === 'failed') {
@@ -227,7 +228,7 @@ async function getCsvImportResults(db, jobId, limit = null, offset = 0) {
 
         if (limit !== null) {
             query += ` LIMIT ? OFFSET ?`;
-            params.push(limit, offset);
+            params.push(String(limit), String(offset));
         }
 
         const results = await db.all(query, params);

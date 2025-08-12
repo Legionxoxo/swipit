@@ -131,27 +131,6 @@ async function processInstagramAnalysis(analysisId, username, sessionId = null) 
 
         // Instagram scraper functionality disabled - Python server removed
         throw new Error('Instagram profile scraping is temporarily disabled. Please use the oEmbed functionality instead.');
-        
-        // Update progress - data processing
-        await updateAnalysisStatus(analysisId, 'processing', 85);
-
-        // Store profile data if available
-        if (instagramData.profile) {
-            await storeProfileData(analysisId, instagramData.profile);
-        }
-
-        // Store reels data if available
-        if (instagramData.reels && instagramData.reels.length > 0) {
-            await storeReelData(
-                analysisId, 
-                instagramData.profile.instagram_user_id,
-                instagramData.profile.username,
-                instagramData.reels
-            );
-        }
-
-        // Update final status
-        await updateAnalysisStatus(analysisId, 'completed', 100);
 
     } catch (error) {
         console.error(`Process Instagram analysis ${analysisId} error:`, error);

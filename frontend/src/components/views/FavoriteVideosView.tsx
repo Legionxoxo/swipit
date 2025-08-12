@@ -1,40 +1,32 @@
-import { useState, useEffect } from 'react';
 import VideoCard from '../video/VideoCard';
 import ReelCard from '../reel/ReelCard';
-import { apiService } from '../../services/api';
 import { userService } from '../../services/userService';
+import { useVideoInteractionsPagination } from '../../hooks/useVideoInteractionsPagination';
+import { useInfiniteScrollObserver } from '../../hooks/useInfiniteScrollObserver';
 import type { VideoData } from '../../types/api';
 
 export default function FavoriteVideosView() {
-    const [favoriteVideos, setFavoriteVideos] = useState<any[]>([]);
-    const [isLoading, setIsLoading] = useState<boolean>(true);
-    const [error, setError] = useState<string>('');
+    const userId = userService.getUserId();
+    
+    const {
+        data: favoriteVideos,
+        loading: isLoading,
+        error,
+        hasMore,
+        loadMore
+    } = useVideoInteractionsPagination({
+        userId,
+        filter: 'favorites',
+        pageSize: 20
+    });
 
-    useEffect(() => {
-        loadFavoriteVideos();
-    }, []);
+    const { loadMoreRef } = useInfiniteScrollObserver({
+        hasMore,
+        isLoading,
+        onLoadMore: loadMore
+    });
 
-    const loadFavoriteVideos = async () => {
-        try {
-            setError('');
-            const userId = userService.getUserId();
-            const videoInteractions = await apiService.getUserVideoInteractions(userId);
-            
-            // Filter for favorite videos only (database stores 1/0, so check for truthy values)
-            const favoriteVideoInteractions = videoInteractions.filter(
-                interaction => interaction.is_favorite === 1 || interaction.is_favorite === true
-            );
-
-            setFavoriteVideos(favoriteVideoInteractions);
-        } catch (error) {
-            console.error('Error loading favorite videos:', error);
-            setError('Failed to load favorite videos. Please try again.');
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    if (isLoading) {
+    if (isLoading && favoriteVideos.length === 0) {
         return (
             <div>
                 <h2 className="text-2xl font-bold text-gray-900 mb-6">Favorite Videos</h2>
@@ -58,7 +50,7 @@ export default function FavoriteVideosView() {
         );
     }
 
-    if (favoriteVideos.length === 0) {
+    if (favoriteVideos.length === 0 && !isLoading) {
         return (
             <div>
                 <h2 className="text-2xl font-bold text-gray-900 mb-6">Favorite Videos</h2>
@@ -72,16 +64,16 @@ export default function FavoriteVideosView() {
     return (
         <div>
             <h2 className="text-2xl font-bold text-gray-900 mb-6">Favorite Videos & Reels</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <div className="space-y-4">
                 {favoriteVideos.map(interaction => {
                     if (interaction.platform === 'instagram') {
                         // Convert interaction to Instagram reel format
                         const reelData = {
                             reel_id: interaction.video_id,
                             reel_shortcode: interaction.video_id,
-                            reel_url: interaction.video_url || '',
+                            reel_url: interaction.video_url || interaction.post_link || '',
                             reel_thumbnail_url: interaction.thumbnail_url || '',
-                            reel_caption: interaction.title || interaction.comment || 'Instagram Reel',
+                            reel_caption: interaction.title || interaction.description || (interaction.channel_name ? `Post by ${interaction.channel_name}` : `Instagram Post`),
                             reel_likes: interaction.like_count || 0,
                             reel_comments: interaction.comment_count || 0,
                             reel_views: interaction.view_count || 0,
@@ -90,13 +82,13 @@ export default function FavoriteVideosView() {
                             reel_hashtags: [],
                             reel_mentions: [],
                             embed_link: interaction.embed_link,
-                            post_link: interaction.video_url,
+                            post_link: interaction.video_url || interaction.post_link,
                             hashtags: []
                         };
                         
                         return (
                             <ReelCard
-                                key={interaction.video_id}
+                                key={`reel-${interaction.video_id}`}
                                 reel={reelData}
                                 creatorName={interaction.channel_name || 'Unknown Creator'}
                                 followerCount={interaction.subscriber_count || 0}
@@ -107,7 +99,7 @@ export default function FavoriteVideosView() {
                         const videoData: VideoData = {
                             videoId: interaction.video_id,
                             title: interaction.title || `Video ${interaction.video_id.slice(0, 8)}...`,
-                            description: interaction.description || interaction.comment || '',
+                            description: interaction.description || '',
                             thumbnailUrl: interaction.thumbnail_url || '',
                             videoUrl: interaction.video_url || `https://youtube.com/watch?v=${interaction.video_id}`,
                             uploadDate: interaction.upload_date || interaction.created_at,
@@ -120,7 +112,7 @@ export default function FavoriteVideosView() {
                         
                         return (
                             <VideoCard 
-                                key={interaction.video_id} 
+                                key={`video-${interaction.video_id}`}
                                 video={videoData} 
                                 channelName={interaction.channel_name || 'Unknown Channel'}
                                 subscriberCount={interaction.subscriber_count || 0}
@@ -129,6 +121,20 @@ export default function FavoriteVideosView() {
                     }
                 })}
             </div>
+            
+            {/* Infinite scroll trigger */}
+            {hasMore && (
+                <div ref={loadMoreRef} className="flex justify-center py-8">
+                    {isLoading ? (
+                        <div className="flex items-center space-x-2">
+                            <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                            <span className="text-gray-600">Loading more videos...</span>
+                        </div>
+                    ) : (
+                        <div className="h-4" />
+                    )}
+                </div>
+            )}
         </div>
     );
 }

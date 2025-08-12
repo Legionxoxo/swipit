@@ -9,10 +9,16 @@ const { EventEmitter } = require('events');
  * @typedef {Object} ProcessStats
  * @property {number} uptime - Process uptime in seconds
  * @property {number} cpuUsage - CPU usage percentage
+ * @property {Object} memory - Memory usage information
+ * @property {number} memory.rss - Resident set size in bytes
+ * @property {number} memory.heapUsed - Heap used in bytes
+ * @property {number} memory.heapTotal - Total heap size in bytes
+ * @property {number} memory.external - External memory in bytes
  * @property {number} pid - Process ID
  * @property {number} ppid - Parent process ID
  * @property {string} platform - Operating system platform
  * @property {string} nodeVersion - Node.js version
+ * @property {number} timestamp - Timestamp when stats were collected
  */
 
 /**

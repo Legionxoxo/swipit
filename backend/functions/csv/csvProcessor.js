@@ -70,8 +70,12 @@ class CsvProcessor {
             
             
             // Only create reel/post entry (no placeholder profile entry)
-            const reelId = oembedData.instagram_id || oembedData.shortcode || uuidv4();
-            const reelShortcode = oembedData.shortcode || reelId;
+            const originalReelId = oembedData.instagram_id || oembedData.shortcode || uuidv4();
+            const reelShortcode = oembedData.shortcode || originalReelId;
+            
+            // Generate the same oEmbed-style ID that users interact with
+            const oembedId = `oembed_${Date.now()}_${reelShortcode}`;
+            const reelId = oembedId;
             
             
             // Check if this reel already exists

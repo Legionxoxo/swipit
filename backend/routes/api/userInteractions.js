@@ -19,12 +19,14 @@ const router = express.Router();
 /**
  * Get user video interactions (stars, comments, favorites)
  * GET /api/user-interactions/videos/:userId
+ * Query params: page, limit, filter
  * @param {express.Request} req - Express request
  * @param {express.Response} res - Express response
  */
 router.get('/videos/:userId', async (req, res) => {
     try {
         const { userId } = req.params;
+        const { page = 1, limit = 20, filter } = req.query;
 
         if (!userId) {
             return res.status(400).json({
@@ -34,7 +36,43 @@ router.get('/videos/:userId', async (req, res) => {
             });
         }
 
-        const result = await userInteractionsService.getUserVideoInteractions(userId);
+        // Convert query params to integers
+        const pageNum = parseInt(String(page), 10);
+        const limitNum = parseInt(String(limit), 10);
+
+        // Validate pagination parameters
+        if (isNaN(pageNum) || pageNum < 1) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid page number',
+                error: 'Page must be a positive integer'
+            });
+        }
+
+        if (isNaN(limitNum) || limitNum < 1 || limitNum > 100) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid limit',
+                error: 'Limit must be between 1 and 100'
+            });
+        }
+
+        // Validate filter parameter
+        const filterStr = String(filter);
+        if (filter && !['favorites', 'starred'].includes(filterStr)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid filter',
+                error: 'Filter must be "favorites" or "starred"'
+            });
+        }
+
+        const result = await userInteractionsService.getUserVideoInteractions(
+            userId, 
+            pageNum, 
+            limitNum, 
+            filterStr
+        );
 
         if (!result.success) {
             return res.status(500).json({
@@ -47,7 +85,8 @@ router.get('/videos/:userId', async (req, res) => {
         res.json({
             success: true,
             message: 'User video interactions retrieved successfully',
-            data: result.data
+            data: result.data,
+            pagination: result.pagination
         });
 
     } catch (error) {

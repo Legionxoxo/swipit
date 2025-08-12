@@ -17,11 +17,39 @@ const { promisify } = require('util');
 /**
  * Create async wrapper for SQLite database
  * @param {string} dbPath - Path to SQLite database file
+ * @param {boolean} [applyOptimizations=false] - Whether to apply performance optimizations
  * @returns {Promise<DatabaseWrapper>} Database wrapper with async methods
  */
-async function createDatabaseWrapper(dbPath) {
+async function createDatabaseWrapper(dbPath, applyOptimizations = false) {
     try {
         const db = new sqlite3.Database(dbPath);
+
+        // Apply optimization pragmas if requested
+        if (applyOptimizations) {
+            await new Promise((resolve, reject) => {
+                db.serialize(() => {
+                    try {
+                        // Enable WAL mode for better concurrency
+                        db.run('PRAGMA journal_mode = WAL;');
+                        
+                        // Set reasonable cache size (negative value = KB)
+                        db.run('PRAGMA cache_size = -32000;'); // 32MB cache
+                        
+                        // Optimize for memory usage
+                        db.run('PRAGMA temp_store = MEMORY;');
+                        db.run('PRAGMA synchronous = NORMAL;');
+                        db.run('PRAGMA mmap_size = 67108864;'); // 64MB mmap
+                        
+                        // Connection pooling simulation
+                        db.run('PRAGMA busy_timeout = 30000;'); // 30 second timeout
+                        
+                        resolve();
+                    } catch (error) {
+                        reject(error);
+                    }
+                });
+            });
+        }
 
         // Promisify SQLite methods for async/await support
         const asyncGet = promisify(db.get.bind(db));

@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { apiService } from '../../services/api';
+import { apiService } from '../../services';
 import { userService } from '../../services/userService';
 import { transcriptionService } from '../../services/transcriptionService';
 import VideoDualSidebar from './VideoDualSidebar';
@@ -66,25 +66,40 @@ export default function VideoActions({
             
             // Find interaction for this specific video
             const videoInteraction = interactions.find(
-                interaction => interaction.video_id === videoId && interaction.platform === platform
+                (interaction: any) => interaction.video_id === videoId && interaction.platform === platform
             );
 
             if (videoInteraction) {
+                const hasCommentValue = !!videoInteraction.comment && videoInteraction.comment.trim().length > 0;
                 setStarRating(videoInteraction.star_rating || 0);
                 setComment(videoInteraction.comment || '');
                 setIsFavorite(videoInteraction.is_favorite || false);
-                setHasComment(!!videoInteraction.comment);
+                setHasComment(hasCommentValue);
+                
+                // Debug logging for comment detection
+                console.debug('VideoActions interaction found:', {
+                    videoId,
+                    comment: videoInteraction.comment ? `${videoInteraction.comment.length} chars` : 'none',
+                    hasComment: hasCommentValue,
+                    starRating: videoInteraction.star_rating,
+                    isFavorite: videoInteraction.is_favorite
+                });
             } else {
                 // No interaction found, set defaults
                 setStarRating(0);
                 setComment('');
                 setIsFavorite(false);
                 setHasComment(false);
+                
+                console.debug('VideoActions no interaction found for:', { videoId, platform });
             }
 
         } catch (error) {
             console.error('Error loading video interactions:', error);
-            setError('Failed to load video data. Please try again.');
+            // Don't show error for missing interaction data - it's optional
+            // But log more details for debugging
+            console.error('Video ID:', videoId, 'Platform:', platform);
+            // setError('Failed to load video data. Please try again.');
         } finally {
             setIsLoading(false);
         }
@@ -108,7 +123,7 @@ export default function VideoActions({
             const userId = userService.getUserId();
             const newFavoriteState = !isFavorite;
 
-            console.log('Video interaction params:', { userId, videoId, platform, isFavorite: newFavoriteState });
+            // Recording video interaction
 
             await apiService.updateVideoInteraction(userId, videoId, platform, {
                 isFavorite: newFavoriteState
@@ -153,10 +168,18 @@ export default function VideoActions({
                 comment: trimmedComment || undefined
             });
 
+            const hasCommentAfterSave = !!trimmedComment && trimmedComment.length > 0;
             setComment(trimmedComment);
-            setHasComment(!!trimmedComment);
+            setHasComment(hasCommentAfterSave);
             setShowCommentSidebar(false);
             setShowTranscriptionSidebar(false);
+            
+            // Debug logging for comment save
+            console.debug('Comment saved:', {
+                videoId,
+                comment: trimmedComment ? `${trimmedComment.length} chars` : 'deleted',
+                hasComment: hasCommentAfterSave
+            });
         } catch (error) {
             console.error('Error updating comment:', error);
             setError('Failed to save comment. Please try again.');

@@ -213,6 +213,7 @@ class MemoryMonitor extends EventEmitter {
         try {
             if (global.gc) {
                 console.log('🗑️  Forcing garbage collection...');
+                // @ts-ignore - global.gc exists when --expose-gc is used
                 global.gc();
                 return true;
             } else {
@@ -295,6 +296,7 @@ function getMemoryMonitor(options = {}) {
                 globalMemoryMonitor.forceGarbageCollection();
                 
                 // Emit warning for application handling
+                // @ts-ignore - custom event for memory pressure
                 process.emit('memoryPressure', {
                     type: 'heapCritical',
                     stats
@@ -303,6 +305,7 @@ function getMemoryMonitor(options = {}) {
             
             globalMemoryMonitor.on('rssCritical', (stats) => {
                 console.error('🚨 RSS CRITICAL - System memory pressure');
+                // @ts-ignore - custom event for memory pressure
                 process.emit('memoryPressure', {
                     type: 'rssCritical',
                     stats

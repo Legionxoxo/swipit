@@ -1,4 +1,4 @@
-import { apiService } from '../services/api';
+import { apiService } from '../services';
 import { userService } from '../services/userService';
 
 interface AnalysisData {
@@ -58,7 +58,7 @@ export async function getFavoriteCreatorsAsync(): Promise<string[]> {
         const userId = userService.getUserId();
         const interactions = await apiService.getUserCreatorInteractions(userId);
         return interactions
-            .filter(interaction => interaction.is_favorite === 1 || interaction.is_favorite === true)
+            .filter(interaction => Boolean(interaction.is_favorite))
             .map(interaction => interaction.creator_id);
     } catch (error) {
         console.error('Error getting favorite creators:', error);

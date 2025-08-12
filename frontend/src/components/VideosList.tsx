@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { VideoData, ChannelInfo, VideoSegments } from '../types/api';
 import VideoCard from './video/VideoCard';
-import { apiService } from '../services/api';
+import { apiService } from '../services';
 import { useInfiniteScroll } from '../hooks/useInfiniteScroll';
 
 interface VideosListProps {
@@ -10,7 +10,6 @@ interface VideosListProps {
     videoSegments: VideoSegments;
     analysisId: string;
     onBack: () => void;
-    viewMode: 'grid' | 'list';
 }
 
 export default function VideosList({ 
@@ -18,8 +17,7 @@ export default function VideosList({
     videos: _initialVideos, // Unused, now using infinite scroll 
     videoSegments, 
     analysisId, 
-    onBack,
-    viewMode 
+    onBack
 }: VideosListProps) {
     const [activeTab, setActiveTab] = useState<'views' | 'outlier'>('views');
     const [selectedCategory, setSelectedCategory] = useState<'all' | 'viral' | 'veryHigh' | 'high' | 'medium' | 'low'>('all');
@@ -78,11 +76,11 @@ export default function VideosList({
             }
         } else {
             switch (selectedCategory) {
-                case 'viral': return videoSegments.viral;
-                case 'veryHigh': return videoSegments.veryHigh;
-                case 'high': return videoSegments.high;
-                case 'medium': return videoSegments.medium;
-                case 'low': return videoSegments.low;
+                case 'viral': return safeVideoSegments.viral;
+                case 'veryHigh': return safeVideoSegments.veryHigh;
+                case 'high': return safeVideoSegments.high;
+                case 'medium': return safeVideoSegments.medium;
+                case 'low': return safeVideoSegments.low;
                 default: return videos;
             }
         }
@@ -105,13 +103,21 @@ export default function VideosList({
         }
     };
 
+    const safeVideoSegments = videoSegments || {
+        viral: [],
+        veryHigh: [],
+        high: [],
+        medium: [],
+        low: []
+    };
+
     const viewsCategories = [
         { key: 'all' as const, label: 'All Videos', count: videos.length },
-        { key: 'viral' as const, label: 'Viral (1M+)', count: videoSegments.viral.length },
-        { key: 'veryHigh' as const, label: 'Very High (100K-1M)', count: videoSegments.veryHigh.length },
-        { key: 'high' as const, label: 'High (10K-100K)', count: videoSegments.high.length },
-        { key: 'medium' as const, label: 'Medium (1K-10K)', count: videoSegments.medium.length },
-        { key: 'low' as const, label: 'Low (<1K)', count: videoSegments.low.length },
+        { key: 'viral' as const, label: 'Viral (1M+)', count: safeVideoSegments.viral.length },
+        { key: 'veryHigh' as const, label: 'Very High (100K-1M)', count: safeVideoSegments.veryHigh.length },
+        { key: 'high' as const, label: 'High (10K-100K)', count: safeVideoSegments.high.length },
+        { key: 'medium' as const, label: 'Medium (1K-10K)', count: safeVideoSegments.medium.length },
+        { key: 'low' as const, label: 'Low (<1K)', count: safeVideoSegments.low.length },
     ];
 
     const outlierCategories = [
@@ -264,17 +270,13 @@ export default function VideosList({
 
                 {videosToShow.length > 0 ? (
                     <>
-                        <div className={viewMode === 'grid' 
-                            ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
-                            : "space-y-4"
-                        }>
+                        <div className="space-y-4">
                             {videosToShow.map((video, index) => (
                                 <VideoCard 
                                     key={video.videoId || `video-${index}`} 
                                     video={video} 
                                     channelName={channelInfo.channelName} 
                                     subscriberCount={channelInfo.subscriberCount}
-                                    viewMode={viewMode}
                                 />
                             ))}
                         </div>

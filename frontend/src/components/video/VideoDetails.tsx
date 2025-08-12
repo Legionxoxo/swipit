@@ -62,7 +62,7 @@ export default function VideoDetails({ video, compact = false }: VideoDetailsPro
                 </p>
             )}
 
-            <div className="grid grid-cols-3 gap-4 mb-4 text-sm text-gray-600">
+            <div className="flex justify-between mb-4 text-sm text-gray-600">
                 <div className="flex items-center space-x-1">
                     <span className="font-medium">👁️</span>
                     <span>{formatNumber(video.viewCount)}</span>

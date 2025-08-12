@@ -1,5 +1,5 @@
 import type { VideoTranscription } from '../types/api';
-import { apiService } from './api';
+import { apiService } from './';
 import { userService } from './userService';
 
 const TRANSCRIPTION_CACHE_KEY = 'video_transcriptions_cache';

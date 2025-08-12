@@ -1,13 +1,8 @@
-import { useState, useEffect, useRef } from 'react';
-import { apiService } from '../../services/api';
-import { userService } from '../../services/userService';
-
-interface UnifiedCreator {
-    analysisId: string;
-    platform: 'youtube' | 'instagram';
-    data?: any;
-    instagramData?: any;
-}
+import { Heart } from 'lucide-react';
+import type { UnifiedCreator, CreatorHub } from '../../types/api';
+import { useCreatorInteraction } from '../../hooks/useCreatorInteraction';
+import CreatorCardMenu from './CreatorCardMenu';
+import CreatorInfo from './CreatorInfo';
 
 interface UnifiedCreatorCardProps {
     creator: UnifiedCreator;
@@ -15,400 +10,123 @@ interface UnifiedCreatorCardProps {
     onClick?: (creator: UnifiedCreator) => void;
     onRightClick?: (e: React.MouseEvent, analysisId: string) => void;
     onHubAssign?: (analysisId: string, hubId: string) => void;
-    hubs?: any[];
+    onFavoriteChange?: (analysisId: string, isFavorite: boolean) => void;
+    hubs?: CreatorHub[];
 }
 
+/**
+ * Unified creator card component for displaying YouTube and Instagram creators
+ * Refactored to use custom hooks and sub-components to stay under 250 lines
+ */
 export default function UnifiedCreatorCard({ 
     creator, 
     isLoading = false, 
     onClick, 
     onRightClick,
     onHubAssign,
+    onFavoriteChange,
     hubs = []
 }: UnifiedCreatorCardProps) {
-    const [imageError, setImageError] = useState(false);
-    const [isFavorite, setIsFavorite] = useState(false);
-    const [showMenu, setShowMenu] = useState(false);
-    const menuRef = useRef<HTMLDivElement>(null);
+    // Use custom hook for creator interactions
+    const { isFavorite, isLoading: favoriteLoading, toggleFavorite } = useCreatorInteraction({
+        creatorId: creator.analysisId,
+        onFavoriteChange
+    });
 
-    // Load creator interactions on component mount
-    useEffect(() => {
-        loadCreatorInteraction();
-    }, [creator.analysisId]);
-
-    // Click outside handler for menu
-    useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (showMenu && menuRef.current && !menuRef.current.contains(event.target as Node)) {
-                // Only close if click is outside the dropdown area too
-                const dropdownElement = document.querySelector('[data-dropdown-menu="true"]');
-                if (!dropdownElement || !dropdownElement.contains(event.target as Node)) {
-                    setShowMenu(false);
-                }
-            }
-        };
-
-        if (showMenu) {
-            document.addEventListener('mousedown', handleClickOutside);
-            return () => {
-                document.removeEventListener('mousedown', handleClickOutside);
-            };
-        }
-    }, [showMenu]);
-
-    const loadCreatorInteraction = async () => {
-        try {
-            const userId = userService.getUserId();
-            const interactions = await apiService.getUserCreatorInteractions(userId);
-            
-            const creatorInteraction = interactions.find(
-                interaction => interaction.creator_id === creator.analysisId
-            );
-            
-            if (creatorInteraction) {
-                setIsFavorite(creatorInteraction.is_favorite === 1 || creatorInteraction.is_favorite === true);
-            }
-        } catch (error) {
-            console.error('Error loading creator interaction:', error);
-        }
-    };
-
-
-    const handleFavoriteClick = async (e: React.MouseEvent) => {
+    const handleFavoriteClick = (e: React.MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
-        
-        try {
-            const userId = userService.getUserId();
-            const newFavoriteState = !isFavorite;
-            const info = getCreatorInfo();
-            
-            await apiService.updateCreatorInteraction(userId, creator.analysisId, {
-                isFavorite: newFavoriteState,
-                channelName: info.name,
-                channelId: creator.platform === 'youtube' ? creator.data?.channelInfo?.youtubeChannelId : creator.analysisId,
-                thumbnailUrl: info.thumbnail,
-                platform: creator.platform
-            });
-            
-            setIsFavorite(newFavoriteState);
-        } catch (error) {
-            console.error('Error updating favorite status:', error);
-        }
+        toggleFavorite();
     };
 
-    const handleMenuClick = (e: React.MouseEvent) => {
+    const handleRightClick = (e: React.MouseEvent) => {
         e.preventDefault();
-        e.stopPropagation();
-        setShowMenu(!showMenu);
+        onRightClick?.(e, creator.analysisId);
     };
 
-    const handleHubAssign = async (e: React.MouseEvent, hubId: string) => {
-        e.preventDefault();
-        e.stopPropagation();
-        
-        try {
-            const userId = userService.getUserId();
-            const info = getCreatorInfo();
-            
-            await apiService.updateCreatorInteraction(userId, creator.analysisId, {
-                hubId: hubId,
-                channelName: info.name,
-                channelId: creator.platform === 'youtube' ? creator.data?.channelInfo?.youtubeChannelId : creator.analysisId,
-                thumbnailUrl: info.thumbnail,
-                platform: creator.platform
-            });
-            
-            setShowMenu(false);
-            onHubAssign?.(creator.analysisId, hubId);
-        } catch (error) {
-            console.error('Error assigning creator to hub:', error);
-        }
-    };
+    const isCompleted = creator.platform === 'youtube' 
+        ? creator.data?.status === 'completed' 
+        : creator.instagramData?.status === 'completed';
 
-    const getCreatorInfo = () => {
-        if (creator.platform === 'youtube' && creator.data) {
-            return {
-                name: creator.data.channelInfo?.channelName || 'Unknown Channel',
-                subscriber_count: creator.data.channelInfo?.subscriberCount || 0,
-                video_count: creator.data.totalVideos || 0,
-                thumbnail: creator.data.channelInfo?.thumbnailUrl || '',
-                description: creator.data.channelInfo?.description || '',
-                status: creator.data.status,
-                platform: 'youtube' as const
-            };
-        } else if (creator.platform === 'instagram' && creator.instagramData) {
-            return {
-                name: creator.instagramData.profile?.username || 'Unknown Profile',
-                subscriber_count: creator.instagramData.profile?.follower_count || 0,
-                video_count: creator.instagramData.totalReels || 0,
-                thumbnail: creator.instagramData.profile?.profile_pic_url || '',
-                description: creator.instagramData.profile?.biography || '',
-                status: creator.instagramData.status,
-                platform: 'instagram' as const,
-                full_name: creator.instagramData.profile?.full_name,
-                is_verified: creator.instagramData.profile?.is_verified
-            };
+    if (isLoading) {
+        return (
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                <div className="animate-pulse">
+                    <div className="flex items-center space-x-3">
+                        <div className="w-12 h-12 bg-gray-300 rounded-full"></div>
+                        <div className="flex-1">
+                            <div className="h-4 bg-gray-300 rounded w-3/4 mb-2"></div>
+                            <div className="h-3 bg-gray-300 rounded w-1/2"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    const handleCardClick = (e: React.MouseEvent) => {
+        // Don't trigger navigation if clicking on interactive elements
+        const target = e.target as HTMLElement;
+        if (target.tagName === 'BUTTON' || target.closest('button') || target.closest('a')) {
+            return;
         }
         
-        return {
-            name: 'Loading...',
-            subscriber_count: 0,
-            video_count: 0,
-            thumbnail: '',
-            description: '',
-            status: 'processing',
-            platform: creator.platform
-        };
-    };
-
-    const info = getCreatorInfo();
-    const isClickable = info.status === 'completed';
-
-    const formatNumber = (num: number): string => {
-        if (num >= 1000000) {
-            return (num / 1000000).toFixed(1) + 'M';
-        }
-        if (num >= 1000) {
-            return (num / 1000).toFixed(1) + 'K';
-        }
-        return num.toString();
-    };
-
-
-    const getStatusIcon = (status: string) => {
-        switch (status) {
-            case 'completed':
-                return (
-                    <svg className="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                    </svg>
-                );
-            case 'failed':
-                return (
-                    <svg className="w-4 h-4 text-red-600" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                    </svg>
-                );
-            case 'processing':
-                return (
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                );
-            default:
-                return null;
-        }
-    };
-
-    const getPlatformIcon = (platform: string) => {
-        if (platform === 'youtube') {
-            return (
-                <svg className="w-4 h-4 text-red-600" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
-                </svg>
-            );
-        } else {
-            return (
-                <svg className="w-4 h-4 text-purple-600" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M12.017 0C8.396 0 7.853.016 6.625.071 5.398.126 4.56.336 3.842.637c-.75.293-1.386.683-2.019 1.316C1.19 2.587.8 3.223.507 3.973c-.301.718-.511 1.556-.566 2.783C-.054 7.984-.072 8.527-.072 12.148s.018 4.164.072 5.392c.055 1.227.265 2.065.566 2.783.293.75.683 1.386 1.316 2.019.633.633 1.269 1.023 2.019 1.316.718.301 1.556.511 2.783.566 1.228.055 1.771.073 5.392.073s4.164-.018 5.392-.073c1.227-.055 2.065-.265 2.783-.566.75-.293 1.386-.683 2.019-1.316.633-.633 1.023-1.269 1.316-2.019.301-.718.511-1.556.566-2.783.055-1.228.073-1.771.073-5.392s-.018-4.164-.073-5.392c-.055-1.227-.265-2.065-.566-2.783-.293-.75-.683-1.386-1.316-2.019C18.598.8 17.962.41 17.212.117 16.494-.184 15.656-.394 14.429-.449 13.201-.504 12.658-.522 9.037-.522H12.017z"/>
-                    <path d="M12.017 5.838a6.31 6.31 0 100 12.62 6.31 6.31 0 000-12.62zm0 10.408a4.098 4.098 0 110-8.196 4.098 4.098 0 010 8.196z"/>
-                    <circle cx="18.406" cy="5.594" r="1.44"/>
-                </svg>
-            );
+        if (isCompleted && onClick) {
+            onClick(creator);
         }
     };
 
     return (
-        <div
-            className={`bg-white rounded-lg shadow-md hover:shadow-lg transition-all duration-200 overflow-visible relative ${
-                isClickable ? 'cursor-pointer' : 'cursor-default'
-            }`}
-            onClick={() => isClickable && onClick?.(creator)}
-            onContextMenu={(e) => onRightClick?.(e, creator.analysisId)}
+        <div 
+            className={`
+                bg-white rounded-lg shadow-sm border border-gray-200 transition-all duration-200 p-4 group
+                ${isCompleted 
+                    ? 'cursor-pointer hover:shadow-lg hover:border-blue-300 hover:bg-blue-50/20' 
+                    : 'hover:shadow-md'
+                }
+            `}
+            onClick={handleCardClick}
+            onContextMenu={handleRightClick}
         >
-            {/* Thumbnail */}
-            <div className="relative h-32 bg-gray-100">
-                {info.thumbnail && !imageError ? (
-                    <img
-                        src={info.thumbnail}
-                        alt={info.name}
-                        className="w-full h-full object-cover"
-                        onError={() => setImageError(true)}
-                    />
-                ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-gray-200">
-                        {getPlatformIcon(info.platform)}
-                    </div>
-                )}
+            <div className="flex items-center justify-between">
+                <CreatorInfo creator={creator} />
                 
-                {/* Platform badge */}
-                <div className="absolute top-2 left-2 flex items-center space-x-1 bg-black bg-opacity-70 text-white px-2 py-1 rounded text-xs">
-                    {getPlatformIcon(info.platform)}
-                    <span className="uppercase font-medium">
-                        {info.platform}
-                    </span>
-                </div>
-
-                {/* Status indicator */}
-                <div className="absolute top-2 right-2 flex items-center space-x-1 bg-white bg-opacity-90 px-2 py-1 rounded">
-                    {getStatusIcon(info.status)}
-                </div>
-
-                {/* Action icons - only show for completed creators */}
-                {isClickable && (
-                    <div className="absolute bottom-2 right-2 flex space-x-2">
-                        {/* Instagram Link Icon - only show for Instagram creators */}
-                        {info.platform === 'instagram' && (
-                            <a
-                                href={`https://www.instagram.com/${info.name}/`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                onClick={(e) => e.stopPropagation()}
-                                className="p-2 rounded-full bg-gradient-to-r from-purple-500 via-pink-500 to-orange-500 hover:from-purple-600 hover:via-pink-600 hover:to-orange-600 transition-all duration-200"
-                                title="Open Instagram Profile"
-                            >
-                                <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
-                                    <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
-                                </svg>
-                            </a>
-                        )}
-
-                        {/* Favorite Icon */}
-                        <button
-                            onClick={handleFavoriteClick}
-                            className="p-2 rounded-full bg-black bg-opacity-50 hover:bg-opacity-70 transition-all duration-200"
-                            title={isFavorite ? "Remove from Favorites" : "Add to Favorites"}
-                        >
-                            <svg 
-                                className={`w-4 h-4 ${isFavorite ? 'text-red-500 fill-current' : 'text-white'}`} 
-                                fill={isFavorite ? 'currentColor' : 'none'} 
-                                stroke="currentColor" 
-                                viewBox="0 0 24 24"
-                            >
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                            </svg>
-                        </button>
-
-                        {/* Menu Icon */}
-                        <div className="relative" ref={menuRef}>
-                            <button
-                                onClick={handleMenuClick}
-                                className={`p-2 rounded-full bg-black transition-all duration-200 ${
-                                    showMenu 
-                                        ? 'bg-opacity-70 ring-2 ring-white ring-opacity-50' 
-                                        : 'bg-opacity-50 hover:bg-opacity-70'
-                                }`}
-                                title="Creator Options"
-                            >
-                                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01" />
-                                </svg>
-                            </button>
-                        </div>
-                    </div>
-                )}
-
-            </div>
-
-            {/* Hub Dropdown Menu */}
-            {showMenu && (
-                <div 
-                    data-dropdown-menu="true"
-                    style={{
-                        position: 'absolute',
-                        top: '50%',
-                        left: '50%',
-                        transform: 'translate(-50%, -50%)',
-                        zIndex: 10000
-                    }}
-                    className="bg-white rounded-lg shadow-2xl border border-gray-200 min-w-48"
-                    onMouseDown={(e) => e.stopPropagation()}
-                    onClick={(e) => e.stopPropagation()}
-                >
-                    {/* Header */}
-                    <div className="px-3 py-2 border-b border-gray-100">
-                        <div className="flex items-center justify-center text-xs font-semibold text-gray-600">
-                            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16l-4-4m0 0l4-4m-4 4h18" />
-                            </svg>
-                            Move to Hub
-                        </div>
-                    </div>
+                <div className="flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button
+                        onClick={handleFavoriteClick}
+                        disabled={favoriteLoading}
+                        className={`
+                            p-1.5 rounded-full transition-colors
+                            ${isFavorite 
+                                ? 'bg-red-50 text-red-600 hover:bg-red-100' 
+                                : 'text-gray-400 hover:text-red-500 hover:bg-gray-50'
+                            }
+                            ${favoriteLoading ? 'opacity-50 cursor-not-allowed' : ''}
+                        `}
+                        aria-label={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+                    >
+                        <Heart className={`w-4 h-4 ${isFavorite ? 'fill-current' : ''}`} />
+                    </button>
                     
-                    {/* Hub List */}
-                    <div className="py-1">
-                        {hubs.length === 0 ? (
-                            <div className="px-4 py-3 text-sm text-gray-500">
-                                No hubs available
-                            </div>
-                        ) : (
-                            hubs.map((hub) => (
-                                <div
-                                    key={hub.id}
-                                    className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-all duration-150 flex items-center justify-between group cursor-pointer"
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleHubAssign(e, hub.id);
-                                    }}
-                                >
-                                    <span className="font-medium">{hub.name}</span>
-                                    <span className="text-xs text-gray-500 group-hover:text-blue-600">({hub.creatorIds?.length || 0})</span>
-                                </div>
-                            ))
-                        )}
-                    </div>
+                    <CreatorCardMenu 
+                        analysisId={creator.analysisId}
+                        hubs={hubs}
+                        creatorName={creator.platform === 'youtube' 
+                            ? creator.data?.channelInfo?.channelName || 'YouTube Channel'
+                            : creator.instagramData?.profile?.full_name || creator.instagramData?.profile?.username || 'Instagram Profile'
+                        }
+                        creatorId={creator.platform === 'youtube' 
+                            ? creator.data?.channelInfo?.channelId
+                            : creator.instagramData?.profile?.instagram_user_id
+                        }
+                        thumbnailUrl={creator.platform === 'youtube' 
+                            ? creator.data?.channelInfo?.thumbnailUrl
+                            : creator.instagramData?.profile?.profile_pic_url
+                        }
+                        platform={creator.platform}
+                        onHubAssign={onHubAssign}
+                    />
                 </div>
-            )}
-
-            {/* Content */}
-            <div className="p-4">
-                <div className="flex items-start justify-between mb-2">
-                    <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-gray-900 truncate text-lg">
-                            {info.platform === 'instagram' && info.full_name ? info.full_name : info.name}
-                        </h3>
-                        {info.platform === 'instagram' && info.full_name && (
-                            <p className="text-sm text-gray-600 truncate">@{info.name}</p>
-                        )}
-                        {info.platform === 'instagram' && info.is_verified && (
-                            <div className="flex items-center mt-1">
-                                <svg className="w-4 h-4 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                                </svg>
-                                <span className="text-xs text-gray-500 ml-1">Verified</span>
-                            </div>
-                        )}
-                    </div>
-                </div>
-                
-                <p className="text-sm text-gray-600 mb-3 line-clamp-2">
-                    {info.description || 'No description available'}
-                </p>
-
-                {/* Stats */}
-                <div className="flex items-center justify-between text-sm text-gray-500">
-                    <span>
-                        {formatNumber(info.subscriber_count)} {info.platform === 'youtube' ? 'subscribers' : 'followers'}
-                    </span>
-                    <span>
-                        {info.video_count} {info.platform === 'youtube' ? 'videos' : 'reels'}
-                    </span>
-                </div>
-
-                {/* Loading indicator */}
-                {isLoading && (
-                    <div className="mt-3 bg-gray-100 rounded-full h-2">
-                        <div className="bg-blue-600 h-2 rounded-full animate-pulse" style={{ width: '60%' }}></div>
-                    </div>
-                )}
-
-                {/* Action prompt */}
-                {isClickable && (
-                    <div className="mt-3 text-center">
-                        <span className="text-xs text-gray-500">
-                            Click to view {info.platform === 'youtube' ? 'videos' : 'reels'}
-                        </span>
-                    </div>
-                )}
             </div>
         </div>
     );

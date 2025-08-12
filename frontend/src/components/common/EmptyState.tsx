@@ -37,7 +37,7 @@ export default function EmptyState({ onTrackChannel }: EmptyStateProps) {
                     Track Your First Channel
                 </button>
                 
-                <div className="mt-12 grid grid-cols-1 sm:grid-cols-3 gap-6 text-center">
+                <div className="mt-12 flex flex-col sm:flex-row sm:space-x-6 space-y-6 sm:space-y-0 text-center">
                     <div className="p-4">
                         <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-3">
                             <svg className="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">

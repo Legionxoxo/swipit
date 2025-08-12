@@ -1,24 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { apiService } from '../services/api';
-
-interface InstagramReel {
-    reel_id: string;
-    reel_shortcode: string;
-    reel_url: string;
-    reel_thumbnail_url: string;
-    reel_caption: string;
-    reel_likes: number;
-    reel_comments: number;
-    reel_views: number;
-    reel_date_posted: string;
-    reel_duration: number;
-    reel_hashtags: string[];
-    reel_mentions: string[];
-    // Additional fields for Instagram posts tracked via oEmbed
-    embed_link?: string;
-    post_link?: string;
-    hashtags?: string[];
-}
+import { apiService } from '../services';
+import type { InstagramProfile, InstagramReel, InstagramReelSegments } from '../types/api';
 
 interface PaginationInfo {
     currentPage: number;
@@ -58,8 +40,8 @@ export function useInfiniteScrollInstagram({
     
     const [currentPage, setCurrentPage] = useState(1);
     const [pagination, setPagination] = useState<PaginationInfo | null>(null);
-    const [profile, setProfile] = useState<any>(null);
-    const [reelSegments, setReelSegments] = useState<any>(null);
+    const [profile, setProfile] = useState<InstagramProfile | null>(null);
+    const [reelSegments, setReelSegments] = useState<InstagramReelSegments | null>(null);
 
     const loadPage = useCallback(async (page: number, append: boolean = true) => {
         if (state.loading) return;
@@ -70,23 +52,35 @@ export function useInfiniteScrollInstagram({
             const response = await apiService.getInstagramAnalysisStatus(analysisId, page, pageSize);
             
             if (response.status === 'completed' && response.reels) {
+                const reels = response.reels || [];
                 setState(prev => ({
                     ...prev,
-                    reels: append ? [...prev.reels, ...response.reels] : response.reels,
+                    reels: append ? [...prev.reels, ...reels] : reels,
                     loading: false,
                     hasMore: response.pagination?.hasNextPage ?? false,
                     totalCount: response.pagination?.totalReels ?? response.totalReels ?? 0
                 }));
                 
-                setPagination(response.pagination ?? null);
+                if (response.pagination) {
+                    setPagination({
+                        currentPage: response.pagination.page || page,
+                        totalPages: response.pagination.totalPages || 1,
+                        totalReels: response.pagination.totalReels || response.totalReels || 0,
+                        hasNextPage: response.pagination.hasNextPage || false,
+                        hasPrevPage: response.pagination.hasPreviousPage || false,
+                        limit: response.pagination.pageSize || 50
+                    });
+                } else {
+                    setPagination(null);
+                }
                 setCurrentPage(page);
                 
                 // Store profile and segments on first load
                 if (page === 1) {
-                    setProfile(response.profile);
-                    setReelSegments(response.reelSegments);
+                    setProfile(response.profile ?? null);
+                    setReelSegments(response.reelSegments ?? null);
                 }
-            } else if (response.status === 'error') {
+            } else if (response.status === 'failed') {
                 setState(prev => ({
                     ...prev,
                     loading: false,

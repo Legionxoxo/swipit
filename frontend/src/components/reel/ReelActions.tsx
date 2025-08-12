@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { apiService } from '../../services/api';
+import { apiService } from '../../services';
 import { userService } from '../../services/userService';
 import { transcriptionService } from '../../services/transcriptionService';
 import VideoDualSidebar from '../video/VideoDualSidebar';
@@ -70,7 +70,7 @@ export default function ReelActions({
             
             // Find interaction for this specific reel (using reelId as videoId)
             const reelInteraction = interactions.find(
-                interaction => interaction.video_id === reelId && interaction.platform === 'instagram'
+                (interaction: any) => interaction.video_id === reelId && interaction.platform === 'instagram'
             );
 
             if (reelInteraction) {
@@ -88,7 +88,8 @@ export default function ReelActions({
 
         } catch (error) {
             console.error('Error loading reel interactions:', error);
-            setError('Failed to load reel data. Please try again.');
+            // Don't show error for missing interaction data - it's optional
+            // setError('Failed to load reel data. Please try again.');
         } finally {
             setIsLoading(false);
         }

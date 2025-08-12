@@ -117,8 +117,8 @@ router.get('/:id', async (req, res) => {
         }
 
         // Validate pagination parameters
-        const pageNum = parseInt(page, 10);
-        const limitNum = parseInt(limit, 10);
+        const pageNum = parseInt(String(page), 10);
+        const limitNum = parseInt(String(limit), 10);
         
         if (isNaN(pageNum) || pageNum < 1) {
             return res.status(400).json({

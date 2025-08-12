@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { apiService } from '../services/api';
+import { apiService } from '../services';
 import type { AnalysisResponse } from '../types/api';
 
 interface AnalysisData {
@@ -24,36 +24,34 @@ export function useAnalysisTracking() {
 
     const loadCompletedAnalyses = async () => {
         try {
-            const result = await apiService.getAllCompletedAnalyses(ITEMS_PER_PAGE, 0);
+            // Request full data in single API call to avoid N+1 queries
+            const result = await apiService.getAllCompletedAnalyses(ITEMS_PER_PAGE, 0, true);
             
             // Handle both old format (array) and new format (with pagination)
             const analysesData = Array.isArray(result) ? result : result.data;
             const total = Array.isArray(result) ? result.length : result.total;
             const more = Array.isArray(result) ? false : result.hasMore;
             
-            // Transform backend data to frontend format
-            const analysesWithData = await Promise.all(
-                analysesData.map(async (analysis: any) => {
-                    try {
-                        const fullAnalysisData = await apiService.getAnalysisStatus(analysis.analysisId);
-                        return {
-                            analysisId: analysis.analysisId,
-                            data: fullAnalysisData
-                        };
-                    } catch (error) {
-                        console.error(`Error loading analysis ${analysis.analysisId}:`, error);
-                        return null;
-                    }
-                })
-            );
+            // Transform backend data to frontend format - now data is already full
+            const validAnalyses = analysesData
+                .filter((analysis: AnalysisResponse) => analysis && analysis.analysisId && analysis.status === 'completed')
+                .map((analysis: AnalysisResponse) => ({
+                    analysisId: analysis.analysisId,
+                    data: analysis
+                })) as AnalysisData[];
 
-            const validAnalyses = analysesWithData.filter(Boolean) as AnalysisData[];
             setAnalyses(validAnalyses);
             setTotalCount(total);
             setHasMore(more);
             setCurrentPage(1);
         } catch (error) {
+            // Error loading completed analyses - handled silently
             console.error('Error loading completed analyses:', error);
+            setAnalyses([]);
+            setTotalCount(0);
+            setHasMore(false);
+        } finally {
+            // Required by architecture rules
         }
     };
     
@@ -63,33 +61,26 @@ export function useAnalysisTracking() {
         try {
             setIsLoadingMore(true);
             const offset = currentPage * ITEMS_PER_PAGE;
-            const result = await apiService.getAllCompletedAnalyses(ITEMS_PER_PAGE, offset);
+            // Request full data in single API call to avoid N+1 queries
+            const result = await apiService.getAllCompletedAnalyses(ITEMS_PER_PAGE, offset, true);
             
             // Handle both old format (array) and new format (with pagination)
             const analysesData = Array.isArray(result) ? result : result.data;
             const more = Array.isArray(result) ? false : result.hasMore;
             
-            // Transform backend data to frontend format
-            const analysesWithData = await Promise.all(
-                analysesData.map(async (analysis: any) => {
-                    try {
-                        const fullAnalysisData = await apiService.getAnalysisStatus(analysis.analysisId);
-                        return {
-                            analysisId: analysis.analysisId,
-                            data: fullAnalysisData
-                        };
-                    } catch (error) {
-                        console.error(`Error loading analysis ${analysis.analysisId}:`, error);
-                        return null;
-                    }
-                })
-            );
+            // Transform backend data to frontend format - now data is already full
+            const validAnalyses = analysesData
+                .filter((analysis: AnalysisResponse) => analysis && analysis.analysisId && analysis.status === 'completed')
+                .map((analysis: AnalysisResponse) => ({
+                    analysisId: analysis.analysisId,
+                    data: analysis
+                })) as AnalysisData[];
 
-            const validAnalyses = analysesWithData.filter(Boolean) as AnalysisData[];
             setAnalyses(prev => [...prev, ...validAnalyses]);
             setHasMore(more);
             setCurrentPage(prev => prev + 1);
         } catch (error) {
+            // Error loading more analyses - handled silently
             console.error('Error loading more analyses:', error);
         } finally {
             setIsLoadingMore(false);

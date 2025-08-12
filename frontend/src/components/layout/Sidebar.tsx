@@ -34,7 +34,7 @@ export default function Sidebar({
     };
 
     return (
-        <div className={`bg-white border-r border-gray-200 transition-all duration-300 ${isCollapsed ? 'w-16' : 'w-64'} min-h-screen flex flex-col`}>
+        <div className={`bg-white border-r border-gray-200 transition-all duration-300 ${isCollapsed ? 'w-16' : 'w-64'} h-screen flex flex-col fixed left-0 top-0 z-10`}>
             {/* Header */}
             <div className={`p-4 border-b border-gray-100 flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'}`}>
                 {!isCollapsed && (
@@ -56,7 +56,7 @@ export default function Sidebar({
             </div>
 
             {/* Navigation */}
-            <div className="flex-1 p-3 space-y-1">
+            <div className="flex-1 p-3 space-y-1 overflow-y-auto">
                 {/* Home */}
                 <NavItem
                     icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

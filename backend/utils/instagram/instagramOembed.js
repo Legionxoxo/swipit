@@ -4,33 +4,35 @@
  * Converted from Python script to eliminate Python server dependency
  */
 
+// @ts-ignore - axios import compatibility issue
 const axios = require('axios');
 const { decode } = require('html-entities');
 
 /**
  * @typedef {Object} InstagramOembedData
- * @property {string} author_name - Instagram username
- * @property {string} username - Instagram username (alias)
- * @property {string} author_id - Instagram user ID
- * @property {string} profile_link - Profile URL
- * @property {string} instagram_id - Post shortcode
- * @property {string} shortcode - Post shortcode (alias)
- * @property {string} caption - Post caption
- * @property {string} title - Post title
- * @property {string} author_url - Profile URL (alias)
- * @property {string} thumbnail_url - Thumbnail image URL
- * @property {string} post_link - Original post URL
- * @property {string} embed_link - Embed URL
- * @property {string} html_embed - HTML embed code
- * @property {string} provider_name - Always 'Instagram'
- * @property {string} provider_url - Always 'https://www.instagram.com'
- * @property {string} version - oEmbed version
- * @property {string} type - Content type
+ * @property {string} [author_name] - Instagram username
+ * @property {string} [username] - Instagram username (alias)
+ * @property {string} [author_id] - Instagram user ID
+ * @property {string} [profile_link] - Profile URL
+ * @property {string} [instagram_id] - Post shortcode
+ * @property {string} [shortcode] - Post shortcode (alias)
+ * @property {string} [caption] - Post caption
+ * @property {string} [title] - Post title
+ * @property {string} [author_url] - Profile URL (alias)
+ * @property {string} [thumbnail_url] - Thumbnail image URL
+ * @property {string} [post_link] - Original post URL
+ * @property {string} [embed_link] - Embed URL
+ * @property {string} [html_embed] - HTML embed code
+ * @property {string} [provider_name] - Always 'Instagram'
+ * @property {string} [provider_url] - Always 'https://www.instagram.com'
+ * @property {string} [version] - oEmbed version
+ * @property {string} [type] - Content type
  * @property {Array<string>} [mentions] - Mentioned usernames
  * @property {number} [mention_count] - Number of mentions
  * @property {number} [character_count] - Caption character count
  * @property {number} [word_count] - Caption word count
  * @property {number} [line_count] - Caption line count
+ * @property {string} [error] - Error message if extraction failed
  */
 
 /**
@@ -62,6 +64,7 @@ async function extractFromEmbedUrl(reelUrl) {
         const encodedUrl = encodeURIComponent(reelUrl);
         const embedUrl = `https://www.instagram.com/oembed/?url=${encodedUrl}`;
         
+        // @ts-ignore - axios types
         const response = await axios.get(embedUrl, {
             headers: {
                 'User-Agent': 'Mozilla/5.0 (compatible; oEmbed)'
@@ -102,6 +105,7 @@ async function getReelCreator(reelUrl) {
 
         // Fallback: Fetch URL directly
         
+        // @ts-ignore - axios types
         const response = await axios.get(reelUrl, {
             headers: {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -136,7 +140,7 @@ async function getReelCreator(reelUrl) {
         }
 
         // Method 1: Look for window._sharedData
-        const sharedDataMatch = content.match(/window\._sharedData\s*=\s*({.+?});/s);
+        const sharedDataMatch = content.match(/window\._sharedData\s*=\s*({[\s\S]+?});/);
         if (sharedDataMatch) {
             try {
                 const sharedData = JSON.parse(sharedDataMatch[1]);

@@ -41,6 +41,16 @@ export default function VideoDualSidebar({
     const [transcriptionError, setTranscriptionError] = useState<string>('');
 
     const isAnyPanelOpen = isCommentOpen || isTranscriptionOpen;
+    
+    // Debug logging for comment display issues
+    console.debug('VideoDualSidebar render:', {
+        videoId,
+        isCommentOpen,
+        hasComment,
+        comment: comment?.length ? `${comment.length} characters` : 'empty',
+        isAnyPanelOpen,
+        platform
+    });
 
     // Handle escape key
     useEffect(() => {

@@ -1,17 +1,10 @@
-import { useState, useEffect, useRef } from 'react';
 import ChannelCard from '../channel/ChannelCard';
 import UnifiedCreatorCard from '../channel/UnifiedCreatorCard';
 import ErrorBoundary from '../common/ErrorBoundary';
 import EmptyState from '../common/EmptyState';
-import type { AnalysisData, CreatorHub } from '../../types/api';
-import { getFavoriteCreatorsAsync, getUnorganizedCreatorsAsync } from '../../utils/creatorFilters';
-
-interface UnifiedCreator {
-    analysisId: string;
-    platform: 'youtube' | 'instagram';
-    data?: any;
-    instagramData?: any;
-}
+import type { AnalysisData, CreatorHub, UnifiedCreator } from '../../types/api';
+import { useInfiniteScrollObserver } from '../../hooks/useInfiniteScrollObserver';
+import { useCreatorFiltering } from '../../hooks/useCreatorFiltering';
 
 interface CreatorsViewProps {
     currentView: string;
@@ -48,102 +41,28 @@ export default function CreatorsView({
     isLoadingMore = false,
     onLoadMore
 }: CreatorsViewProps) {
-    const [filteredUnifiedCreators, setFilteredUnifiedCreators] = useState<UnifiedCreator[]>(unifiedCreators);
-    const [isFiltering, setIsFiltering] = useState(false);
-    const observerRef = useRef<IntersectionObserver | null>(null);
-    const loadMoreRef = useRef<HTMLDivElement>(null);
-
-    // Filter unified creators based on current view
-    useEffect(() => {
-        if (currentView === 'favorite-creators') {
-            filterFavoriteCreators();
-        } else if (currentView === 'home') {
-            filterUnorganizedCreators();
-        } else if (currentView.startsWith('hub-')) {
-            filterHubCreators();
-        } else {
-            setFilteredUnifiedCreators(unifiedCreators);
-        }
-    }, [currentView, unifiedCreators, hubs]);
+    // Use custom hooks to manage filtering and infinite scroll
+    const { filteredUnifiedCreators, isFiltering } = useCreatorFiltering({
+        currentView,
+        unifiedCreators,
+        hubs
+    });
     
-    // Setup infinite scroll observer
-    useEffect(() => {
-        if (observerRef.current) observerRef.current.disconnect();
-        
-        observerRef.current = new IntersectionObserver(
-            entries => {
-                if (entries[0].isIntersecting && hasMore && !isLoadingMore && onLoadMore) {
-                    onLoadMore();
-                }
-            },
-            { threshold: 0.1 }
-        );
-        
-        if (loadMoreRef.current) {
-            observerRef.current.observe(loadMoreRef.current);
-        }
-        
-        return () => {
-            if (observerRef.current) {
-                observerRef.current.disconnect();
-            }
-        };
-    }, [hasMore, isLoadingMore, onLoadMore]);
+    // Debug logging to help identify data flow issues
+    console.debug('CreatorsView render:', {
+        currentView,
+        unifiedCreatorsCount: unifiedCreators.length,
+        filteredUnifiedCreatorsCount: filteredUnifiedCreators.length,
+        isFiltering,
+        hubsCount: hubs.length
+    });
+    
+    const { loadMoreRef } = useInfiniteScrollObserver({
+        hasMore,
+        isLoading: isLoadingMore,
+        onLoadMore
+    });
 
-    const filterFavoriteCreators = async () => {
-        try {
-            setIsFiltering(true);
-            const favoriteCreatorIds = await getFavoriteCreatorsAsync();
-            const favoriteCreators = unifiedCreators.filter(
-                creator => favoriteCreatorIds.includes(creator.analysisId)
-            );
-            setFilteredUnifiedCreators(favoriteCreators);
-        } catch (error) {
-            console.error('Error filtering favorite creators:', error);
-            setFilteredUnifiedCreators([]);
-        } finally {
-            setIsFiltering(false);
-        }
-    };
-
-    const filterUnorganizedCreators = async () => {
-        try {
-            setIsFiltering(true);
-            const allCreatorIds = unifiedCreators.map(creator => creator.analysisId);
-            const unorganizedCreatorIds = await getUnorganizedCreatorsAsync(allCreatorIds);
-            const unorganizedCreators = unifiedCreators.filter(
-                creator => unorganizedCreatorIds.includes(creator.analysisId)
-            );
-            setFilteredUnifiedCreators(unorganizedCreators);
-        } catch (error) {
-            console.error('Error filtering unorganized creators:', error);
-            setFilteredUnifiedCreators(unifiedCreators); // Fallback to show all
-        } finally {
-            setIsFiltering(false);
-        }
-    };
-
-    const filterHubCreators = async () => {
-        try {
-            setIsFiltering(true);
-            const hubId = currentView.replace('hub-', '');
-            const hub = hubs.find(h => h.id === hubId);
-            
-            if (hub && hub.creatorIds && hub.creatorIds.length > 0) {
-                const hubCreators = unifiedCreators.filter(
-                    creator => hub.creatorIds.includes(creator.analysisId)
-                );
-                setFilteredUnifiedCreators(hubCreators);
-            } else {
-                setFilteredUnifiedCreators([]);
-            }
-        } catch (error) {
-            console.error('Error filtering hub creators:', error);
-            setFilteredUnifiedCreators([]);
-        } finally {
-            setIsFiltering(false);
-        }
-    };
     const getViewTitle = () => {
         if (currentView === 'home') return 'Home - Unorganized Creators';
         if (currentView === 'favorite-creators') return 'Favorite Creators';
@@ -203,7 +122,7 @@ export default function CreatorsView({
                         </div>
                     ) : (
                         <>
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 overflow-visible">
+                            <div className="space-y-4 overflow-visible">
                                 {filteredUnifiedCreators.map(creator => (
                                     <ErrorBoundary key={creator.analysisId}>
                                         <UnifiedCreatorCard
@@ -217,35 +136,27 @@ export default function CreatorsView({
                                                 if (onHubsRefresh) {
                                                     await onHubsRefresh();
                                                 }
-                                                
-                                                // Refresh the filtered creators after hub assignment
-                                                if (currentView === 'favorite-creators') {
-                                                    await filterFavoriteCreators();
-                                                } else if (currentView === 'home') {
-                                                    await filterUnorganizedCreators();
-                                                } else if (currentView.startsWith('hub-')) {
-                                                    await filterHubCreators();
-                                                }
                                             }}
                                         />
                                     </ErrorBoundary>
                                 ))}
                             </div>
                             
-                            {/* Infinite scroll trigger */}
-                            {hasMore && (
-                                <div ref={loadMoreRef} className="flex justify-center py-8">
-                                    {isLoadingMore ? (
-                                        <div className="flex items-center space-x-2">
-                                            <div className="w-6 h-6 border-3 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-                                            <span className="text-gray-600">Loading more creators...</span>
-                                        </div>
-                                    ) : (
-                                        <div className="h-4" />
-                                    )}
-                                </div>
-                            )}
                         </>
+                    )}
+                    
+                    {/* Infinite scroll trigger - moved outside the conditional to always show when hasMore is true */}
+                    {hasMore && (
+                        <div ref={loadMoreRef} className="flex justify-center py-8">
+                            {isLoadingMore ? (
+                                <div className="flex items-center space-x-2">
+                                    <div className="w-6 h-6 border-3 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                                    <span className="text-gray-600">Loading more creators...</span>
+                                </div>
+                            ) : (
+                                <div className="h-4" />
+                            )}
+                        </div>
                     )}
                 </>
             ) : (
@@ -257,7 +168,7 @@ export default function CreatorsView({
                         </div>
                     ) : (
                         <>
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 overflow-visible">
+                            <div className="space-y-4 overflow-visible">
                                 {creatorsToShow.map(analysis => (
                                     <ErrorBoundary key={analysis.analysisId}>
                                         <div onContextMenu={(e) => onChannelRightClick(e, analysis.analysisId)}>

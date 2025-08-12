@@ -28,6 +28,17 @@ let databaseConnection = null;
 let connectionPool = null;
 
 /**
+ * Connection state tracking for debugging
+ * @type {Object}
+ */
+let connectionState = {
+    isConnected: false,
+    createdAt: null,
+    lastHealthCheck: null,
+    optimizationsApplied: false
+};
+
+/**
  * Initialize database directory and file
  * @returns {Promise<void>}
  */
@@ -75,6 +86,12 @@ async function getDatabase() {
                 return databaseConnection;
             } catch (healthError) {
                 console.warn('Database connection unhealthy, reconnecting...', healthError.message);
+                // Properly close the unhealthy connection
+                try {
+                    await databaseConnection.close();
+                } catch (closeError) {
+                    console.warn('Error closing unhealthy connection:', closeError.message);
+                }
                 databaseConnection = null; // Force reconnection
             }
         }
@@ -82,34 +99,16 @@ async function getDatabase() {
         // Initialize database directory
         await initializeDatabaseDirectory();
 
-        // Create database wrapper with optimized settings
-        const sqlite3 = require('sqlite3').verbose();
-        const db = new sqlite3.Database(DB_CONFIG.filename);
-        
-        // Optimize SQLite settings for performance and memory
-        await new Promise((resolve, reject) => {
-            db.serialize(() => {
-                // Enable WAL mode for better concurrency
-                db.run('PRAGMA journal_mode = WAL;');
-                
-                // Set reasonable cache size (negative value = KB)
-                db.run('PRAGMA cache_size = -32000;'); // 32MB cache
-                
-                // Optimize for memory usage
-                db.run('PRAGMA temp_store = MEMORY;');
-                db.run('PRAGMA synchronous = NORMAL;');
-                db.run('PRAGMA mmap_size = 67108864;'); // 64MB mmap
-                
-                // Connection pooling simulation
-                db.run('PRAGMA busy_timeout = 30000;'); // 30 second timeout
-                
-                resolve();
-            });
-        });
+        // Create single database wrapper with optimized settings applied
+        console.log('Creating database connection with optimizations...');
+        databaseConnection = await createDatabaseWrapper(DB_CONFIG.filename, true);
 
-        databaseConnection = await createDatabaseWrapper(DB_CONFIG.filename);
+        // Update connection state tracking
+        connectionState.isConnected = true;
+        connectionState.createdAt = new Date();
+        connectionState.optimizationsApplied = true;
 
-        // Initialize all tables (only if needed)
+        // Initialize all tables using the same connection
         await initializeTables(databaseConnection);
 
         console.log('Database connection established with optimizations ✓');
@@ -117,6 +116,22 @@ async function getDatabase() {
 
     } catch (error) {
         console.error('Database connection error:', error);
+        
+        // Clean up any partial connection on error
+        if (databaseConnection) {
+            try {
+                await databaseConnection.close();
+            } catch (closeError) {
+                console.warn('Error closing connection during cleanup:', closeError.message);
+            }
+            databaseConnection = null;
+        }
+        
+        // Reset connection state on error
+        connectionState.isConnected = false;
+        connectionState.createdAt = null;
+        connectionState.optimizationsApplied = false;
+        
         throw new Error(`Failed to get database connection: ${error.message}`);
     } finally {
         // Database connection process completed
@@ -132,7 +147,14 @@ async function closeDatabase() {
         if (databaseConnection) {
             await databaseConnection.close();
             databaseConnection = null;
-            // Database connection closed
+            
+            // Reset connection state
+            connectionState.isConnected = false;
+            connectionState.createdAt = null;
+            connectionState.lastHealthCheck = null;
+            connectionState.optimizationsApplied = false;
+            
+            console.log('Database connection closed successfully');
         }
     } catch (error) {
         console.error('Database close error:', error);
@@ -215,9 +237,95 @@ async function databaseHealthCheck() {
     }
 }
 
+/**
+ * Get current connection state for debugging
+ * @returns {Object} Connection state information
+ */
+function getConnectionState() {
+    try {
+        return {
+            ...connectionState,
+            hasActiveConnection: Boolean(databaseConnection),
+            dbPath: DB_CONFIG.filename,
+            timestamp: new Date()
+        };
+    } catch (error) {
+        console.error('Error getting connection state:', error);
+        return {
+            error: error.message,
+            timestamp: new Date()
+        };
+    } finally {
+        // Connection state retrieved
+    }
+}
+
+/**
+ * Validate database connection integrity
+ * @returns {Promise<Object>} Validation results
+ */
+async function validateConnection() {
+    try {
+        const validation = {
+            singleConnection: true,
+            optimizationsApplied: connectionState.optimizationsApplied,
+            tablesInitialized: false,
+            validationTime: new Date(),
+            issues: []
+        };
+
+        // Check if connection exists
+        if (!databaseConnection) {
+            validation.issues.push('No active database connection');
+            validation.singleConnection = false;
+            return validation;
+        }
+
+        // Test basic functionality
+        const testResult = await databaseConnection.get('SELECT 1 as test');
+        if (!testResult || testResult.test !== 1) {
+            validation.issues.push('Basic query test failed');
+            validation.singleConnection = false;
+        }
+
+        // Check if tables exist (validates initialization worked)
+        const tables = await databaseConnection.all(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name IN ('instagram_data', 'youtube_data')"
+        );
+        validation.tablesInitialized = tables.length >= 2;
+        
+        if (!validation.tablesInitialized) {
+            validation.issues.push('Core tables not found - initialization may have failed');
+        }
+
+        // Check WAL mode (validates optimizations were applied)
+        const walMode = await databaseConnection.get('PRAGMA journal_mode');
+        if (walMode && walMode.journal_mode !== 'wal') {
+            validation.issues.push('WAL mode not enabled - optimizations may not have been applied');
+            validation.optimizationsApplied = false;
+        }
+
+        return validation;
+
+    } catch (error) {
+        console.error('Connection validation error:', error);
+        return {
+            singleConnection: false,
+            optimizationsApplied: false,
+            tablesInitialized: false,
+            validationTime: new Date(),
+            issues: [`Validation error: ${error.message}`]
+        };
+    } finally {
+        // Connection validation completed
+    }
+}
+
 module.exports = {
     getDatabase,
     closeDatabase,
     testDatabaseConnection,
-    databaseHealthCheck
+    databaseHealthCheck,
+    getConnectionState,
+    validateConnection
 };
