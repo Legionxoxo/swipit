@@ -131,8 +131,9 @@ function App() {
             setPreviousView(currentView);
         }
         setCurrentView(view);
-        // Clear selected analyses when switching views
-        if (!view.startsWith('hub-') && view !== 'home' && view !== 'favorite-creators' && view !== 'favorite-videos' && view !== 'starred-videos') {
+        // Always clear selected analyses when switching to any view except videos/reels
+        // This allows navigation from creator detail views back to any other section
+        if (view !== 'videos' && view !== 'reels') {
             setSelectedAnalysis(null);
             setSelectedInstagramAnalysis(null);
         }

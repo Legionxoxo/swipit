@@ -17,10 +17,10 @@ interface ReelActionsProps {
     layout?: 'overlay' | 'inline';
 }
 
-export default function ReelActions({ 
-    reelId, 
-    reelTitle, 
-    thumbnailUrl: _thumbnailUrl, 
+export default function ReelActions({
+    reelId,
+    reelTitle,
+    thumbnailUrl: _thumbnailUrl,
     reelUrl: _reelUrl,
     embedLink,
     postLink,
@@ -64,10 +64,10 @@ export default function ReelActions({
         try {
             setIsLoading(true);
             setError('');
-            
+
             const userId = userService.getUserId();
             const interactions = await apiService.getUserVideoInteractions(userId);
-            
+
             // Find interaction for this specific reel (using reelId as videoId)
             const reelInteraction = interactions.find(
                 (interaction: any) => interaction.video_id === reelId && interaction.platform === 'instagram'
@@ -230,12 +230,14 @@ export default function ReelActions({
             />
 
             {/* Icons: Embed, Comment, Transcription, Heart, Menu */}
-            <div className={layout === 'inline' 
-                ? "flex space-x-2" 
+            <div className={layout === 'inline'
+                ? "flex space-x-2"
                 : "absolute top-2 right-2 flex space-x-2"
             }>
                 {/* Instagram Link Icon - direct link to Instagram post */}
+
                 {(postLink || embedLink) && (
+
                     <a
                         href={postLink || embedLink}
                         target="_blank"
@@ -243,28 +245,29 @@ export default function ReelActions({
                         className="p-2 rounded-full bg-gradient-to-r from-purple-500 via-pink-500 to-orange-500 hover:from-purple-600 hover:via-pink-600 hover:to-orange-600 transition-all duration-200"
                         title="Open on Instagram"
                     >
-                        <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+                        <svg className="w-5 h-5 text-white " fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
                         </svg>
                     </a>
+
+
                 )}
 
                 {/* Comment Icon */}
                 <button
                     onClick={handleSidebarCommentClick}
-                    className={`p-2 rounded-full transition-all duration-200 ${
-                        layout === 'inline' 
-                            ? (showCommentSidebar
-                                ? 'bg-blue-500 hover:bg-blue-600'
-                                : hasComment 
-                                    ? 'bg-yellow-500 hover:bg-yellow-600' 
-                                    : 'bg-gray-200 hover:bg-gray-300')
-                            : (showCommentSidebar
-                                ? 'bg-blue-500 bg-opacity-90 hover:bg-opacity-100'
-                                : hasComment 
-                                    ? 'bg-yellow-500 bg-opacity-90 hover:bg-opacity-100' 
-                                    : 'bg-black bg-opacity-50 hover:bg-opacity-70')
-                    }`}
+                    className={`p-2 rounded-full transition-all duration-200 ${layout === 'inline'
+                        ? (showCommentSidebar
+                            ? 'bg-blue-500 hover:bg-blue-600'
+                            : hasComment
+                                ? 'bg-yellow-500 hover:bg-yellow-600'
+                                : 'bg-gray-200 hover:bg-gray-300')
+                        : (showCommentSidebar
+                            ? 'bg-blue-500 bg-opacity-90 hover:bg-opacity-100'
+                            : hasComment
+                                ? 'bg-yellow-500 bg-opacity-90 hover:bg-opacity-100'
+                                : 'bg-black bg-opacity-50 hover:bg-opacity-70')
+                        }`}
                     title={hasComment ? "View/Edit Comment" : "Add Comment"}
                 >
                     <svg className={`w-5 h-5 ${layout === 'inline' ? 'text-gray-700' : 'text-white'}`} fill={hasComment ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
@@ -275,15 +278,14 @@ export default function ReelActions({
                 {/* Transcription Icon */}
                 <button
                     onClick={handleSidebarTranscriptionClick}
-                    className={`p-2 rounded-full transition-all duration-200 ${
-                        layout === 'inline' 
-                            ? (hasTranscription
-                                ? 'bg-green-500 hover:bg-green-600'
-                                : 'bg-gray-200 hover:bg-gray-300')
-                            : (hasTranscription
-                                ? 'bg-green-500 bg-opacity-90 hover:bg-opacity-100'
-                                : 'bg-black bg-opacity-50 hover:bg-opacity-70')
-                    }`}
+                    className={`p-2 rounded-full transition-all duration-200 ${layout === 'inline'
+                        ? (hasTranscription
+                            ? 'bg-green-500 hover:bg-green-600'
+                            : 'bg-gray-200 hover:bg-gray-300')
+                        : (hasTranscription
+                            ? 'bg-green-500 bg-opacity-90 hover:bg-opacity-100'
+                            : 'bg-black bg-opacity-50 hover:bg-opacity-70')
+                        }`}
                     title={hasTranscription ? "View Transcription" : "Generate Transcription"}
                 >
                     <svg className={`w-5 h-5 ${layout === 'inline' ? 'text-gray-700' : 'text-white'}`} fill={hasTranscription ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
@@ -294,17 +296,16 @@ export default function ReelActions({
                 {/* Heart Icon */}
                 <button
                     onClick={handleHeartClick}
-                    className={`p-2 rounded-full transition-all duration-200 ${
-                        layout === 'inline' 
-                            ? 'bg-gray-200 hover:bg-gray-300'
-                            : 'bg-black bg-opacity-50 hover:bg-opacity-70'
-                    }`}
+                    className={`p-2 rounded-full transition-all duration-200 ${layout === 'inline'
+                        ? 'bg-gray-200 hover:bg-gray-300'
+                        : 'bg-black bg-opacity-50 hover:bg-opacity-70'
+                        }`}
                     title={isFavorite ? "Remove from Favorites" : "Add to Favorites"}
                 >
-                    <svg 
-                        className={`w-5 h-5 ${isFavorite ? 'text-red-500 fill-current' : (layout === 'inline' ? 'text-gray-700' : 'text-white')}`} 
-                        fill={isFavorite ? 'currentColor' : 'none'} 
-                        stroke="currentColor" 
+                    <svg
+                        className={`w-5 h-5 ${isFavorite ? 'text-red-500 fill-current' : (layout === 'inline' ? 'text-gray-700' : 'text-white')}`}
+                        fill={isFavorite ? 'currentColor' : 'none'}
+                        stroke="currentColor"
                         viewBox="0 0 24 24"
                     >
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
@@ -315,11 +316,10 @@ export default function ReelActions({
                 <div className="relative" ref={menuRef}>
                     <button
                         onClick={() => setShowMenu(!showMenu)}
-                        className={`p-2 rounded-full transition-all duration-200 ${
-                            layout === 'inline' 
-                                ? 'bg-gray-200 hover:bg-gray-300'
-                                : 'bg-black bg-opacity-50 hover:bg-opacity-70'
-                        }`}
+                        className={`p-2 rounded-full transition-all duration-200 ${layout === 'inline'
+                            ? 'bg-gray-200 hover:bg-gray-300'
+                            : 'bg-black bg-opacity-50 hover:bg-opacity-70'
+                            }`}
                         title="Options"
                     >
                         <svg className={`w-5 h-5 ${layout === 'inline' ? 'text-gray-700' : 'text-white'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">

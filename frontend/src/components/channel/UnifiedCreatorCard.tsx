@@ -18,10 +18,10 @@ interface UnifiedCreatorCardProps {
  * Unified creator card component for displaying YouTube and Instagram creators
  * Refactored to use custom hooks and sub-components to stay under 250 lines
  */
-export default function UnifiedCreatorCard({ 
-    creator, 
-    isLoading = false, 
-    onClick, 
+export default function UnifiedCreatorCard({
+    creator,
+    isLoading = false,
+    onClick,
     onRightClick,
     onHubAssign,
     onFavoriteChange,
@@ -44,8 +44,8 @@ export default function UnifiedCreatorCard({
         onRightClick?.(e, creator.analysisId);
     };
 
-    const isCompleted = creator.platform === 'youtube' 
-        ? creator.data?.status === 'completed' 
+    const isCompleted = creator.platform === 'youtube'
+        ? creator.data?.status === 'completed'
         : creator.instagramData?.status === 'completed';
 
     if (isLoading) {
@@ -70,19 +70,19 @@ export default function UnifiedCreatorCard({
         if (target.tagName === 'BUTTON' || target.closest('button') || target.closest('a')) {
             return;
         }
-        
+
         if (isCompleted && onClick) {
             onClick(creator);
         }
     };
 
     return (
-        <div 
+        <div
             className={`
-                bg-white rounded-lg shadow-sm border border-gray-200 transition-all duration-200 p-4 group
-                ${isCompleted 
-                    ? 'cursor-pointer hover:shadow-lg hover:border-blue-300 hover:bg-blue-50/20' 
-                    : 'hover:shadow-md'
+                bg-white rounded-lg border border-gray-100 transition-all duration-200 p-3 group
+                ${isCompleted
+                    ? 'cursor-pointer hover:shadow-sm hover:border-gray-200'
+                    : 'hover:shadow-sm'
                 }
             `}
             onClick={handleCardClick}
@@ -90,16 +90,16 @@ export default function UnifiedCreatorCard({
         >
             <div className="flex items-center justify-between">
                 <CreatorInfo creator={creator} />
-                
-                <div className="flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
+
+                <div className="flex items-center space-x-1 opacity-100 group-hover:opacity-100 transition-opacity">
                     <button
                         onClick={handleFavoriteClick}
                         disabled={favoriteLoading}
                         className={`
-                            p-1.5 rounded-full transition-colors
-                            ${isFavorite 
-                                ? 'bg-red-50 text-red-600 hover:bg-red-100' 
-                                : 'text-gray-400 hover:text-red-500 hover:bg-gray-50'
+                            p-1.5 rounded-md transition-colors
+                            ${isFavorite
+                                ? 'text-red-500'
+                                : 'text-gray-400 hover:text-red-500'
                             }
                             ${favoriteLoading ? 'opacity-50 cursor-not-allowed' : ''}
                         `}
@@ -107,19 +107,19 @@ export default function UnifiedCreatorCard({
                     >
                         <Heart className={`w-4 h-4 ${isFavorite ? 'fill-current' : ''}`} />
                     </button>
-                    
-                    <CreatorCardMenu 
+
+                    <CreatorCardMenu
                         analysisId={creator.analysisId}
                         hubs={hubs}
-                        creatorName={creator.platform === 'youtube' 
+                        creatorName={creator.platform === 'youtube'
                             ? creator.data?.channelInfo?.channelName || 'YouTube Channel'
                             : creator.instagramData?.profile?.full_name || creator.instagramData?.profile?.username || 'Instagram Profile'
                         }
-                        creatorId={creator.platform === 'youtube' 
+                        creatorId={creator.platform === 'youtube'
                             ? creator.data?.channelInfo?.channelId
                             : creator.instagramData?.profile?.instagram_user_id
                         }
-                        thumbnailUrl={creator.platform === 'youtube' 
+                        thumbnailUrl={creator.platform === 'youtube'
                             ? creator.data?.channelInfo?.thumbnailUrl
                             : creator.instagramData?.profile?.profile_pic_url
                         }

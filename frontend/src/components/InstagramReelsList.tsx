@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { apiService } from '../services';
 import ReelCard from './reel/ReelCard';
 import { useInfiniteScrollInstagram } from '../hooks/useInfiniteScrollInstagram';
+import { ChevronLeft } from 'lucide-react';
 
 interface InstagramProfile {
     instagram_user_id: string;
@@ -55,14 +56,13 @@ interface InstagramReelsListProps {
 export default function InstagramReelsList({ profileInfo: _initialProfile, reels: _initialReels, reelSegments: _initialSegments, analysisId, onBack }: InstagramReelsListProps) {
     const [selectedSegment, setSelectedSegment] = useState<string>('all');
     const [isExporting, setIsExporting] = useState(false);
-    
+
     // Use infinite scroll for loading reels
     const {
         reels,
         loading: reelsLoading,
         hasMore,
         error: reelsError,
-        totalCount,
         profile,
         reelSegments
     } = useInfiniteScrollInstagram({
@@ -70,29 +70,14 @@ export default function InstagramReelsList({ profileInfo: _initialProfile, reels
         pageSize: 50,
         autoLoad: true
     });
-    
+
     // Use the profile from infinite scroll if available, otherwise use initial
     const profileInfo = profile || _initialProfile;
-
-    const formatNumber = (num: number | undefined): string => {
-        if (num === undefined || num === null) {
-            return '0';
-        }
-        if (num >= 1000000) {
-            return (num / 1000000).toFixed(1) + 'M';
-        }
-        if (num >= 1000) {
-            return (num / 1000).toFixed(1) + 'K';
-        }
-        return num.toString();
-    };
-
-
 
     const getReelsForSegment = (segment: string): InstagramReel[] => {
         if (segment === 'all') return reels;
         if (!reelSegments) return [];
-        
+
         switch (segment) {
             case 'viral': return reelSegments.viral;
             case 'veryHigh': return reelSegments.veryHigh;
@@ -120,110 +105,92 @@ export default function InstagramReelsList({ profileInfo: _initialProfile, reels
         }
     };
 
-    const handleExportJson = async () => {
-        try {
-            setIsExporting(true);
-            const jsonBlob = await apiService.exportInstagramToJson(analysisId);
-            const filename = `instagram_analysis_${profileInfo.username}_${new Date().toISOString().split('T')[0]}.json`;
-            apiService.downloadFile(jsonBlob, filename);
-        } catch (error) {
-            alert('Failed to export JSON. Please try again.');
-        } finally {
-            setIsExporting(false);
-        }
-    };
 
     const reelsToShow = getReelsForSegment(selectedSegment);
 
     return (
         <div className="min-h-screen bg-gray-50">
-            {/* Header with profile info and back button */}
-            <div className="bg-white shadow-sm border-b">
-                <div className="max-w-7xl mx-auto px-4 py-6">
-                    <div className="flex items-center justify-between">
+            <div className="max-w-7xl mx-auto px-4 pb-4">
+                {/* Simple Header */}
+                <div className="pb-4 mb-6">
+                    <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center space-x-4">
                             <button
                                 onClick={onBack}
-                                className="flex items-center text-gray-600 hover:text-gray-800 transition-colors"
+                                className="flex items-center space-x-1 text-gray-600 hover:text-gray-900 transition-colors cursor-pointer"
+                                aria-label="Back to profiles"
                             >
-                                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                                </svg>
-                                Back to Profiles
+                                <ChevronLeft className="w-5 h-5" />
                             </button>
-                        </div>
-                        
-                        <div className="flex space-x-2">
-                            <button
-                                onClick={handleExportCsv}
-                                disabled={isExporting}
-                                className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
-                            >
-                                {isExporting ? 'Exporting...' : 'Export CSV'}
-                            </button>
-                            <button
-                                onClick={handleExportJson}
-                                disabled={isExporting}
-                                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
-                            >
-                                {isExporting ? 'Exporting...' : 'Export JSON'}
-                            </button>
-                        </div>
-                    </div>
-                    
-                    {/* Profile Info */}
-                    <div className="mt-6 flex items-center space-x-6">
-                        <img 
-                            src={profileInfo.profile_pic_url} 
-                            alt={profileInfo.full_name}
-                            className="w-20 h-20 rounded-full"
-                        />
-                        <div>
-                            <h1 className="text-3xl font-bold text-gray-900 flex items-center">
+
+                            <div className="relative w-8 h-8 rounded-lg overflow-hidden">
+                                <img
+                                    src={profileInfo.profile_pic_url}
+                                    alt={`@${profileInfo.username} profile picture`}
+                                    className="w-full h-full object-cover"
+                                    onError={(e) => {
+                                        const target = e.target as HTMLImageElement;
+                                        target.style.display = 'none';
+                                        const parent = target.parentElement;
+                                        if (parent) {
+                                            parent.innerHTML = `
+                                                <div class="w-full h-full bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center text-white text-xs font-semibold">
+                                                    ${profileInfo.username.slice(0, 2).toUpperCase()}
+                                                </div>
+                                            `;
+                                        }
+                                    }}
+                                />
+                            </div>
+
+                            <h1 className="text-xl font-semibold text-gray-900 flex items-center">
                                 @{profileInfo.username}
                                 {profileInfo.is_verified && (
-                                    <svg className="w-6 h-6 text-blue-500 ml-2" fill="currentColor" viewBox="0 0 20 20">
+                                    <svg className="w-4 h-4 text-blue-500 ml-1" fill="currentColor" viewBox="0 0 20 20">
                                         <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                                     </svg>
                                 )}
                             </h1>
-                            <p className="text-xl text-gray-600 mt-1">{profileInfo.full_name}</p>
-                            <p className="text-gray-600 mt-2">{profileInfo.biography}</p>
-                            <div className="flex items-center space-x-6 mt-3 text-sm text-gray-500">
-                                <span><strong>{formatNumber(profileInfo.follower_count)}</strong> followers</span>
-                                <span><strong>{formatNumber(profileInfo.following_count)}</strong> following</span>
-                                <span><strong>{profileInfo.media_count}</strong> posts</span>
-                                <span><strong>{totalCount || reels.length}</strong> reels analyzed</span>
-                            </div>
+                        </div>
+
+                        <button
+                            onClick={handleExportCsv}
+                            disabled={isExporting}
+                            className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 disabled:bg-gray-400 text-sm font-medium transition-colors cursor-pointer disabled:cursor-not-allowed"
+                        >
+                            {isExporting ? 'Exporting...' : 'Export CSV'}
+                        </button>
+                    </div>
+
+                    {/* Performance Segment Controls */}
+                    <div className="ml-12">
+                        <p className="text-xs text-gray-500 mb-2">
+                            Filter reels by performance segments
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                            {[
+                                { key: 'all', label: 'All Reels' },
+                                { key: 'viral', label: 'Viral' },
+                                { key: 'veryHigh', label: 'Very High' },
+                                { key: 'high', label: 'High' },
+                                { key: 'medium', label: 'Medium' },
+                                { key: 'low', label: 'Low' }
+                            ].map(segment => (
+                                <button
+                                    key={segment.key}
+                                    onClick={() => setSelectedSegment(segment.key)}
+                                    className={`px-3 py-1 rounded-full text-xs font-medium transition-colors cursor-pointer ${selectedSegment === segment.key
+                                        ? 'bg-purple-600 text-white'
+                                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                                        }`}
+                                >
+                                    {segment.label} ({getSegmentCount(segment.key)})
+                                </button>
+                            ))}
                         </div>
                     </div>
                 </div>
-            </div>
 
-            {/* Segment Navigation */}
-            <div className="max-w-7xl mx-auto px-4 py-6">
-                <div className="flex flex-wrap gap-2 mb-6">
-                    {[
-                        { key: 'all', label: 'All Reels', color: 'bg-gray-100 text-gray-800' },
-                        { key: 'viral', label: 'Viral', color: 'bg-red-100 text-red-800' },
-                        { key: 'veryHigh', label: 'Very High', color: 'bg-orange-100 text-orange-800' },
-                        { key: 'high', label: 'High', color: 'bg-yellow-100 text-yellow-800' },
-                        { key: 'medium', label: 'Medium', color: 'bg-blue-100 text-blue-800' },
-                        { key: 'low', label: 'Low', color: 'bg-gray-100 text-gray-600' }
-                    ].map(segment => (
-                        <button
-                            key={segment.key}
-                            onClick={() => setSelectedSegment(segment.key)}
-                            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                                selectedSegment === segment.key 
-                                    ? 'bg-purple-600 text-white' 
-                                    : segment.color + ' hover:opacity-80'
-                            }`}
-                        >
-                            {segment.label} ({getSegmentCount(segment.key)})
-                        </button>
-                    ))}
-                </div>
 
                 {/* Reels Grid */}
                 {reelsToShow.length === 0 ? (
@@ -246,7 +213,7 @@ export default function InstagramReelsList({ profileInfo: _initialProfile, reels
                         ))}
                     </div>
                 )}
-                
+
                 {/* Infinite scroll loading indicator */}
                 {hasMore && (
                     <div className="flex justify-center py-8">
@@ -260,7 +227,7 @@ export default function InstagramReelsList({ profileInfo: _initialProfile, reels
                         )}
                     </div>
                 )}
-                
+
                 {/* Error message */}
                 {reelsError && (
                     <div className="text-center py-4 text-red-600">

@@ -129,60 +129,50 @@ export default function ChannelActions({
     return (
         <>
             {error && (
-                <div className="absolute top-0 left-0 right-0 bg-red-500 text-white text-xs p-1 rounded">
+                <div className="absolute -top-8 right-0 bg-red-500 text-white text-xs px-2 py-1 rounded">
                     {error}
                 </div>
             )}
-            <div className="flex space-x-2">
+            <div className="flex space-x-1">
                 {/* Heart Icon */}
                 <button
                     onClick={handleHeartClick}
-                    className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 transition-all duration-200"
+                    className="p-1.5 rounded-md hover:bg-gray-100 transition-colors cursor-pointer"
                     title={isFavorite ? "Remove from Favorites" : "Add to Favorites"}
                 >
-                    {isFavorite ? (
-                        <Heart 
-                            className="w-5 h-5 text-red-500"
-                            fill="currentColor"
-                            stroke="currentColor"
-                        />
-                    ) : (
-                        <Heart 
-                            className="w-5 h-5 text-gray-600"
-                            fill="none"
-                            stroke="currentColor"
-                        />
-                    )}
+                    <Heart 
+                        className={`w-4 h-4 ${isFavorite ? 'text-red-500 fill-current' : 'text-gray-400'}`}
+                    />
                 </button>
 
                 {/* Menu Icon */}
                 <div className="relative" ref={menuRef}>
                     <button
                         onClick={handleMenuClick}
-                        className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 transition-all duration-200"
+                        className="p-1.5 rounded-md hover:bg-gray-100 transition-colors cursor-pointer"
                         title="Options"
                     >
-                        <MoreVertical className="w-5 h-5 text-gray-600" />
+                        <MoreVertical className="w-4 h-4 text-gray-400" />
                     </button>
 
-                    {/* Dropdown Menu */}
+                    {/* Compact Dropdown Menu */}
                     {showMenu && (
-                        <div className="absolute top-full right-0 mt-2 w-48 bg-white rounded-lg shadow-xl border z-50">
-                            <div className="py-2">
-                                <div className="px-4 py-2 text-sm font-semibold text-gray-700 border-b">Move to Hub</div>
+                        <div className="absolute top-full right-0 mt-1 w-40 bg-white rounded-md shadow-lg border z-50">
+                            <div className="py-1">
+                                <div className="px-3 py-1 text-xs font-medium text-gray-500 border-b">Move to Hub</div>
                                 {hubs.length > 0 ? (
                                     hubs.map(hub => (
                                         <button
                                             key={hub.id}
                                             onClick={(e) => handleMoveToHub(hub.id, e)}
-                                            className="w-full px-4 py-2 text-left text-sm text-gray-600 hover:bg-gray-50 flex items-center space-x-2"
+                                            className="w-full px-3 py-1.5 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-2 cursor-pointer"
                                         >
-                                            <div className="w-2 h-2 rounded-full bg-blue-400"></div>
-                                            <span>{hub.name}</span>
+                                            <div className="w-1.5 h-1.5 rounded-full bg-blue-400"></div>
+                                            <span className="truncate">{hub.name}</span>
                                         </button>
                                     ))
                                 ) : (
-                                    <div className="px-4 py-2 text-sm text-gray-400">No hubs available</div>
+                                    <div className="px-3 py-1.5 text-xs text-gray-400">No hubs available</div>
                                 )}
                             </div>
                         </div>

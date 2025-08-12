@@ -17,34 +17,19 @@ export default function VideoDetails({ video, compact = false }: VideoDetailsPro
 
     if (compact) {
         return (
-            <div className="flex justify-between h-24">
-                <div className="flex flex-col justify-between flex-1 min-w-0">
-                    <div>
+            <div className="flex flex-col justify-between h-24">
+                <div>
                         <h3 className="font-semibold text-gray-900 text-sm mb-1 line-clamp-2">
                             {video.title}
                         </h3>
-                        <div className="flex items-center space-x-4 text-xs text-gray-600">
-                            <span>👁️ {formatNumber(video.viewCount)}</span>
-                            <span>👍 {formatNumber(video.likeCount)}</span>
-                            <span>💬 {formatNumber(video.commentCount)}</span>
-                        </div>
-                    </div>
-                    <div className="text-xs text-gray-500">
-                        {new Date(video.uploadDate).toLocaleDateString()}
+                    <div className="flex items-center space-x-4 text-xs text-gray-600">
+                        <span>👁️ {formatNumber(video.viewCount)}</span>
+                        <span>👍 {formatNumber(video.likeCount)}</span>
+                        <span>💬 {formatNumber(video.commentCount)}</span>
                     </div>
                 </div>
-                <div className="flex-shrink-0 ml-3">
-                    <a
-                        href={video.videoUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center justify-center w-8 h-8 bg-red-600 hover:bg-red-700 rounded-full transition-colors duration-200"
-                        title="Watch on YouTube"
-                    >
-                        <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
-                        </svg>
-                    </a>
+                <div className="text-xs text-gray-500">
+                    {new Date(video.uploadDate).toLocaleDateString()}
                 </div>
             </div>
         );

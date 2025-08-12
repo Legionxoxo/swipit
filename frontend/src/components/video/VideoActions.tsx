@@ -4,6 +4,7 @@ import { userService } from '../../services/userService';
 import { transcriptionService } from '../../services/transcriptionService';
 import VideoDualSidebar from './VideoDualSidebar';
 import VideoActionMenu from './VideoActionMenu';
+import { Youtube } from 'lucide-react';
 
 interface VideoActionsProps {
     videoId: string;
@@ -247,11 +248,25 @@ export default function VideoActions({
                 platform={platform}
             />
 
-            {/* Icons: Comment, Transcription, Heart, Menu */}
+            {/* Icons: YouTube, Comment, Transcription, Heart, Menu */}
             <div className={layout === 'inline' 
                 ? "flex space-x-2" 
                 : "absolute top-2 right-2 flex space-x-2"
             }>
+                {/* YouTube Link Icon */}
+                <a
+                    href={_videoUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={`p-2 rounded-full transition-all duration-200 cursor-pointer ${
+                        layout === 'inline'
+                            ? 'bg-red-600 hover:bg-red-700'
+                            : 'bg-red-600 bg-opacity-90 hover:bg-opacity-100'
+                    }`}
+                    title="Watch on YouTube"
+                >
+                    <Youtube className="w-5 h-5 text-white" />
+                </a>
                 {/* Comment Icon */}
                 <button
                     onClick={handleSidebarCommentClick}
