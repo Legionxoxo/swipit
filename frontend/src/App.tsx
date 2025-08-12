@@ -219,7 +219,6 @@ function App() {
                 onChannelRightClick={handleChannelRightClick}
                 onTrackChannel={handleTrackChannelClick}
                 onHubsChange={setHubs}
-                onHubsRefresh={loadHubs}
                 totalAnalyses={youtubeTotalCount + instagramTotalCount}
                 hasMore={youtubeHasMore || instagramHasMore}
                 isLoadingMore={youtubeIsLoadingMore || instagramIsLoadingMore}

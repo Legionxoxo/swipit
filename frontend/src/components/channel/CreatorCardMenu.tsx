@@ -73,7 +73,7 @@ export default function CreatorCardMenu({
                 platform
             });
 
-            // Call the callback to refresh hub data or update UI
+            // Call the callback to update UI
             onHubAssign?.(analysisId, hubId);
             setShowMenu(false);
         } catch (error) {

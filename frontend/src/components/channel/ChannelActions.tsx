@@ -112,7 +112,7 @@ export default function ChannelActions({
                 platform: 'youtube'
             });
 
-            // Refresh hubs data
+            // Update hubs data
             const updatedHubs = await apiService.getUserHubs(userId);
             onHubsChange(updatedHubs);
             setShowMenu(false);

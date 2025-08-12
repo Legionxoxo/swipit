@@ -17,7 +17,6 @@ interface CreatorsViewProps {
     onChannelRightClick: (e: React.MouseEvent, analysisId: string) => void;
     onTrackChannel: () => void;
     onHubsChange: (hubs: CreatorHub[]) => void;
-    onHubsRefresh?: () => Promise<void>;
     totalAnalyses: number;
     hasMore?: boolean;
     isLoadingMore?: boolean;
@@ -35,7 +34,6 @@ export default function CreatorsView({
     onChannelRightClick,
     onTrackChannel,
     onHubsChange,
-    onHubsRefresh,
     totalAnalyses,
     hasMore = false,
     isLoadingMore = false,
@@ -132,10 +130,7 @@ export default function CreatorsView({
                                             onRightClick={onChannelRightClick}
                                             hubs={hubs}
                                             onHubAssign={async () => {
-                                                // Refresh hub data from database
-                                                if (onHubsRefresh) {
-                                                    await onHubsRefresh();
-                                                }
+                                                // Hub assignment handled by context menu
                                             }}
                                         />
                                     </ErrorBoundary>
