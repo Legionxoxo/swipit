@@ -69,8 +69,7 @@ function App() {
 
     const allLoadingAnalyses = [...loadingAnalyses, ...loadingInstagramAnalyses];
     
-    const [refreshViewCallback, setRefreshViewCallback] = useState<() => void>();
-    const { contextMenu, setContextMenu, handleChannelRightClick, getContextMenuItems } = useContextMenu(analyses, hubs, setHubs, refreshViewCallback);
+    const { contextMenu, setContextMenu, handleChannelRightClick, getContextMenuItems } = useContextMenu(analyses, hubs, setHubs);
 
     // Load hubs from database on mount
     useEffect(() => {

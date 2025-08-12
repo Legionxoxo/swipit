@@ -1,4 +1,3 @@
-import { useEffect } from 'react';
 import ChannelCard from '../channel/ChannelCard';
 import UnifiedCreatorCard from '../channel/UnifiedCreatorCard';
 import ErrorBoundary from '../common/ErrorBoundary';
