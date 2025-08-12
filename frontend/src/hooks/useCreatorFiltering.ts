@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import type { UnifiedCreator, CreatorHub } from '../types/api';
 import { getFavoriteCreatorsAsync, getUnorganizedCreatorsAsync } from '../utils/creatorFilters';
 
@@ -19,7 +19,6 @@ export function useCreatorFiltering({
 }: UseCreatorFilteringOptions) {
     const [filteredUnifiedCreators, setFilteredUnifiedCreators] = useState<UnifiedCreator[]>(unifiedCreators);
     const [isFiltering, setIsFiltering] = useState(false);
-    const [refreshTrigger, setRefreshTrigger] = useState(0);
     const previousUnifiedCountRef = useRef<number>(unifiedCreators.length);
 
     // Filter unified creators based on current view
@@ -45,7 +44,7 @@ export function useCreatorFiltering({
         
         // Update the ref for next comparison
         previousUnifiedCountRef.current = unifiedCreators.length;
-    }, [currentView, unifiedCreators, hubs, refreshTrigger]);
+    }, [currentView, unifiedCreators, hubs]);
 
     const filterFavoriteCreators = async () => {
         try {
@@ -122,7 +121,6 @@ export function useCreatorFiltering({
                 );
                 setFilteredUnifiedCreators(hubCreators);
             } else {
-                // Hub not found - either empty or still loading
                 setFilteredUnifiedCreators([]);
             }
         } catch (error) {
@@ -130,18 +128,12 @@ export function useCreatorFiltering({
             console.error('Error filtering hub creators:', error);
             setFilteredUnifiedCreators([]);
         } finally {
-            // Always set filtering to false, even for empty hubs
             setIsFiltering(false);
         }
     };
 
-    const forceRefresh = useCallback(() => {
-        setRefreshTrigger(prev => prev + 1);
-    }, []);
-
     return {
         filteredUnifiedCreators,
-        isFiltering,
-        forceRefresh
+        isFiltering
     };
 }

@@ -19,7 +19,6 @@ interface CreatorsViewProps {
     onTrackChannel: () => void;
     onHubsChange: (hubs: CreatorHub[]) => void;
     onHubsRefresh?: () => Promise<void>;
-    onRegisterRefreshCallback?: (callback: () => void) => void;
     totalAnalyses: number;
     hasMore?: boolean;
     isLoadingMore?: boolean;
@@ -38,25 +37,17 @@ export default function CreatorsView({
     onTrackChannel,
     onHubsChange,
     onHubsRefresh,
-    onRegisterRefreshCallback,
     totalAnalyses,
     hasMore = false,
     isLoadingMore = false,
     onLoadMore
 }: CreatorsViewProps) {
     // Use custom hooks to manage filtering and infinite scroll
-    const { filteredUnifiedCreators, isFiltering, forceRefresh } = useCreatorFiltering({
+    const { filteredUnifiedCreators, isFiltering } = useCreatorFiltering({
         currentView,
         unifiedCreators,
         hubs
     });
-    
-    // Register refresh callback with parent (stable forceRefresh function)
-    useEffect(() => {
-        if (onRegisterRefreshCallback) {
-            onRegisterRefreshCallback(forceRefresh);
-        }
-    }, [forceRefresh, onRegisterRefreshCallback]); // Now forceRefresh is stable
     
     // Debug logging to help identify data flow issues
     console.debug('CreatorsView render:', {
