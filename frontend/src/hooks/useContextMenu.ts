@@ -9,7 +9,7 @@ interface AnalysisData {
     data: any;
 }
 
-export function useContextMenu(analyses: AnalysisData[], hubs: CreatorHub[], setHubs: (hubs: CreatorHub[]) => void) {
+export function useContextMenu(analyses: AnalysisData[], hubs: CreatorHub[], setHubs: (hubs: CreatorHub[]) => void, onRefreshNeeded?: () => void) {
     const [contextMenu, setContextMenu] = useState<{
         isOpen: boolean;
         position: { x: number; y: number };
@@ -63,6 +63,11 @@ export function useContextMenu(analyses: AnalysisData[], hubs: CreatorHub[], set
                                     thumbnailUrl: analysis.data.channelInfo.thumbnailUrl,
                                     platform: 'youtube'
                                 });
+                                
+                                // Trigger refresh if callback provided
+                                if (onRefreshNeeded) {
+                                    onRefreshNeeded();
+                                }
                             }
                         } catch (error) {
                             console.error('Error updating favorite:', error);
@@ -101,8 +106,17 @@ export function useContextMenu(analyses: AnalysisData[], hubs: CreatorHub[], set
                                     platform: 'youtube'
                                 });
 
+                                // Update hubs and force refresh of current view
                                 const updatedHubs = await apiService.getUserHubs(userId);
                                 setHubs(updatedHubs);
+                                
+                                // Force immediate close to trigger re-filtering
+                                setContextMenu({ isOpen: false, position: { x: 0, y: 0 }, targetId: '', type: 'creator' });
+                                
+                                // Trigger refresh if callback provided
+                                if (onRefreshNeeded) {
+                                    onRefreshNeeded();
+                                }
                             }
                         } catch (error) {
                             console.error('Error moving to hub:', error);

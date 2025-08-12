@@ -69,7 +69,8 @@ function App() {
 
     const allLoadingAnalyses = [...loadingAnalyses, ...loadingInstagramAnalyses];
     
-    const { contextMenu, setContextMenu, handleChannelRightClick, getContextMenuItems } = useContextMenu(analyses, hubs, setHubs);
+    const [refreshViewCallback, setRefreshViewCallback] = useState<() => void>();
+    const { contextMenu, setContextMenu, handleChannelRightClick, getContextMenuItems } = useContextMenu(analyses, hubs, setHubs, refreshViewCallback);
 
     // Load hubs from database on mount
     useEffect(() => {
@@ -220,6 +221,7 @@ function App() {
                 onTrackChannel={handleTrackChannelClick}
                 onHubsChange={setHubs}
                 onHubsRefresh={loadHubs}
+                onRegisterRefreshCallback={setRefreshViewCallback}
                 totalAnalyses={youtubeTotalCount + instagramTotalCount}
                 hasMore={youtubeHasMore || instagramHasMore}
                 isLoadingMore={youtubeIsLoadingMore || instagramIsLoadingMore}

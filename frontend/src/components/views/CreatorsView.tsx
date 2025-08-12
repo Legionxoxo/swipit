@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import ChannelCard from '../channel/ChannelCard';
 import UnifiedCreatorCard from '../channel/UnifiedCreatorCard';
 import ErrorBoundary from '../common/ErrorBoundary';
@@ -18,6 +19,7 @@ interface CreatorsViewProps {
     onTrackChannel: () => void;
     onHubsChange: (hubs: CreatorHub[]) => void;
     onHubsRefresh?: () => Promise<void>;
+    onRegisterRefreshCallback?: (callback: () => void) => void;
     totalAnalyses: number;
     hasMore?: boolean;
     isLoadingMore?: boolean;
@@ -36,17 +38,25 @@ export default function CreatorsView({
     onTrackChannel,
     onHubsChange,
     onHubsRefresh,
+    onRegisterRefreshCallback,
     totalAnalyses,
     hasMore = false,
     isLoadingMore = false,
     onLoadMore
 }: CreatorsViewProps) {
     // Use custom hooks to manage filtering and infinite scroll
-    const { filteredUnifiedCreators, isFiltering } = useCreatorFiltering({
+    const { filteredUnifiedCreators, isFiltering, forceRefresh } = useCreatorFiltering({
         currentView,
         unifiedCreators,
         hubs
     });
+    
+    // Register refresh callback with parent
+    useEffect(() => {
+        if (onRegisterRefreshCallback) {
+            onRegisterRefreshCallback(forceRefresh);
+        }
+    }, [forceRefresh, onRegisterRefreshCallback]);
     
     // Debug logging to help identify data flow issues
     console.debug('CreatorsView render:', {
