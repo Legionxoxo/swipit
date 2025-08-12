@@ -51,12 +51,12 @@ export default function CreatorsView({
         hubs
     });
     
-    // Register refresh callback with parent
+    // Register refresh callback with parent (stable forceRefresh function)
     useEffect(() => {
         if (onRegisterRefreshCallback) {
             onRegisterRefreshCallback(forceRefresh);
         }
-    }, [forceRefresh, onRegisterRefreshCallback]);
+    }, [forceRefresh, onRegisterRefreshCallback]); // Now forceRefresh is stable
     
     // Debug logging to help identify data flow issues
     console.debug('CreatorsView render:', {

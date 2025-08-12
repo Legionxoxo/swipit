@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import type { UnifiedCreator, CreatorHub } from '../types/api';
 import { getFavoriteCreatorsAsync, getUnorganizedCreatorsAsync } from '../utils/creatorFilters';
 
@@ -135,9 +135,9 @@ export function useCreatorFiltering({
         }
     };
 
-    const forceRefresh = () => {
+    const forceRefresh = useCallback(() => {
         setRefreshTrigger(prev => prev + 1);
-    };
+    }, []);
 
     return {
         filteredUnifiedCreators,
