@@ -4,6 +4,7 @@
  */
 
 const { getDatabase } = require('../connection');
+const { generateUniqueInstagramProfileId } = require('../../utils/databaseIdValidator');
 
 /**
  * @typedef {Object} InstagramAnalysisJob
@@ -221,8 +222,8 @@ async function getAllCompletedAnalyses(options = {}) {
             [limit, offset]
         );
 
-        const mappedCreators = creators.map((creator) => ({
-            analysisId: `creator_${creator.profile_username}`,
+        const mappedCreators = await Promise.all(creators.map(async (creator) => ({
+            analysisId: await generateUniqueInstagramProfileId(creator.profile_username),
             instagramUserId: creator.instagram_user_id,
             username: creator.profile_username,
             status: 'completed',
@@ -230,7 +231,7 @@ async function getAllCompletedAnalyses(options = {}) {
             postCount: creator.post_count,
             createdAt: new Date(creator.latest_created_at),
             updatedAt: new Date(creator.latest_updated_at)
-        }));
+        })));
 
         if (includeTotal) {
             return {

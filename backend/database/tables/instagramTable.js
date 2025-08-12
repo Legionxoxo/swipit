@@ -58,7 +58,7 @@ function getInstagramTableSQL() {
  */
 function getInstagramIndexesSQL() {
     return [
-        'CREATE INDEX IF NOT EXISTS idx_instagram_analysis_id ON instagram_data(analysis_id)',
+        'CREATE UNIQUE INDEX IF NOT EXISTS idx_instagram_analysis_id_unique ON instagram_data(analysis_id)',
         'CREATE INDEX IF NOT EXISTS idx_instagram_user_id ON instagram_data(instagram_user_id)',
         'CREATE INDEX IF NOT EXISTS idx_instagram_username ON instagram_data(profile_username)',
         'CREATE INDEX IF NOT EXISTS idx_instagram_analysis_status ON instagram_data(analysis_status)',

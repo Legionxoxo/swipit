@@ -4,6 +4,7 @@
  */
 
 const { extractInstagramOembed } = require('../../utils/instagram/instagramOembed');
+const { generateUniqueOEmbedAnalysisId } = require('../../utils/databaseIdValidator');
 
 /**
  * @typedef {Object} OembedData
@@ -151,7 +152,7 @@ async function saveOembedData(oembedData) {
         }
         
         // Generate unique analysis ID for this oEmbed request
-        const analysisId = `oembed_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        const analysisId = await generateUniqueOEmbedAnalysisId();
         
         // Insert new post record
         const insertSQL = `

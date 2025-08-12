@@ -6,6 +6,10 @@
 const { extractInstagramOembed } = require('../../utils/instagram/instagramOembed');
 const AdaptiveRateLimiter = require('../../utils/rateLimit/rateLimiter');
 const csvImportTable = require('../../database/tables/csvImportTable');
+const { 
+    generateUniqueCSVAnalysisId,
+    generateUniqueInstagramReelId 
+} = require('../../utils/databaseIdValidator');
 const { v4: uuidv4 } = require('uuid');
 
 /**
@@ -66,7 +70,7 @@ class CsvProcessor {
             
             const username = oembedData.username;
             const authorId = oembedData.author_id || username;
-            const analysisId = `csv_${username}_${Date.now()}`;
+            const analysisId = await generateUniqueCSVAnalysisId(username);
             
             
             // Only create reel/post entry (no placeholder profile entry)
@@ -74,7 +78,7 @@ class CsvProcessor {
             const reelShortcode = oembedData.shortcode || originalReelId;
             
             // Generate the same oEmbed-style ID that users interact with
-            const oembedId = `oembed_${Date.now()}_${reelShortcode}`;
+            const oembedId = await generateUniqueInstagramReelId(reelShortcode);
             const reelId = oembedId;
             
             

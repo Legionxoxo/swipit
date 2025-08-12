@@ -1,22 +1,23 @@
 /**
- * @fileoverview ID generation utilities
+ * @fileoverview ID generation utilities - DEPRECATED
  * @author Backend Team
+ * @deprecated Use /utils/analysisIdGenerator.js instead
  */
 
-const { v4: uuidv4 } = require('uuid');
+const { globalGenerator } = require('./analysisIdGenerator');
 
 /**
  * Generate unique analysis ID
- * @returns {string} Unique analysis ID
+ * @deprecated Use globalGenerator.generateMainAnalysisId() instead
+ * @returns {Promise<string>} Unique analysis ID
  */
-function generateAnalysisId() {
+async function generateAnalysisId() {
     try {
-        const timestamp = Date.now().toString(36);
-        const randomPart = Math.random().toString(36).substr(2, 9);
-        return `analysis_${timestamp}_${randomPart}`;
+        console.warn('DEPRECATED: generateAnalysisId() is deprecated. Use globalGenerator.generateMainAnalysisId() instead');
+        return await globalGenerator.generateMainAnalysisId();
     } catch (error) {
         console.error('Generate analysis ID error:', error);
-        return `analysis_${Date.now()}_${Math.random()}`;
+        throw error;
     } finally {
         console.log('Analysis ID generated');
     }
