@@ -55,13 +55,17 @@ export default function HubSection({
             
             if (confirm('Are you sure you want to delete this hub? All creators will be moved back to the home view.')) {
                 const userId = userService.getUserId();
+                console.debug('DEBUG: Deleting hub', hubId);
                 await apiService.deleteHub(userId, hubId);
+                console.debug('DEBUG: Hub deleted, fetching updated hubs');
                 const updatedHubs = await apiService.getUserHubs(userId);
+                console.debug('DEBUG: Updated hubs:', updatedHubs.map(h => ({id: h.id, name: h.name, creatorCount: h.creatorIds?.length || 0})));
                 
                 onHubsChange(updatedHubs);
                 
                 // If we're currently viewing the deleted hub, redirect to home
                 if (currentView === `hub-${hubId}`) {
+                    console.debug('DEBUG: Redirecting to home from deleted hub');
                     onViewChange('home');
                 }
             }

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import './App.css';
 import Sidebar from './components/layout/Sidebar';
 import Header from './components/layout/Header';
@@ -53,8 +53,8 @@ function App() {
         loadMoreAnalyses: loadMoreInstagram
     } = useInstagramAnalysisTracking();
     
-    // Create unified creator list
-    const unifiedCreators: UnifiedCreator[] = [
+    // Create unified creator list - memoized to prevent unnecessary re-renders
+    const unifiedCreators: UnifiedCreator[] = useMemo(() => [
         ...analyses.map(analysis => ({
             analysisId: analysis.analysisId,
             platform: 'youtube' as const,
@@ -65,7 +65,7 @@ function App() {
             platform: 'instagram' as const,
             instagramData: analysis
         }))
-    ];
+    ], [analyses, instagramAnalyses]);
 
     const allLoadingAnalyses = [...loadingAnalyses, ...loadingInstagramAnalyses];
     

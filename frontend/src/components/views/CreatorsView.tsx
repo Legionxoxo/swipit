@@ -129,8 +129,27 @@ export default function CreatorsView({
                                             onClick={onCreatorClick}
                                             onRightClick={onChannelRightClick}
                                             hubs={hubs}
-                                            onHubAssign={async () => {
-                                                // Hub assignment handled by context menu
+                                            onHubAssign={async (analysisId: string, hubId: string) => {
+                                                // Update hubs with incremental change instead of full refetch
+                                                const updatedHubs = hubs.map(hub => {
+                                                    if (hub.id === hubId) {
+                                                        // Add creator to this hub if not already present
+                                                        if (!hub.creatorIds.includes(analysisId)) {
+                                                            return {
+                                                                ...hub,
+                                                                creatorIds: [...hub.creatorIds, analysisId]
+                                                            };
+                                                        }
+                                                    } else {
+                                                        // Remove creator from other hubs
+                                                        return {
+                                                            ...hub,
+                                                            creatorIds: hub.creatorIds.filter(id => id !== analysisId)
+                                                        };
+                                                    }
+                                                    return hub;
+                                                });
+                                                onHubsChange(updatedHubs);
                                             }}
                                         />
                                     </ErrorBoundary>

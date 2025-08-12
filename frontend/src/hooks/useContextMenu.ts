@@ -101,8 +101,25 @@ export function useContextMenu(analyses: AnalysisData[], hubs: CreatorHub[], set
                                     platform: 'youtube'
                                 });
 
-                                // Update hubs data
-                                const updatedHubs = await apiService.getUserHubs(userId);
+                                // Update hubs with incremental change instead of full refetch
+                                const updatedHubs = hubs.map(h => {
+                                    if (h.id === hub.id) {
+                                        // Add creator to this hub if not already present
+                                        if (!h.creatorIds.includes(contextMenu.targetId)) {
+                                            return {
+                                                ...h,
+                                                creatorIds: [...h.creatorIds, contextMenu.targetId]
+                                            };
+                                        }
+                                    } else {
+                                        // Remove creator from other hubs
+                                        return {
+                                            ...h,
+                                            creatorIds: h.creatorIds.filter(id => id !== contextMenu.targetId)
+                                        };
+                                    }
+                                    return h;
+                                });
                                 setHubs(updatedHubs);
                                 setContextMenu({ isOpen: false, position: { x: 0, y: 0 }, targetId: '', type: 'creator' });
                             }

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import type { UnifiedCreator, CreatorHub } from '../types/api';
 import { getFavoriteCreatorsAsync, getUnorganizedCreatorsAsync } from '../utils/creatorFilters';
 
@@ -20,6 +20,14 @@ export function useCreatorFiltering({
     const [filteredUnifiedCreators, setFilteredUnifiedCreators] = useState<UnifiedCreator[]>(unifiedCreators);
     const [isFiltering, setIsFiltering] = useState(false);
     const previousUnifiedCountRef = useRef<number>(unifiedCreators.length);
+
+    // Memoize hub IDs to prevent unnecessary effect triggers
+    const hubIds = useMemo(() => hubs.map(h => h.id).sort().join(','), [hubs]);
+    
+    // Memoize unified creator IDs to prevent unnecessary effect triggers  
+    const unifiedCreatorIds = useMemo(() => 
+        unifiedCreators.map(c => c.analysisId).sort().join(','), [unifiedCreators]
+    );
 
     // Filter unified creators based on current view
     useEffect(() => {
@@ -44,7 +52,7 @@ export function useCreatorFiltering({
         
         // Update the ref for next comparison
         previousUnifiedCountRef.current = unifiedCreators.length;
-    }, [currentView, unifiedCreators, hubs]);
+    }, [currentView, unifiedCreatorIds, hubIds]);
 
     const filterFavoriteCreators = async () => {
         try {
@@ -115,12 +123,24 @@ export function useCreatorFiltering({
             const hubId = currentView.replace('hub-', '');
             const currentHub = hubs.find(h => h.id === hubId);
             
+            console.debug('DEBUG filterHubCreators:', {
+                hubId,
+                currentHub,
+                hubsAvailable: hubs.map(h => ({id: h.id, name: h.name, creatorCount: h.creatorIds?.length || 0})),
+                unifiedCreatorsCount: unifiedCreators.length
+            });
+            
             if (currentHub) {
                 const hubCreators = unifiedCreators.filter(
                     creator => currentHub.creatorIds.includes(creator.analysisId)
                 );
+                console.debug('DEBUG hub creators found:', {
+                    hubCreatorIds: currentHub.creatorIds,
+                    matchedCreatorIds: hubCreators.map(c => c.analysisId)
+                });
                 setFilteredUnifiedCreators(hubCreators);
             } else {
+                console.debug('DEBUG hub not found, showing empty');
                 setFilteredUnifiedCreators([]);
             }
         } catch (error) {
