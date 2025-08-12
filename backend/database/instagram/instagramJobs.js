@@ -208,20 +208,18 @@ async function getAllCompletedAnalyses(options = {}) {
 
         // Get creators with completed posts, grouped by username with their actual analysis_id
         const creators = await db.all(
-            `SELECT DISTINCT
+            `SELECT 
                 analysis_id,
                 profile_username,
                 instagram_user_id,
-                (SELECT COUNT(*) FROM instagram_data i2 
-                 WHERE i2.profile_username = i1.profile_username 
-                 AND i2.analysis_status = 'completed') as post_count,
-                created_at as latest_created_at,
-                updated_at as latest_updated_at
-             FROM instagram_data i1
+                COUNT(*) as post_count,
+                MAX(created_at) as latest_created_at,
+                MAX(updated_at) as latest_updated_at
+             FROM instagram_data 
              WHERE analysis_status = 'completed' 
              AND profile_username IS NOT NULL 
              AND profile_username != ''
-             AND reel_id IS NULL
+             GROUP BY analysis_id, profile_username, instagram_user_id
              ORDER BY latest_updated_at DESC
              LIMIT ? OFFSET ?`,
             [limit, offset]
